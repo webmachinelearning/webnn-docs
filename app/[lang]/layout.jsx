@@ -19,7 +19,7 @@ export const metadata = {
       'https://webnn.io/android-chrome-512x512.png'
   },
   twitter: {
-    site: '@ibelem'
+    site: '@webmachinelearning'
   },
   appleWebApp: {
     title: 'WebNN'
@@ -31,7 +31,7 @@ export const metadata = {
  
 const navbar = (
   <Navbar
-    projectLink="https://github.com/ibelem/webnn-docs"
+    projectLink="https://github.com/webmachinelearning/webnn-docs"
     logo={
       <>
       <svg className="logo"
@@ -229,7 +229,7 @@ export default async function RootLayout({ children, params }) {
           }
           navbar={navbar}
           pageMap={pageMap}
-          docsRepositoryBase="https://github.com/ibelem/webnn-docs/tree/main"
+          docsRepositoryBase="https://github.com/webmachinelearning/webnn-docs/tree/main"
           i18n={[
             { locale: 'en', name: 'English' },
             { locale: 'zh', name: '简体中文' }
