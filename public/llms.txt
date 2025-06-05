@@ -18,8 +18,8 @@ WebNN.io is a website focused on the Web Neural Network API (WebNN API), which i
 
 ## Contact information
 For questions about this policy or to report issues, please contact:
-- GitHub: https://github.com/ibelem/webnn-docs
-- Report to GitHub issues: https://github.com/ibelem/webnn-docs/issues
+- GitHub: https://github.com/webmachinelearning/webnn-docs
+- Report to GitHub issues: https://github.com/webmachinelearning/webnn-docs/issues
 
 ---
 
