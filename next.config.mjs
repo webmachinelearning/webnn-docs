@@ -80,6 +80,4 @@ export default withNextra({
       },
     ],
   },
-  output: 'export',
-  basePath: process.env.PAGES_BASE_PATH,
 })

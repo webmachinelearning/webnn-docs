@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "WebNN Documentation",
   "author": "Belem Zhang",
-  "license": "CC0 1.0 Universal",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next --turbopack",
     "build": "next build && npm run postbuild",
@@ -14,9 +14,9 @@
     "WebNN"
   ],
   "bugs": {
-    "url": "https://github.com/webmachinelearning/webnn-docs/issues"
+    "url": "https://github.com/ibelem/webnn-docs/issues"
   },
-  "homepage": "https://github.com/webmachinelearning/webnn-docs#readme",
+  "homepage": "https://github.com/ibelem/webnn-docs#readme",
   "dependencies": {
     "@next/third-parties": "^15.3.0",
     "@tailwindcss/postcss": "^4.0.6",
