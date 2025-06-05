@@ -1,6 +1,6 @@
 # Welcome to WebNN Docs
 
-[WebNN Docs][https://github.com/webmachinelearning/webnn-docs] is an open-source, collaborative project that documents Web Neural Network (WebNN) API.
+[WebNN Docs](https://github.com/webmachinelearning/webnn-docs) is an open-source, collaborative project that documents Web Neural Network (WebNN) API.
 
 ## Build the site
 
