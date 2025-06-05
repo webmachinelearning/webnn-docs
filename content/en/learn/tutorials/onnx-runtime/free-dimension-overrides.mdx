@@ -1,0 +1,37 @@
+## Free Dimensions Overrides
+
+ONNX models support dynamic input shapes through free dimensions. A free dimension allows the model to accept inputs of varying sizes along that dimension. For instance, a model with input shape `[batch, 3, height, width]` can process any number of RGB images (3 channels) of any size.
+
+While flexible, you can optimize performance by fixing these dimensions when your application uses consistent input sizes. For example, if your WebNN app always processes single `224×224` images, you can override the free dimensions from `[batch, 3, height, width]` to `[1, 3, 224, 224]` using the `freeDimensionOverrides` option:
+
+```js showLineNumbers filename="*.js"
+const sessionOptions = {
+  freeDimensionOverrides: {
+    batch: 1,
+    height: 224,
+    width: 224
+  }
+};
+```
+
+This configuration locks the input dimensions to specific values, potentially improving model performance.
+
+### Symbolic Dimension
+
+<div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 text-center gap-2 my-8">
+  <div>
+    <div>![No symbolic dimensions](/learn/tutorials/free-dimension-overrides-1.png)</div>
+    <div className="mt-4">Example model without symbolic dimensions</div>
+  </div>
+  <div>
+    <div>![Symbolic dimensions](/learn/tutorials/free-dimension-overrides-2.png)</div>
+    <div className="mt-4">Example model with three symbolic dimensions called `batch_size`, `height` and `width`</div>
+  </div>
+</div>
+
+WebNN Execution Provider needs specify fixed integer values via `freeDimensionOverrides` for all the symbolic dimensions to avoid fallbacks.
+
+### Additional Resources
+
+- [ONNX Runtime - Free dimension overrides](https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html#freedimensionoverrides)
+- [ONNX Runtime - Make a symbolic dimension fixed](https://onnxruntime.ai/docs/tutorials/mobile/helpers/make-dynamic-shape-fixed.html#making-a-symbolic-dimension-fixed)

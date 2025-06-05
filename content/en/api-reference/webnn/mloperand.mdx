@@ -1,0 +1,189 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# MLOperand
+
+The `MLOperand` interface represents an intermediary graph node during the construction of machine learning operations. It can represent constants, operation inputs, or results from combining multiple operations in a neural network graph.
+
+## MLOperandDescriptor Dictionary
+
+The `MLOperandDescriptor` dictionary describes the shape (dimensions) and data type of an operand in a machine learning context. It is used to specify the characteristics of inputs and constants for an `MLGraph`, with every `MLOperand` containing an internal `MLOperandDescriptor`.
+
+It combines two essential pieces of information:
+- The data type of the operand (e.g., float32, int8)
+- The dimensional shape of the operand (e.g., [batch, height, width, channels])
+
+### Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+enum MLInputOperandLayout {
+  "nchw",  // Batch, Channels, Height, Width
+  "nhwc"   // Batch, Height, Width, Channels
+};
+
+enum MLOperandDataType {
+  "float32",
+  "float16",
+  "int32",
+  "uint32",
+  "int64",
+  "uint64",
+  "int8",
+  "uint8"
+};
+
+dictionary MLOperandDescriptor {
+  required MLOperandDataType dataType;
+  required sequence<[EnforceRange] unsigned long> shape;
+};
+```
+
+#### Properties
+
+##### `dataType` (required)
+- Type: `MLOperandDataType`
+- Description: Specifies the data type of the operand
+- Possible values:
+  - `"float32"`: 32-bit floating point
+  - `"float16"`: 16-bit floating point
+  - `"int32"`: 32-bit signed integer
+  - `"uint32"`: 32-bit unsigned integer
+  - `"int64"`: 64-bit signed integer
+  - `"uint64"`: 64-bit unsigned integer
+  - `"int8"`: 8-bit signed integer
+  - `"uint8"`: 8-bit unsigned integer
+
+##### `shape` (required)
+- Type: `sequence<[EnforceRange] unsigned long>`
+- Description: An array specifying the dimensions of the operand
+- For scalar operands, this array should be empty
+- Each element represents the size of a dimension
+
+#### Input Operand Layout Types
+
+The `MLInputOperandLayout` enum defines possible layout configurations: `nchw` and `nhwc`
+
+#### Examples
+
+```js showLineNumbers filename="example-1.js"
+const operandDescriptor = {
+  dataType: "float32",
+  shape: [1, 224, 224, 3]
+};
+```
+
+## MLOperand Interface
+
+The `MLOperand` interface provides access to the fundamental properties of an operand in a neural network graph. Each `MLOperand` is associated with an `MLGraphBuilder` and contains internal descriptors that define its characteristics.
+
+## Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLOperand {
+  readonly attribute MLOperandDataType dataType;
+  readonly attribute FrozenArray<unsigned long> shape;
+};
+
+dictionary MLOperatorOptions {
+  USVString label = "";
+};
+
+typedef (bigint or unrestricted double) MLNumber;
+```
+
+### Properties
+
+#### `dataType` (readonly)
+- Type: `MLOperandDataType`
+- Description: Returns the data type of the operand
+- Value is derived from the operand's internal descriptor
+
+#### `shape` (readonly)
+- Type: `FrozenArray<unsigned long>`
+- Description: Returns the array of dimensions defining the operand's shape
+- Empty array for scalar operands
+
+## MLNumber
+
+The `MLNumber` type is a type definition used to specify numeric options for `MLOperand` operations. 
+It accommodates both large integer values and floating-point numbers through a union type of `bigint` and `unrestricted double`, to handle numeric precision challenges in WebNN API operations that work with various data types.
+
+### Description
+
+`MLNumber` provides a flexible numeric type that can handle all supported `MLOperandDataType` values:
+- 64-bit integers (`"uint64"` and `"int64"`)
+- 32-bit floating point (`"float32"`)
+- Other numeric types (`"uint32"`, `"int32"`, etc.)
+
+The implementation automatically converts the `MLNumber` value to match the operand's data type during processing.
+
+### Use Cases
+
+`MLNumber` can be used in these `MLGraphBuilder` methods:
+
+- `constant()` (scalar overload)
+- `clamp()` (min/max options)
+- `pad()` (padding value)
+- ...
+
+### Type Conversion Rules
+
+1. For integer data types:
+   - Values are cast to the appropriate integer type
+   - `bigint` values maintain full precision
+   - Floating-point values are truncated
+
+2. For floating-point data types:
+   - Values are converted to the appropriate floating-point precision
+   - `bigint` values are converted to floating-point
+
+## Examples
+
+```js showLineNumbers filename="example-2.js"
+const context = await navigator.ml.createContext({
+    deviceType: 'gpu'
+});
+const builder = new MLGraphBuilder(context);
+const descriptor = {
+    dataType: 'float32',
+    shape: [1, 3, 224, 224]
+};
+const operand = builder.constant(descriptor, new Float32Array(3*224*224).fill(0.2));
+
+console.log(descriptor.dataType); 
+console.log(descriptor.shape); 
+console.log(operand); 
+```
+
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`MLOperand` interface](https://webmachinelearning.github.io/webnn/#api-mloperand) | Candidate Recommendation Draft |
+
+## Security Requirements
+
+1. Must be used within a secure context (`SecureContext`)
+2. Access is limited to:
+   - Window contexts
+   - Dedicated Workers
+3. Validation requirements:
+   - All operands must be created by the same `MLGraphBuilder`
+   - Shape dimensions must be valid unsigned long values
+   - Data types must match operation requirements
+
+### Security Considerations
+
+- Validate builder associations and numeric ranges before operations, check data type compatibility in operations
+- Ensure proper memory management for large tensors, consider the memory implications of large tensor shapes
+- Validate all shape dimensions to prevent out-of-memory conditions
+- Implement appropriate error handling for invalid operations or invalid descriptors
+- Ensure data types match the expected input format of your model
+- Handle potential loss of precision when converting between types
+- Consider numeric overflow scenarios
+
+## Browser Compatibility
+
+> <InfoIcon /> The `MLOperand` interface is under active development and browser support may vary.
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

@@ -1,0 +1,194 @@
+
+
+# MLGraphBuilder
+
+The `MLGraphBuilder` interface enables the construction of computational graphs through a set of operations. It manages the intermediate state during graph building sessions.
+
+## Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+typedef record<USVString, MLOperand> MLNamedOperands;
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraphBuilder {
+  // Construct the graph builder from the context.
+  constructor(MLContext context);
+
+  // Create an operand for a graph input.
+  MLOperand input(USVString name, MLOperandDescriptor descriptor);
+
+  // Create an operand for a graph constant.
+  MLOperand constant(MLOperandDescriptor descriptor,
+                     AllowSharedBufferSource buffer);
+
+  // Create a scalar operand from the specified number of the specified type.
+  MLOperand constant(MLOperandDataType type, MLNumber value);
+
+  // Compile the graph up to the specified output operands asynchronously.
+  Promise<MLGraph> build(MLNamedOperands outputs);
+};
+```
+
+## Syntax
+
+```javascript
+const builder = new MLGraphBuilder(context);
+
+// Creating input and constant operands
+const input = builder.input(name, descriptor);
+const constant1 = builder.constant(descriptor, buffer);
+const constant2 = builder.constant(type, value);
+
+// Building the graph
+const graph = await builder.build(outputs);
+```
+
+## Constructor
+
+### MLGraphBuilder()
+
+Creates a new `MLGraphBuilder` instance.
+
+```js showLineNumbers filename="constructor.js"
+constructor(context)
+```
+
+#### Parameters
+
+- `context`: An `MLContext` object to associate with the graph builder.
+
+## Properties
+
+This interface doesn't contain any properties.
+
+## Methods
+
+### input()
+
+Creates a named `MLOperand` that can be used as an input to the graph.
+
+```js showLineNumbers filename="input.js"
+builder.input(name, descriptor)
+```
+
+#### Parameters
+
+- `name`: A string representing the name of the input.
+- `descriptor`: An `MLOperandDescriptor` object defining the input's characteristics.
+
+#### Return Value
+
+Returns an `MLOperand` object.
+
+### constant()
+
+Creates a constant `MLOperand`. This method has two overloads:
+
+#### Syntax 1: Creating a graph constant
+
+```js showLineNumbers filename="constant-1.js"
+builder.constant(descriptor, buffer)
+```
+
+##### Parameters
+
+- `descriptor`: An `MLOperandDescriptor` describing the output tensor.
+- `buffer`: An `AllowSharedBufferSource` containing the initializing data.
+
+##### Return Value
+
+Returns an `MLOperand` representing the constant tensor.
+
+#### Syntax 2: Creating a scalar operand
+
+```js showLineNumbers filename="constant-2.js"
+builder.constant(type, value)
+```
+
+##### Parameters
+
+- `type`: An `MLOperandDataType` specifying the data type.
+- `value`: An `MLNumber` representing the constant value.
+
+##### Return Value
+
+Returns an `MLOperand` representing the scalar constant.
+
+### build()
+
+Compiles the graph asynchronously up to the specified output operands.
+
+```js showLineNumbers filename="build.js"
+builder.build(outputs)
+```
+
+#### Parameters
+
+- `outputs`: An `MLNamedOperands` record identifying the output operands of the graph.
+
+#### Return Value
+
+Returns a `Promise` that resolves to an `MLGraph` object.
+
+## Implementation Notes
+
+When building a graph with `MLContext` type set to "default", the following occurs:
+
+1. The graph is compiled based on the specified output operands
+2. Graph initialization occurs just before the `MLGraph` is returned
+3. Weight preprocessing is performed where:
+   - Constant inputs are preprocessed
+   - Data is cached at the OS level
+   - This optimization improves subsequent graph execution performance
+
+## Examples
+
+### Creating and Building a Simple Graph
+
+```js showLineNumbers filename="example-1.js"
+async function simpleGraph() {
+  const context = await navigator.ml.createContext({
+    deviceType: 'gpu'
+  });
+  // Create a graph builder
+  const builder = new MLGraphBuilder(context);
+  // Create an input
+  const a = builder.input("a", {
+    dataType: "float32",
+    shape: [3, 4]
+  });
+  // Create a input
+  const b = builder.input("b", {
+    dataType: "float32",
+    shape: [4, 3]
+  });
+  const c = builder.matmul(a, b);
+  // Build the graph
+  const graph = await builder.build({c});
+  return graph;
+}
+```
+
+### Creating a Scalar Constant
+
+```js showLineNumbers filename="example-2.js"
+const builder = new MLGraphBuilder(context);
+const scalarConstant = builder.constant("float32", 42.0);
+```
+
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`MLGraphBuilder` interface](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
+
+
+## Security Requirements
+
+1. Must be used in a secure context (HTTPS or localhost)
+2. Access is restricted to Window and DedicatedWorker contexts
+3. The graph builder can only build if its associated `context` is not lost
+
+## Browser Compatibility
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

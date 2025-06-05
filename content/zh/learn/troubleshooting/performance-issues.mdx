@@ -1,0 +1,27 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# Performance Issues
+
+## ONNX Runtime
+
+### How to profile my super slow WebNN implementation?
+
+WebNN EP of ONNX Runtime Web needs specify fixed integer values via [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) for all the [symbolic dimensions](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension), otherwise the optimizations will not be applied.
+
+> <InfoIcon /> Oh Wow! fixing the argument names makes it 100x time faster! 
+
+#### Additional Resources
+
+- [SD-Turbo image-to-image super slow issue](https://github.com/microsoft/webnn-developer-preview/issues/40)
+
+### Why am I not seeing performance benefits on Intel GPUs?
+
+DirectML metacommands execution is disabled by default on Intel GPUs between driver versions `31.0.101.5518` and `32.0.101.6083`. To enable metacommands and evaluate performance on affected GPU drivers, add the following flag:
+
+```bash copy showLineNumbers filename="gpu-flag"
+--disable_dml_meta_commands_for_gpu=0
+```
+
+Note: This flag only affects GPU inference and has no impact on NPU operations.
+
+## LiteRT

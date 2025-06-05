@@ -1,0 +1,62 @@
+import { Cards } from 'nextra/components'
+import ArchitectureIcon from '../../../app/_components/icons/architecture.jsx'
+import ApiIcon from '../../../app/_components/icons/api.jsx'
+import HardwareIcon from '../../../app/_components/icons/hardware.jsx'
+import ModelIcon from '../../../app/_components/icons/model.jsx'
+import JsIcon from '../../../app/_components/icons/js.jsx'
+
+# Frequently Asked Questions
+
+<Cards>
+  <Cards.Card
+    icon={<ArchitectureIcon />}
+    title="Architecture"
+    href="./architecture"
+  />
+  <Cards.Card
+    icon={<ApiIcon />}
+    title="API"
+    href="./api"
+  />
+  <Cards.Card
+    icon={<JsIcon />}
+    title="Framework and Tool"
+    href="./framework"
+  />
+  <Cards.Card
+    icon={<ModelIcon />}
+    title="Model"
+    href="./model"
+  />
+    <Cards.Card
+    icon={<HardwareIcon />}
+    title="Hardware and NPU"
+    href="./hardware"
+  />
+</Cards>
+
+## How do I file an issue with WebNN?
+
+File issues to following WebNN issue trackers:
+
+- [Design or Specification](https://github.com/webmachinelearning/webnn/issues)
+- [Chromium Implementation (Component: Chromium > Blink > WebML)](https://issues.chromium.org/issues?q=status:open%20componentid:1456206&s=created_time:desc)
+- [ONNX Runtime Web or WebNN Execution Provider](https://github.com/microsoft/onnxruntime/issues)
+- [WebNN Samples](https://github.com/webmachinelearning/webnn-samples/issues)
+- [WebNN Developer Preview Demo](https://github.com/microsoft/webnn-developer-preview/issues)
+
+If you're unsure about which issue type to select, feel free to submit your issue [here](https://github.com/webmachinelearning/webnn-samples/issues) and we will help categorize and resolve it.
+
+## How do I debug issues with WebNN?
+
+The WebNN API uses standard DOM exceptions for error propagation. When an error occurs, the API throws specific exceptions that can be caught and handled in your code.
+
+Check the GPU information log, these pages contain detailed diagnostic information about GPU-related errors, histograms and performance.
+
+```javascript
+about://gpu
+about://histograms/webnn
+```
+
+- Review the [W3C WebNN Specification](https://www.w3.org/TR/webnn/) for complete error handling documentation.
+- Feel free to raise your questions [here](https://github.com/webmachinelearning/webnn-samples/issues) and we will help analyze and try to resolve them.

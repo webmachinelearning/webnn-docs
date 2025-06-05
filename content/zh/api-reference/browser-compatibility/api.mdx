@@ -1,0 +1,52 @@
+import { AndroidIcon, WindowsIcon, ChromeosIcon, MacosIcon, LinuxIcon, IosIcon } from '../../../../app/_components/icons/os.jsx'
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+<div className="mdx-table">
+
+# Browser Compatibility
+
+## WebNN APIs
+
+> <InfoIcon /> May 20, 2025: DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.
+
+<div className="table">
+| WebNN | CPU | GPU | NPU |
+| --- | --- | --- | --- |
+| <ChromeosIcon /> chromsOS	| ✅ LiteRT/XNNPACK | 🚀ℹ️  LiteRT/MLDrift | 🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK | 
+|<LinuxIcon /> Linux | ✅ LiteRT/XNNPACK |  🚀ℹ️  LiteRT/MLDrift |  🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK | 
+|<MacosIcon /> macOS| ✅ Core ML |✅ Core ML |✅ Core ML |
+|<WindowsIcon /> Windows| ✅ LiteRT/XNNPACK<br />🚀ℹ️ WCR/MLAS (deprecated) | ℹ️ DirectML (deprecated)<br /> 🚀ℹ️ Windows ML | ℹ️ DirectML (deprecated) <br />🚀ℹ️ Windows ML | 
+|<AndroidIcon /> Android| ✅ LiteRT/XNNPACK | 🚀ℹ️  LiteRT/MLDrift | 🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK |
+|<IosIcon /> iOS| ❌ Core ML| ❌ Core ML| ❌ Core ML| 
+</div>
+
+- The WebNN API mainly supported with Chromium-based browsers on ChromeOS, Linux, macOS, Windows and Android.
+- Chromium-based browsers include but are not limited to Google Chrome, Microsoft Edge, Opera, Vivaldi, Brave, Samsung Internet etc.
+
+<div className="table">
+| Interface | Method | Chromium Version |
+| --- | --- | --- |
+| navigator.ml | | M112 |
+| ML | | M112 |
+| ML | createContext() | M112 |
+| MLContext | | M112 |
+|MLContext|dispatch()|M128|
+|MLContext|createTensor()|M129|
+|MLContext|readTensor(tensor)|M129|
+|MLContext|readTensor(tensor, outputData)|M129|
+|MLContext|writeTensor()|M129|
+|MLContext|opSupportLimits()|M128|
+|MLGraph|| M112|
+|MLOperand||M112|
+|MLOperand| MLNumber | M132 |
+|MLTensor|| M124|
+|MLTensor|destroy()| M124 |
+|MLGraphBuilder| | M112|
+|MLGraphBuilder| MLGraphBuilder() constructor | M112 | 
+|MLGraphBuilder| input(name, descriptor)| M112|
+|MLGraphBuilder| constant(descriptor, buffer) | M112|
+|MLGraphBuilder| constant(type, value) | M112|
+|MLGraphBuilder| build(outputs)| M112|
+</div>
+
+</div>

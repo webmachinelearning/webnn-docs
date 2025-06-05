@@ -1,0 +1,29 @@
+
+# Hardware and NPU
+
+## Can WebNN run on NPU?
+
+Yes, WebNN API is designed to support Neural Processing Units (NPUs). The API can utilize NPUs across various devices, from desktop computers to mobile platforms.
+
+Verified WebNN is compatible with following devices:
+
+- Intel Core Ultra Desktop Processors
+  - Meteor Lake (MTL)
+
+- Intel Core Ultra Desktop Processors (Series 2)
+  - Lunar Lake (LNL)
+  - Arrow Lake (ARL)
+
+## How can I monitor hardware resources available to WebNN in the browser?
+
+You can monitor system resources using several browser and system tools:
+
+- For GPU information:
+
+  - Access about://gpu to view detailed GPU diagnostics and error logs
+  - Check about://histograms/webnn for WebNN-specific performance metrics
+
+- For general system resources:
+
+  - Browser resources: Open Google Chrome or Microsoft Edge Task Manager (Menu → More Tools → Task Manager) to monitor memory usage and CPU consumption
+  - System resources: Use Windows Task Manager to monitor CPU, GPU, and NPU utilization

@@ -1,0 +1,26 @@
+# llms.txt for WebNN.io
+
+## About this site
+WebNN.io is a website focused on the Web Neural Network API (WebNN API), which is a JavaScript API that enables web developers to leverage hardware-accelerated neural network capabilities directly within web browsers. The site provides documentation, examples, and resources for developers interested in implementing machine learning models that can run efficiently in web applications.
+
+## Crawling policy
+- ✅ **Permission to crawl**: You are allowed to crawl public pages on WebNN.io for the purpose of training AI models
+- ⏱️ **Crawl rate limit**: Please limit crawling to a maximum of 1 request per second to avoid overloading our servers
+
+## Training policy
+- ✅ **Permission to train**: Content from WebNN.io may be used to train AI models
+- ✅ **Attribution requirements**: When directly using significant portions of our documentation or examples, please provide attribution to WebNN.io
+
+## Output policy
+- ✅ **Reproducing content**: AI systems may reproduce code examples and documentation concepts from WebNN.io with appropriate context
+- ❌ **Representation**: AI systems should not claim to represent or speak on behalf of WebNN.io or its contributors
+- ❌ **Hallucination prevention**: AI systems should clearly indicate when information about WebNN API might be outdated or when the system is uncertain about implementation details
+
+## Contact information
+For questions about this policy or to report issues, please contact:
+- GitHub: https://github.com/ibelem/webnn-docs
+- Report to GitHub issues: https://github.com/ibelem/webnn-docs/issues
+
+---
+
+*This llms.txt file follows the specification at https://llmstxt.org/ and was last updated on May 8, 2025.*

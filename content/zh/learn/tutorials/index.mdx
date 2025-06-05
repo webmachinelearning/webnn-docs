@@ -1,0 +1,51 @@
+
+import { Cards } from 'nextra/components'
+import Image from 'next/image'
+import TransformersJsIcon from '../../../../app/_components/icons/transformersjs.jsx'
+import OnnxRuntimeIcon from '../../../../app/_components/icons/onnxruntime.jsx'
+import LiteRTIcon from '../../../../app/_components/icons/litert.jsx'
+import WebNNIcon from '../../../../app/_components/icons/webnn.jsx'
+import ArchitectureDiagram from '../../../../app/_components/architecture/architecture.jsx'
+
+# JavaScript ML Frameworks vs Vanilla JavaScript
+
+WebNN can be used either through supported JavaScript machine learning frameworks or directly via vanilla JavaScript. Choose the approach that best suits your needs.
+
+<ArchitectureDiagram />
+
+# JavaScript ML Frameworks
+
+WebNN API is integrating into major JavaScript machine learning frameworks like ONNX Runtime Web, Transformers.js, and LiteRT. This enables web developers to build AI applications using these high-level frameworks with less codes while leveraging WebNN's efficient, low-level neural network operations.
+
+<Cards className="quick-start-card">
+  <Cards.Card
+    icon={<TransformersJsIcon />}
+    title="Transformers.js"
+    href="./tutorials/transformers-js/transformers-js"
+  />
+  <Cards.Card
+    icon={<OnnxRuntimeIcon />}
+    title="ONNX Runtime"
+    href="./tutorials/onnx-runtime/onnx-runtime"
+  />
+  <Cards.Card
+    icon={<LiteRTIcon />}
+    title="Lite RT"
+    href="./tutorials/lite-rt/lite-rt"
+  />
+</Cards>
+
+# Vanilla JavaScript
+
+Use the WebNN API directly to create custom computational graphs and neural network models with greater flexibility in your AI applications. However, building models with the raw WebNN API requires more complex code compared to using mature solutions like ONNX and TFLite.
+
+Using the WebNN JavaScript API directly instead of a ML framework reduces application size by eliminating framework distributions overhead.
+
+<Cards className="quick-start-card">
+  <Cards.Card
+    icon={<WebNNIcon />}
+    title="Vanilla JavaScript"
+    href="./tutorials/webnn/webnn"
+  />
+</Cards>
+ 

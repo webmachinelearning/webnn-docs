@@ -1,0 +1,61 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# navigator.ml
+
+The `navigator.ml` property provides access to the WebNN API, allowing web applications to interact with machine learning capabilities in the browser.
+
+## Web IDL
+
+```idl showLineNumbers filename="web-idl"
+interface mixin NavigatorML {
+  [SecureContext, SameObject] readonly attribute ML ml;
+};
+Navigator includes NavigatorML;
+WorkerNavigator includes NavigatorML;
+```
+
+## Syntax
+
+```js showLineNumbers filename="navigator.ml.js"
+const ml = navigator.ml
+```
+
+### Value
+
+An [`ML`](https://www.w3.org/TR/webnn/#api-navigator-ml) object that provides access to WebNN functionality.
+
+## Description
+
+The `navigator.ml` property returns a read-only reference to an `ML` object, which serves as the entry point for browser-based machine learning operations. This interface is:
+
+- Available in both window and dedicated worker contexts
+- Accessible through the `Navigator` interface in window contexts
+- Accessible through the `WorkerNavigator` interface in dedicated worker contexts
+- Protected by a secure context requirement (HTTPS or localhost)
+
+## Example
+
+```js showLineNumbers filename="example.js"
+if ('ml' in navigator) {
+  // ML API is supported
+  const mlInstance = navigator.ml;
+  // Use ML functionality here
+} else {
+  console.log('ML API is not supported in this browser');
+}
+```
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`navigator.ml` interface](https://www.w3.org/TR/webnn/#api-navigator-ml) | Candidate Recommendation Draft |
+
+## Security Requirements
+
+Access to `navigator.ml` requires a secure context (HTTPS or localhost). Attempting to access this API in a non-secure context will result in an error.
+
+## Browser Compatibility
+
+> <InfoIcon /> The `navigator.ml` interface is experimental and support may vary across browsers.
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

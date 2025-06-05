@@ -1,0 +1,336 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# MLContext
+
+The `MLContext` interface represents a global state of neural network compute workload and execution processes. Each `MLContext` object has associated `context type`, `MLDeviceType` and `MLPowerPreference`.
+
+## Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+typedef record<USVString, MLTensor> MLNamedTensors;
+
+dictionary MLContextLostInfo {
+  DOMString message;
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLContext {
+  undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
+
+  Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
+
+  Promise<ArrayBuffer> readTensor(MLTensor tensor);
+  Promise<undefined> readTensor(MLTensor tensor, AllowSharedBufferSource outputData);
+
+  undefined writeTensor(MLTensor tensor, AllowSharedBufferSource inputData);
+
+  MLOpSupportLimits opSupportLimits();
+
+  undefined destroy();
+
+  readonly attribute Promise<MLContextLostInfo> lost;
+};
+```
+## Context Types
+
+The context type determines how the execution context manages resources and facilitates neural network graph compilation and execution:
+
+- `"default"`: Context created per user preference options
+- `"webgpu"`: Context created from WebGPU device
+
+When the `contextType` is set to `default` with the `MLContextOptions.deviceType` set to `"gpu"`, the user agent creates an internal GPU device that operates within the context and can submit ML workloads on behalf of the calling application.
+
+## Properties
+
+### lost (readonly)
+
+Returns a `Promise` that resolves when the context is lost. A context is considered lost when its `lost` `Promise` is settled.
+
+- Type: `Promise<undefined>`
+- Throws: None
+
+## Methods
+
+### dispatch()
+
+Schedules the computational workload of a compiled `MLGraph` on the `MLContext`'s timeline.
+
+#### Syntax
+
+```js showLineNumbers filename="dispatch.js"
+context.dispatch(graph, inputs, outputs)
+```
+
+#### Parameters
+
+- `graph`: An `MLGraph` object representing the computational graph to be executed
+- `inputs`: An `MLNamedTensors` object containing the inputs to the computational graph
+- `outputs`: An `MLNamedTensors` object that will contain the outputs of the computational graph
+
+#### Return Value
+
+`undefined`
+
+#### Notes
+
+The `dispatch()` method itself provides no signal that graph execution has completed. Callers should `await` the results of reading back the output tensors.
+
+### createTensor()
+
+Creates an `MLTensor` associated with this `MLContext`.
+
+#### Syntax
+
+```js showLineNumbers filename="create-tensor.js"
+context.createTensor(descriptor)
+```
+
+#### Parameters
+
+- `descriptor`: An `MLTensorDescriptor` object
+
+#### Return Value
+
+Returns a `Promise` that resolves to an `MLTensor`
+
+### readTensor()
+
+There are two variations of this method:
+
+#### Syntax 1: (tensor)
+
+```js showLineNumbers filename="read-tensor-1.js"
+context.readTensor(tensor)
+```
+
+Reads back the `data` of an `MLTensor` from the `MLContext` timeline to script.
+
+##### Parameters
+
+- `tensor`: An `MLTensor` object to be read
+
+##### Return Value
+
+Returns a `Promise` that resolves to an `ArrayBuffer` containing the result of the read
+
+#### Syntax 2: (tensor, outputData)
+
+```js showLineNumbers filename="read-tensor-2.js"
+context.readTensor(tensor, outputData)
+```
+
+Bring-your-own-buffer variant that reads back the `data` of an `MLTensor` into the provided buffer.
+
+##### Parameters
+
+- `tensor`: An `MLTensor` object to be read
+- `outputData`: An `AllowSharedBufferSource` buffer to read the result into
+
+##### Return Value
+
+Returns a `Promise` that resolves to `undefined`
+
+### writeTensor()
+
+Writes data to the `data` of an `MLTensor` on the `MLContext`'s timeline.
+
+#### Syntax
+
+```js showLineNumbers filename="write-tensor.js"
+context.writeTensor(tensor, inputData)
+```
+
+#### Parameters
+
+- `tensor`: An `MLTensor` object to be written to
+- `inputData`: An `AllowSharedBufferSource` buffer whose bytes will be written into the tensor
+
+#### Return Value
+
+`undefined`
+
+#### Notes
+
+The `writeTensor()` method itself provides no signal that the write has completed. Callers should `await` the results of reading back the tensor.
+
+### opSupportLimits()
+
+Returns information about the level of support that differs across implementations at the operator level.
+
+#### Syntax
+
+```js showLineNumbers filename="op-support-limits.js"
+context.opSupportLimits()
+```
+
+#### Return Value
+
+Returns an `MLOpSupportLimits` object containing support information.
+
+#### MLOpSupportLimits Dictionary
+
+```webidl showLineNumbers filename="web-idl"
+dictionary MLOpSupportLimits {
+  MLInputOperandLayout preferredInputLayout;
+  MLSupportLimits input;
+  MLSupportLimits constant;
+  MLSupportLimits output;
+};
+```
+
+##### Members
+
+- `preferredInputLayout`: Preferred input layout for layout dependent operators like `conv2d()`
+- `input`: Support limits for input `MLOperand`s for an `MLGraph`
+- `constant`: Support limits for constant `MLOperand`s for an `MLGraph`
+- `output`: Support limits for output `MLOperand`s for an `MLGraph`
+
+#### MLSupportLimits Dictionary
+
+```webidl showLineNumbers filename="web-idl"
+dictionary MLSupportLimits {
+  sequence dataTypes;
+};
+```
+
+##### Members
+
+- `dataTypes`: Supported data types
+
+#### MLBinarySupportLimits Dictionary
+
+```webidl showLineNumbers filename="web-idl"
+dictionary MLBinarySupportLimits {
+  MLSupportLimits a;
+  MLSupportLimits b;
+  MLSupportLimits output;
+};
+```
+
+##### Members
+
+- `a`: `MLSupportLimits` for a operand
+- `b`: `MLSupportLimits` for b operand
+- `output`: `MLSupportLimits` for output operand
+
+#### MLSingleInputSupportLimits Dictionary
+
+```webidl showLineNumbers filename="web-idl"
+dictionary MLSingleInputSupportLimits {
+  MLSupportLimits input;
+  MLSupportLimits output;
+};
+```
+
+##### Members
+
+- `input`: `MLSupportLimits` for input operand
+- `output`: `MLSupportLimits` for output operand
+
+### destroy()
+
+Releases all resources associated with the context. Any pending compute requests and MLTensor operations (creation, read, or write) will fail after this method is called.
+
+#### Syntax
+
+```js showLineNumbers filename="destory.js"
+context.destroy()
+```
+
+#### Return Value
+
+- Type: `undefined`
+
+## Examples
+
+### Executing an MLGraph using MLTensors
+
+```js showLineNumbers filename="example-1.js"
+  const mlGraphExecution = async () => {
+    const descriptor = {
+      dataType: 'float32',
+      shape: [2, 2]
+    };
+    const context = await navigator.ml.createContext({
+      deviceType: 'gpu'
+    });
+    const builder = new MLGraphBuilder(context);
+
+    // 1. Create a computational graph 'C = 0.2 * A + B'.
+    const constant = builder.constant(descriptor, new Float32Array(4).fill(0.2));
+    const A = builder.input('A', descriptor);
+    const B = builder.input('B', descriptor);
+    const C = builder.add(builder.mul(A, constant), B);
+
+    // 2. Compile the graph.
+    const graph = await builder.build({
+      'C': C
+    });
+
+    // 3. Create reusable input and output tensors.
+    const [inputTensorA, inputTensorB, outputTensorC] =
+      await Promise.all([
+        context.createTensor({
+          dataType: A.dataType,
+          shape: A.shape,
+          writable: true
+        }),
+        context.createTensor({
+          dataType: B.dataType,
+          shape: B.shape,
+          writable: true
+        }),
+        context.createTensor({
+          dataType: C.dataType,
+          shape: C.shape,
+          readable: true
+        })
+      ]);
+
+    // 4. Initialize the inputs.
+    context.writeTensor(inputTensorA, new Float32Array(4).fill(1.0));
+    context.writeTensor(inputTensorB, new Float32Array(4).fill(0.8));
+
+    // 5. Execute the graph.
+    const inputs = {
+      'A': inputTensorA,
+      'B': inputTensorB
+    };
+    const outputs = {
+      'C': outputTensorC
+    };
+    context.dispatch(graph, inputs, outputs);
+
+    // 6. Read back the computed result.
+    const result = await context.readTensor(outputTensorC);
+    console.log('Output value:', new Float32Array(result));
+  }
+
+  mlGraphExecution();
+```
+
+### Checking Operator Support Limits
+
+```js showLineNumbers filename="example-2.js"
+  const context = await navigator.ml.createContext();
+  const limits = context.opSupportLimits();
+  console.log('opSupportLimits: ', limits);
+```
+
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`MLContext` interface](https://www.w3.org/TR/webnn/#mlgraph) | Candidate Recommendation Draft |
+
+## Security Requirements
+
+- Must be used in a secure context
+- Access is restricted to Window and DedicatedWorker contexts
+- Proper handling of shared buffers and tensor data is required to prevent memory leaks and unauthorized access
+
+## Browser Compatibility
+
+> <InfoIcon /> The `MLContext` interface is under active development and browser support may vary.
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

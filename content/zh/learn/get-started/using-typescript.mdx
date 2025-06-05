@@ -1,0 +1,123 @@
+
+import { Cards } from 'nextra/components'
+import Image from 'next/image'
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# Using TypeScript with WebNN API
+
+TypeScript provides strong typing capabilities for JavaScript projects, enhancing developer productivity with features like code completion and compile-time error checking. This guide explains how to integrate TypeScript type definitions for the WebNN API in your projects.
+
+## Overview
+
+The [@webnn/types](https://www.npmjs.com/package/@webnn/types) package contains TypeScript declaration files (`.d.ts`) for the WebNN API, providing type information for methods, properties, and return values used in the WebNN specification.
+
+> **Note:** You don't need to use `@webnn/types` if you're working with JavaScript ML libraries like [Transformers.js](https://huggingface.co/docs/transformers.js/index) or [ONNX Runtime Web](https://onnxruntime.ai/docs/api/js/index.html), which includes their own type definitions.
+
+## Why Use Type Definitions?
+
+Without type definitions, TypeScript will treat WebNN API objects and methods as having `unknown` type:
+
+<div className="text-center flex justify-center">
+  <div className="w-[500px]">![WebNN without TypeScript type definitions](/learn/get-started/typescript/1.png)</div>
+</div>
+<div className="text-center text-sm">Figure 1: Type unknown errors appear when no type definitions are available</div>
+
+With proper type definitions, TypeScript can provide code completion, parameter validation, and type checking:
+
+<div className="text-center flex justify-center mt-4">
+  <div className="w-[500px]">![WebNN with TypeScript type definitions](/learn/get-started/typescript/2.png)</div>
+</div>
+<div className="text-center text-sm">Figure 2: Type checking works correctly when definitions are available</div>
+
+## Installation
+
+Install the type definitions as a development dependency using your preferred package manager:
+
+```bash
+# npm
+npm install --save-dev @webnn/types
+# yarn
+yarn add --dev @webnn/types
+# pnpm
+pnpm add -D @webnn/types
+```
+
+## Configuration
+
+Since `@webnn/types` is outside of DefinitelyTyped [(@types)](https://github.com/DefinitelyTyped/DefinitelyTyped), you need to explicitly configure TypeScript to recognize these types. You have two options:
+
+### Option 1: Using `types` in `tsconfig.json`
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "types": ["@webnn/types"]
+  }
+}
+```
+
+### Option 2: Using `typeRoots` in `tsconfig.json`
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "typeRoots": [
+      "./node_modules/@webnn/types",
+      "./node_modules/@types"
+    ]
+  }
+}
+```
+
+<div className="text-center flex justify-center mt-4">
+  <div className="w-[400px]">![WebNN / TypeScript type definitions](/learn/get-started/typescript/3.png)</div>
+</div>
+<div className="text-center text-sm">Figure 3: Configuration in tsconfig.json</div>
+
+## Global Types
+
+Once configured, the WebNN types are globally available in your project. You don't need to import them explicitly - TypeScript will automatically recognize WebNN interfaces like `navigator.ml` and `MLGraphBuilder`.
+
+```typescript
+// No need to import WebNN types - they're globally available
+async function runInference() {
+  // TypeScript will recognize these types
+  const ml:ML = navigator.ml;
+  const context:MLContext = navigator.ml.createContext();
+  const builder:MLGraphBuilder = new MLGraphBuilder(context);
+
+  const input:MLOperand = builder.input('input', {dataType: 'float32', shape: [1, 3, 224, 224]});
+  const weights:MLOperand = builder.constant({dataType: 'float32', shape: [16, 3, 3, 3]}, new Float32Array(432));
+
+  // Types for convolution parameters
+  const options:MLConv2dOptions = {
+    padding: [1, 1, 1, 1],
+    strides: [1, 1],
+    dilations: [1, 1],
+    groups: 1
+  };
+  
+  const conv:MLOperand = builder.conv2d(input, weights, options);
+  const graph:MLGraph = await builder.build({output: conv});
+  
+  // Rest of the inference code...
+}
+```
+## TypeScript Vanilla Example
+
+For a complete working example, refer to the [WebNN TypeScript Vanilla Example](https://github.com/ibelem/webnn-typescript-vanilla-example/) repository, which demonstrates:
+
+- [tsconfig.json configuration](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/tsconfig.json#L9)
+- [WebNN TypeScript implementation](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/src/webnn.ts#L7)
+
+## Tips for WebNN TS Development
+
+- Use TypeScript's autocompletion to discover available methods and properties
+- Leverage parameter type checking to avoid common WebNN API usage errors
+- TypeScript interfaces will help you conform to the expected shapes of WebNN options objects
+- VSCode and other modern editors will show documentation tooltips for WebNN API methods when properly typed
+
+## Additional Resources
+
+- [NPM @webnn/types package](https://www.npmjs.com/package/@webnn/types)
+- [WebNN Types GitHub repository](https://github.com/webmachinelearning/webnn-types#readme)

@@ -1,0 +1,119 @@
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+# WebNN Code Generator
+
+The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) is a browser-based tool that converts machine learning models from ONNX, TensorFlow Lite, and other formats into vanilla JavaScript code using the WebNN API. It operates entirely within your browser to protect your model intellectual property.
+
+## Privacy and Security
+
+**🔒 Client-Side Processing Only**
+
+All model conversion and code generation operations run exclusively in your browser. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+
+- Proprietary models
+- Sensitive intellectual property
+- Enterprise environments with strict data governance
+- Any scenario requiring complete data privacy
+
+The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/), along with [WebNN Netron](https://ibelem.github.io/netron/), ensures your models never leave your local environment during the conversion process.
+
+## Overview
+
+The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) provides an alternative to command-line tool [ONNX2WebNN](https://github.com/huningxin/onnx2webnn), offering a user-friendly web interface for generating WebNN-compatible JavaScript code. The tool supports various model formats and generates optimized code for browser-based machine learning inference.
+
+## Workflow
+
+The conversion process involves two complementary tools:
+
+1. [WebNN Netron](https://ibelem.github.io/netron/) - Extracts model structure and weights
+2. [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) - Generates WebNN JavaScript code
+
+## Step-by-Step Guide
+
+### Step 1: Extract Model Components
+
+1. Navigate to [WebNN Netron](https://ibelem.github.io/netron/)
+2. Click the **"Open Model..."** button
+3. Select your model file (`.onnx`, `.tflite`, or other supported formats)
+4. Once loaded, download the required files:
+   - Click **"Graph"** → Download `graph.json`
+   - Click **"Weights"** → Download `weights.json` and `weights.bin`
+
+![WebNN Netron - Graph and Weights buttons](/learn/tutorials/webnn/code-generator-1.png)
+
+> <InfoIcon /> The graph file contains the model architecture, while the weights files contain the trained parameters.
+
+### Step 2: Generate WebNN Code
+
+1. Open [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/)
+2. Upload the extracted files:
+   - Click **"Choose Graph"** → Select `graph.json`
+   - Click **"Choose Weights"** → Select `weights.json`
+
+![WebNN Code Generator - Choose Graph, Weights and Bin buttons](/learn/tutorials/webnn/code-generator-2.png)
+
+### Step 3: Configure Dynamic Dimensions (if needed)
+
+If your model contains symbolic dimensions, you'll see a **"Set free dimension overrides"** section:
+
+1. Enter specific values for each dynamic dimension
+2. This resolves variables like batch size or input dimensions to concrete values
+3. See [symbolic dimensions documentation](../onnx-runtime/free-dimension-overrides) for details
+
+![WebNN Code Generator - Set free dimension overrides](/learn/tutorials/webnn/code-generator-3.png)
+
+### Step 4: Generate and Download
+
+1. Click **"Generate WebNN Code"**
+2. Click **"Download Code Files"** to receive:
+   - Generated JavaScript file with WebNN implementation
+   - `webnn.html` test file for validation
+3. Put the `weights.bin` downloaded from [WebNN Netron](https://ibelem.github.io/netron/) together with `.js` and `webnn.html` in the same folder
+
+## Testing Your Generated Code
+
+### Security Requirements
+
+WebNN requires a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) to function. Valid environments include:
+
+- `https://` URLs
+- `http://localhost` or `http://127.0.0.1`
+- Local development servers
+
+### Local Testing
+
+Start a local HTTP server to test your generated code:
+
+```bash
+# Install http-server if needed
+npm install -g http-server
+
+# Start server in your project directory
+http-server
+
+# Navigate to http://localhost:8080 in your browser
+```
+
+Open the generated `webnn.html` file in your browser to validate the conversion.
+
+## Use Cases
+
+The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) is ideal for:
+
+- **Rapid Prototyping**: Quickly convert models for web-based testing
+- **Educational Purposes**: Understanding WebNN API structure and usage
+- **IP-Sensitive Projects**: Converting proprietary models without cloud exposure
+- **Cross-Platform Development**: Generating code that runs across WebNN-supported browsers
+
+## Best Practices
+
+1. **Model Preparation**: Ensure your model is optimized and has fixed input dimensions when possible
+2. **Dimension Overrides**: Carefully set symbolic dimensions based on your expected input data
+3. **Testing**: Always validate the generated code with sample inputs before production use
+4. **Performance**: Consider model quantization or optimization before conversion for better inference speed
+
+## Related Resources
+- [WebNN Netron](https://ibelem.github.io/netron/) - Model visualization tool with enhanced features for WebNN API
+- [GitHub Issues - WebNN Code Generator](https://github.com/ibelem/webnn-code-generator/issues) - Report bugs and request features
+- [ONNX2WebNN](https://github.com/huningxin/onnx2webnn) - Command-line alternative
+- [WebNN API Specification](https://www.w3.org/TR/webnn/) - Official API documentation

@@ -1,0 +1,74 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# MLGraph
+
+The `MLGraph` interface represents a compiled computational graph. Once constructed, a compiled graph is immutable and cannot be subsequently modified.
+
+## Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLGraph {
+  undefined destroy();
+};
+```
+
+## Constructor
+
+The `MLGraph` interface does not have a constructor. Instances are created through other APIs.
+
+## Properties
+
+This interface does not contain any properties.
+
+## Methods
+
+### destroy()
+
+Releases all resources associated with the graph. Once called, the graph is marked as destroyed and cannot be used for further operations.
+
+
+#### Syntax
+
+```js showLineNumbers filename="example-1.js"
+graph.destroy()
+```
+
+#### Return Value
+
+- `undefined`
+
+## Notes
+
+- The graph is immutable after construction to ensure computational integrity
+- All input and output operands must be properly described through their respective descriptors
+- The implementation details are managed by the User Agent and are not directly accessible
+- After destruction, no further workloads can be enqueued using this graph
+- Implementations can free any additional resource allocations associated with this graph once all previously submitted workloads using it are complete
+
+## Best Practices
+
+- Always call `destroy()` when the graph is no longer needed to prevent memory leaks
+- Ensure all operations on the graph are complete before calling `destroy()`
+- Do not attempt to use the graph after calling `destroy()`
+
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`MLGraph` Interface](https://webmachinelearning.github.io/webnn/#mlgraph) | Candidate Recommendation Draft |
+
+## Security Requirements
+
+The `MLGraph` interface:
+
+1. Requires a secure context (`SecureContext`)
+2. Is exposed only to `Window` and `DedicatedWorker` contexts
+3. Cannot be modified after construction to prevent tampering with computational graphs
+4. Resource cleanup is performed asynchronously to ensure proper memory management
+
+## Browser Compatibility
+
+> <InfoIcon /> The `Graph` interface is under active development and browser support may vary.
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

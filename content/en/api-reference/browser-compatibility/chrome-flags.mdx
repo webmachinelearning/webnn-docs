@@ -1,0 +1,127 @@
+# WebNN Flags in Chromium based Browsers
+
+<div className="flags">
+
+## Flags
+
+Visit via `about://flags/`
+
+### `#web-machine-learning-neural-network`
+
+| Name   | Enables WebNN API |
+| :--: | :-------- |
+| Description    |  Enables the Web Machine Learning Neural Network (WebNN) API. Spec at https://www.w3.org/TR/webnn/ – Mac, Windows, Linux, ChromeOS, Android. |
+| Expiry Milestone | 150 |
+| Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork` |
+
+* `%LOCALAPPDATA%` means `C:\Users\<username>\AppData\Local\`
+
+### `#experimental-web-machine-learning-neural-network`
+
+| Name   | Enables experimental WebNN API features |
+| :--: | :-------- |
+| Description    | Enables additional, experimental features in Web Machine Learning Neural Network (WebNN) API. Requires the "WebNN API" flag to be enabled. – Mac, Windows, Linux, ChromeOS, Android. |
+| Expiry Milestone | 150 |
+| Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=EnablesExperimentalWebNNAPIFeatures` |
+
+### `#webnn-coreml`
+
+| Name   | Core ML backend for WebNN |
+| :--: | :-------- |
+| Description    | Enables using Core ML for GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. |
+| Expiry Milestone | 146 |
+
+### `#webnn-directml`
+
+| Name   | DirectML backend for WebNN |
+| :--: | :-------- |
+| Description    | Enables using DirectML for GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. – Windows.| 
+| Expiry Milestone | 146 |
+
+## Switches (Command Line Flags)
+
+### `--use-redist-ort`
+
+| Name | Use redistributable ONNX Runtime |
+| :--: | :-------- |
+| Description | Try to use a redistributable onnxruntime.dll. |
+
+### `--webnn-use-ort`
+
+| Name | WebNN Use ONNX Runtime |
+| :--: | :-------- |
+| Description | Introduces `webnn_use_ort` build flag and enable it for Windows. Replaces the DirectML backend with the ONNX Runtime backend. |
+
+### `--webnn-ort-use-openvino`
+
+| Name | WebNN ONNX Runtime Use OpenVINO |
+| :--: | :-------- |
+| Description | Enables the OpenVINO Execution Provider, OpenVINO EP will be
+used for GPU and NPU devices. ONNX Runtime will run with the CPU EP by default. |
+| Usage (No Sandbox) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-use-ort --webnn-ort-use-openvino --use-redist-ort` |
+| Usage (Within Sandbox) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe"  --allow-third-party-modules --webnn-use-ort --webnn-ort-use-openvino` |
+
+### `--use-redist-dml`
+
+| Name | Use redistributable DirectML |
+| :--: | :-------- |
+| Description | Try to use a redistributable DirectML.dll. Used for testing WebNN against newer DirectML release before it is integrated into Windows OS. Please see more info about DirectML releases at: https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history.|
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml` |
+
+### `--disable_dml_meta_commands_for_gpu`
+
+| Name | Disable DirectML Metacommands for GPU |
+| :--: | :-------- |
+| Description | Run with DirectML fallback shaders if disabling Metacommands |
+| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=1` |
+| Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=0` |
+
+### `--disable_webnn_for_gpu`
+
+| Name | Disable WebNN for GPU |
+| :--: | :-------- |
+| Description | If `--disable_webnn_for_gpu` workaround is enabled for the GPU device, we need to check to see if there is a NPU device available before setting the WebNN gpu feature status. If there is a NPU device, check the `--disable_webnn_for_npu` workaround. | 
+| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_gpu=1` |
+
+### `--disable_webnn_for_npu`
+
+| Name | Disable WebNN for NPU |
+| :--: | :-------- |
+| Description | |
+| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=1` |
+| Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0` |
+
+### `--webnn-coreml-dump-model`
+
+| Name | WebNN Core ML Dump Model |
+| :--: | :-------- |
+| Description | Copy the generated Core ML model to the folder specified by `--webnn-coreml-dump-model`. |
+| Note | The folder needs to be accessible from the GPU sandbox or use `--no-sandbox`. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-coreml-dump-model=/tmp/CoreMLModels` |
+
+### `--webnn-tflite-dump-model`
+
+| Name | WebNN TFLite Dump Model |
+| :--: | :-------- |
+| Description | Save the generated TFLite model file to the folder specified by `--webnn-tflite-dump-model`. |
+| Note | The folder needs to be accessible from the GPU process sandbox or `--no-sandbox` must be used. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-tflite-dump-model=/tmp/tflite_models` |
+
+## Other Switches
+
+### `--no-sandbox`
+
+| Name | No Sandbox |
+| :--: | :-------- |
+| Description | The `--no-sandbox` flag disables Chromium's security sandbox, which isolates browser processes to prevent malicious code execution. While sometimes used in development/testing environments, using this flag in regular browsing is dangerous as it removes essential security protections. | 
+| Note | Running with `--no-sandbox` is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox` |
+
+### `--allow-third-party-modules`
+| Name | Allow Third-party Modules |
+| :--: | :-------- |
+| Description | The `--allow-third-party-modules` flag permits third-party software to inject DLLs or modules into Chrome's processes. |
+| Note | While useful for legitimate software like antivirus or accessibility tools, it can pose security risks by allowing potentially malicious code injection. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --allow-third-party-modules` |
+
+</div>

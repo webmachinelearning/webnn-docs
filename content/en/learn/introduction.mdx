@@ -1,0 +1,55 @@
+import ArchitectureDiagramIntro from '../../../app/_components/architecture/architecture-intro.jsx'
+
+# Introduction to WebNN API
+
+Learn about WebNN API, how it works, and how to use it.
+
+WebNN API is a new web standard that allows web apps and frameworks to accelerate deep neural networks with on-device hardware such as GPUs, CPUs, or purpose-built AI accelerators.
+
+## Architecture
+
+<ArchitectureDiagramIntro />
+
+## Key Features
+
+The WebNN (Web Neural Network) API enables efficient machine learning inference directly in web browsers. 
+
+### Browser-Based Out-of-the-Box Inference
+
+The WebNN API runs natively in the browser without requiring additional development environments or dependencies such as Python installations. Neural network computations execute locally in the browser, enabling:
+
+- Immediate inference results without network delays
+- Real-time processing for video, audio, and sensor data
+- Responsive AI features like face detection and AR filters
+
+### Hardware-Optimized Performance
+
+WebNN automatically utilizes available hardware acceleration (CPU, GPU, or dedicated NPU processors) for neural network operations. This optimization occurs transparently across different devices and operating systems, maximizing inference speed without requiring hardware-specific code.
+
+### Client-Side Data Processing
+
+All data processing occurs on the user's device, ensuring:
+
+- Personal information remains local
+- No transmission of sensitive data to external servers
+- Compliance with privacy requirements
+
+### Offline Capability
+
+Applications maintain full ML functionality when offline after initial model loading once the necessary assets are cached. This enables consistent performance regardless of network conditions.
+
+### Resource Efficiency
+
+Client-side processing eliminates the need for server-side ML infrastructure, reducing:
+
+- Cloud computing costs
+- Server maintenance overhead
+- Operational complexity
+
+### Developer Accessibility
+
+The API provides a standardized interface for implementing ML features, abstracting away:
+
+- Complex platform differences
+- Hardware-specific optimizations
+
