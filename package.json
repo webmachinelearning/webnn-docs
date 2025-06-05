@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "WebNN Documentation",
   "author": "Belem Zhang",
-  "license": "CC0 1.0 Universal",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next --turbopack",
     "build": "next build && npm run postbuild",
