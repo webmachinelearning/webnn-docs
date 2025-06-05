@@ -1,0 +1,12 @@
+node_modules
+_pagefind/
+.next
+.DS_Store
+.env
+.env.*
+!.env.example
+*.pem
+*.onnx
+.model
+*.onnx.data
+*.tflite
