@@ -1,0 +1,86 @@
+import Image from "next/image";
+import WebNn from "../../../../../app/_components/icons/webnn.jsx";
+import VIcon from "../../../../../app/_components/icons/v.jsx";
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+import { Cards } from 'nextra/components'
+
+<div className="mt-6 grid grid-cols-1 items-center justify-items-center tutorials-title">
+  <WebNn className="webnn-logo"/>
+</div>
+
+# Generating WebNN Vanilla JavaScript
+
+Vanilla JavaScript offers the smallest bundle size for WebNN applications, making it ideal for package-size sensitive deployments. However, manually writing WebNN code requires significant development effort compared to higher-level frameworks like [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) or [ONNX Runtime Web](https://onnxruntime.ai/).
+
+The WebNN community addresses this challenge by providing code generation tools that automatically convert existing machine learning models into optimized WebNN JavaScript, delivering both performance and minimal bundle overhead.
+
+## Bundle Size vs Development Efficiency
+
+When building web-based ML applications, developers face a key trade-off:
+
+- **High-level libraries** ([Transformers.js](https://huggingface.co/docs/transformers.js/en/index), [ONNX Runtime Web](https://onnxruntime.ai/)) offer rapid development but larger bundle sizes
+- **Vanilla WebNN JavaScript** provides minimal footprint but requires extensive manual coding
+- **Generated WebNN code** combines the best of both: automated development with optimized bundle size
+
+Currently, the WebNN ecosystem provides two primary code generation approaches:
+
+## Model-to-Code Conversion
+
+These tools convert trained ML models directly into WebNN lean vanilla JavaScript:
+
+<Cards className="quick-start-card">
+  <Cards.Card
+    icon={<VIcon />}
+    title="ONNX2WebNN"
+    href="./onnx2webnn"
+  />
+  <Cards.Card
+    icon={<VIcon />}
+    title="WebNN Code Generator"  
+    href="./webnn-code-generator"
+  />
+</Cards>
+
+| Feature | ONNX2WebNN | WebNN Code Generator |
+|---------|:----------:|:-------------------:|
+| **Interface** | Command-line (CLI) | Web application |
+| **Language** | Python | TypeScript |
+| **ONNX Support** | ✅ Yes | ✅ Preferred |
+| **TensorFlow Lite Support** | ❌ Not supported | 🔧 Yes with compatibility issues |
+| **Other Formats Support** | ❌ Not supported | 🔧 Yes with compatibility issues |
+| **Privacy** | Client-side only | Client-side only |
+
+### [ONNX2WebNN](https://github.com/huningxin/onnx2webnn)
+- **Best for**: Automated workflows, CI/CD pipelines, batch processing
+- **Strengths**: Mature Python ecosystem, command-line automation
+- **Use case**: Converting both individual and multiple models in development pipelines
+
+### [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) 
+- **Best for**: Interactive development, quick prototyping
+- **Strengths**: No installation required, browser-based privacy protection
+- **Use case**: Converting individual models with complete data privacy
+
+## Code-to-Code Translation
+
+Converting existing ML code from other frameworks to WebNN lean vanilla JavaScript:
+
+### Python to WebNN vanilla JavaScript
+
+**Current Status**: 🚧 **To do**
+
+Translate Python-based ML code (particularly PyTorch/TorchScript) directly to WebNN JavaScript is also required for WebNN developers. This approach would enable:
+
+- TorchScript → WebNN JavaScript conversion
+- Custom operator mapping, translate complex Python ML logic to WebNN
+- Automatic optimization for web deployment
+
+> <InfoIcon /> This functionality represents a significant development effort and is not yet available. The gap between Python ML frameworks and WebNN JavaScript remains an active area of community development.
+
+## Getting Started
+
+1. **Evaluate your requirements**: Bundle size constraints, privacy needs, development workflow
+2. **Choose your tool**: CLI automation (ONNX2WebNN) or web interface (Code Generator)
+3. **Prepare your model**: Ensure compatibility and optimization for web deployment
+4. **Generate and test**: Convert your model and validate performance in target environments
+
+The WebNN code generation ecosystem provides flexible options for deploying optimized ML inference in web applications while maintaining the performance benefits of vanilla JavaScript.

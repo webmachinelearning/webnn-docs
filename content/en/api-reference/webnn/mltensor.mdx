@@ -1,0 +1,152 @@
+# MLTensor
+
+The `MLTensor` interface represents a tensor that can be used as input or output to an `MLGraph`.
+
+## MLTensorDescriptor
+
+Before diving into `MLTensor`, let's understand the `MLTensorDescriptor` dictionary that describes its characteristics.
+
+### Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+dictionary MLTensorDescriptor : MLOperandDescriptor {
+  boolean readable = false;
+  boolean writable = false;
+};
+```
+
+### Properties
+
+- `readable` (boolean)
+  - Determines if the tensor's contents can be read using `readTensor(tensor)` or `readTensor(tensor, outputData)`
+  - Default value: `false`
+
+- `writable` (boolean)
+  - Determines if the tensor's contents can be written using `writeTensor()`
+  - Default value: `false`
+
+## MLTensor Interface
+
+### Web IDL
+
+```webidl showLineNumbers filename="web-idl"
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLTensor {
+  readonly attribute MLOperandDataType dataType;
+  readonly attribute FrozenArray<unsigned long> shape;
+  readonly attribute boolean readable;
+  readonly attribute boolean writable;
+  undefined destroy();
+}
+```
+
+### Properties
+
+- `dataType` (readonly)
+  - Returns the tensor's data type as specified in its descriptor
+  - Type: `MLOperandDataType`
+
+- `shape` (readonly)
+  - Returns the tensor's dimensions as specified in its descriptor
+  - Type: `FrozenArray<unsigned long>`
+
+- `readable` (readonly)
+  - Returns whether the tensor's contents can be read
+  - Type: `boolean`
+
+- `writable` (readonly)
+  - Returns whether the tensor's contents can be written
+  - Type: `boolean`
+
+### Methods
+
+#### destroy()
+
+Releases the resources associated with the MLTensor.
+
+##### Syntax
+
+```javascript
+tensor.destroy()
+```
+
+##### Return value
+
+- `undefined`
+
+##### Description
+
+The `destroy()` method is idempotent, meaning multiple calls to this method on the same tensor will have the same effect as a single call.
+
+### Memory Allocation
+
+The memory backing an `MLTensor` is allocated according to implementation-defined requirements of the associated `MLContext` and `MLTensorDescriptor`. These requirements may include:
+
+- Specific byte alignment constraints
+- Allocation in particular memory pools
+- Other implementation-specific requirements
+
+## Examples
+
+### Creating and Using an MLTensor
+
+```js showLineNumbers filename="example-1.js"
+ async function mlTensor() {
+  // Define tensor descriptor
+  const tensorDescriptor = {
+    dataType: "float32",
+    shape: [1, 28, 28, 1],
+    readable: true,
+    writable: true
+  };
+ 
+  try {
+    // Create tensor through MLContext and MLTensorDescriptor
+    const context = await navigator.ml.createContext({
+      deviceType: 'gpu'
+    });
+    const tensor = await context.createTensor(tensorDescriptor);
+
+    // Use the tensor
+    console.log("Tensor shape:", tensor.shape);
+    console.log("Data type:", tensor.dataType);
+    
+    // Clean up when done
+    tensor.destroy();
+  } catch (error) {
+    console.error("Error creating tensor:", error);
+  }
+}
+```
+
+### Reading MLTensor Data
+
+```js showLineNumbers filename="example-2.js"
+async function readTensorData(tensor) {
+  if (tensor.readable) {
+    try {
+      const data = await context.readTensor(tensor);
+      console.log("Tensor data:", data);
+    } catch (error) {
+      console.error("Error reading tensor:", error);
+    }
+  }
+}
+```
+
+## Specifications
+
+| WebNN API | Status |
+|--------------|---------|
+| [`MLTensor` interface](https://webmachinelearning.github.io/webnn/#api-mltensor) | Candidate Recommendation Draft |
+
+## Security Requirements
+
+- This API requires a secure context (`HTTPS` or `localhost`)
+- Available in:
+  - Window context
+  - Dedicated Web Workers
+
+## Browser Compatibility
+
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

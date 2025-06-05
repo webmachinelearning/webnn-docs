@@ -1,0 +1,223 @@
+# 图像分类
+
+本教程演示如何使用 WebNN 和 [ONNX Runtime Web](https://onnxruntime.ai/) 实现图像分类，利用 GPU 和 NPU 加速。您将使用来自 Hugging Face 的 MobileNetV2 开源模型，以高性能对图像进行分类。
+
+## 步骤 0：WebNN API 设置要求
+
+### 系统要求
+
+确保您的系统满足 WebNN API 开发的以下先决条件：
+
+- 操作系统：Windows（推荐最新版本）
+- 浏览器：[Microsoft Edge Dev](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+- 硬件：支持 WebNN 的 GPU 和 NPU，并安装最新的驱动程序
+- 软件：使用 [VS Code](https://marketplace.visualstudio.com/VSCode) 的 [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) 扩展
+
+### 在 Edge Dev 中启用 WebNN API
+
+1. 下载并安装 [Microsoft Edge Dev](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+2. 启动 Edge Dev，在地址栏中导航到 `about:flags`
+3. 搜索 `WebNN API`，点击下拉菜单，并设置为 `启用`
+4. 在提示时重新启动浏览器
+
+## 步骤 1：初始化 Web 应用
+
+1. 创建一个新的 `index.html` 文件，并添加标准的 HTML 模板代码。
+
+```html showLineNumbers
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的网站</title>
+  </head>
+  <body>
+    <main>
+        <h1>欢迎访问我的网站</h1>
+    </main>
+  </body>
+</html>
+```
+
+在 `index.html` 的 `<head>` 标签中包含 `Jimp` 和 `Lodash` 库源文件。
+
+```js showLineNumbers
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jimp/0.22.12/jimp.min.js" integrity="sha512-8xrUum7qKj8xbiUrOzDEJL5uLjpSIMxVevAM5pvBroaxJnxJGFsKaohQPmlzQP8rEoAxrAujWttTnx3AMgGIww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+```
+
+2. 通过点击 VSCode 右下角的 `Go Live` 按钮验证设置，这将在 Edge Dev 中启动本地服务器。
+3. 创建一个新的 `main.js` 文件，用于存放应用的 JavaScript 代码。
+4. 在项目目录中创建 `images` 子文件夹，并添加一个图像文件（在本演示中，将其命名为 `image.jpg`）。
+5. 下载 [`mobilenetv2-10_fp16.onnx`](https://hf-mirror.com/webnn/mobilenet-v2/resolve/main/onnx/mobilenetv2-10_fp16.onnx?download=true) 模型，并将其保存在项目的根文件夹中。非中国大陆用户可直接从 [HuggingFace](https://huggingface.co/webnn/mobilenet-v2/resolve/main/onnx/mobilenetv2-10_fp16.onnx?download=true) 下载。
+6. 下载 [`imagenetClasses.js`](https://github.com/microsoft/webnn-developer-preview/blob/33a497a6747eb7a0a9146a78335f15ed1bea57be/Get%20Started/WebNN%20Tutorial/imagenetClasses.js) 文件，该文件提供了 1000 个标准图像分类。
+
+## 步骤 2：添加 UI 元素和父函数
+
+1. 在 `<main>` HTML 标签中，替换现有内容，创建分类按钮和显示默认图像的元素。
+
+```html showLineNumbers
+<h1>图像分类演示！</h1> 
+<div><img src="./images/image.jpg"></div> 
+<button onclick="classifyImage('./images/image.jpg')"  type="button">点击分类图像！</button> 
+<h1 id="outputText">该图像是...</h1>
+```
+
+2. 通过在 `<head>` 部分插入 JavaScript 源链接，将 ONNX Runtime Web 添加到您的页面。
+
+```js showLineNumbers
+<script src="./main.js"></script> 
+<script src="./imagenetClasses.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0-dev.20250306-e0b66cad28/dist/ort.all.min.js"></script> 
+```
+
+3. 打开 `main.js` 并添加初始代码片段。
+
+```js showLineNumbers
+async function classifyImage(pathToImage){ 
+  const imageTensor = await getImageTensorFromPath(pathToImage); // 将图像转换为张量
+  const predictions = await runModel(imageTensor); // 在张量上运行推理
+  console.log(predictions); // 将预测结果打印到控制台
+  document.getElementById("outputText").innerHTML += predictions[0].name; // 在 HTML 中显示预测结果
+} 
+```
+
+## 步骤 3：数据预处理
+
+1. 实现 `getImageTensorFromPath` 函数，包括一个异步函数来检索图像。
+
+```js showLineNumbers
+ async function getImageTensorFromPath(path, width = 224, height = 224) {
+  const image = await loadImagefromPath(path, width, height); // 1. 加载图像
+  const imageTensor = imageDataToTensor(image); // 2. 转换为张量
+  return imageTensor; // 3. 返回张量
+} 
+
+async function loadImagefromPath(path, resizedWidth, resizedHeight) {
+  const imageData = await Jimp.read(path).then(imageBuffer => { // 使用 Jimp 加载图像并调整大小
+    return imageBuffer.resize(resizedWidth, resizedHeight);
+  });
+  return imageData.bitmap;
+}
+```
+
+2. 创建 `imageDataToTensor` 函数，将加载的图像转换为与 ONNX 模型兼容的张量。
+
+```js showLineNumbers
+function imageDataToTensor(image) {
+  const imageBufferData = image.data;
+  let pixelCount = image.width * image.height;
+  const float16Data = new Float16Array(
+      3 * pixelCount);  // 为红/绿/蓝通道分配足够的空间
+ 
+  const mean =  [0.485, 0.456, 0.406];
+  const std = [0.229, 0.224, 0.225];
+ 
+  // 遍历图像缓冲区，提取（R, G, B）通道，
+  // 从打包的通道重新排列到平面通道，并转换为浮点数
+  for (let i = 0; i < pixelCount; i++) {
+    float16Data[pixelCount * 0 + i] =
+        (imageBufferData[i * 4 + 0] / 255.0 - mean[0]) / std[0];  // 红色
+    float16Data[pixelCount * 1 + i] =
+        (imageBufferData[i * 4 + 1] / 255.0 - mean[1]) / std[1];  // 绿色
+    float16Data[pixelCount * 2 + i] =
+        (imageBufferData[i * 4 + 2] / 255.0 - mean[2]) / std[2];  // 蓝色
+    // 跳过未使用的 alpha 通道：imageBufferData[i * 4 + 3]
+  }
+  let dimensions = [1, 3, image.height, image.width];
+  const inputTensor = new ort.Tensor('float16', float16Data, dimensions);
+  return inputTensor;
+}
+```
+
+## 步骤 4：调用 ONNX Runtime Web
+
+图像检索和张量转换完成后，使用 ONNX Runtime Web 库运行模型。启用 WebNN 很简单 - 只需将 `executionProvider` 指定为 `webnn`。
+
+```js showLineNumbers
+let modelSession;
+
+async function runModel(preprocessedData) { 
+  if (typeof modelSession == 'undefined') {
+    // 配置 WebNN
+    const modelPath = "./mobilenetv2-10_fp16.onnx";
+    const devicePreference = "gpu"; // 其他选项包括 "npu" 和 "cpu"
+    const options = {
+      executionProviders: [{ name: "webnn", deviceType: devicePreference, powerPreference: "default" }],
+      // freeDimensionOverrides 中的键名应映射到模型中的实际输入维度名称
+      // 例如，如果模型的唯一键是 batch_size，则只需设置
+      freeDimensionOverrides: { "batch_size": 1 }
+    };
+    modelSession = await ort.InferenceSession.create(modelPath, options);
+  }
+
+  // 使用模型导出的输入名称和预处理数据创建输入 
+  const feeds = {}; 
+  feeds[modelSession.inputNames[0]] = preprocessedData; 
+  // 运行会话推理
+  const outputData = await modelSession.run(feeds); 
+  // 使用模型导出的输出名称获取输出结果
+  const output = outputData[modelSession.outputNames[0]]; 
+  // 获取输出数据的 softmax。Softmax 将值转换为 0 到 1 之间
+  const outputSoftmax = softmax(Array.prototype.slice.call(output.data)); 
+  // 获取前 5 个结果
+  const results = imagenetClassesTopK(outputSoftmax, 5);
+
+  return results; 
+}
+```
+
+## 步骤 5：后处理数据
+
+添加 `softmax` 函数，将模型输出转换为 0 到 1 之间的概率值。实现一个最终函数来确定最可能的图像分类。在 `main.js` 中添加必要的函数。
+
+```js showLineNumbers
+// Softmax 将值转换为 0 到 1 之间
+function softmax(resultArray) {
+  // 获取数组中的最大值
+  const largestNumber = Math.max(...resultArray);
+  // 对每个结果项应用指数函数，减去最大数，使用归约来获取前一个结果数和当前数以求和所有指数结果
+  const sumOfExp = resultArray 
+    .map(resultItem => Math.exp(resultItem - largestNumber)) 
+    .reduce((prevNumber, currentNumber) => prevNumber + currentNumber);
+
+  // 通过除以所有指数的和来归一化 resultArray
+  // 这种归一化确保输出向量分量的和为 1
+  return resultArray.map((resultValue, index) => {
+    return Math.exp(resultValue - largestNumber) / sumOfExp
+  });
+}
+
+function imagenetClassesTopK(classProbabilities, k = 5) { 
+  const probs = _.isTypedArray(classProbabilities)
+    ? Array.prototype.slice.call(classProbabilities)
+    : classProbabilities;
+
+  const sorted = _.reverse(
+    _.sortBy(
+      probs.map((prob, index) => [prob, index]),
+      probIndex => probIndex[0]
+    )
+  );
+
+  const topK = _.take(sorted, k).map(probIndex => {
+    const iClass = imagenetClasses[probIndex[1]]
+    return {
+      id: iClass[0],
+      index: parseInt(probIndex[1].toString(), 10),
+      name: iClass[1].replace(/_/g, " "),
+      probability: probIndex[0]
+    }
+  });
+  return topK;
+}
+```
+
+## Playground
+
+直接在 [Playground](https://webnn.io/playground/onnxruntime/image-classification-mobilenet-v2) 中尝试图像分类。
+
+您现在已经实现了使用 WebNN 进行图像分类的完整代码。使用 VS Code 的 Live Server 扩展启动并测试您的 Web 应用程序。
+
+参见: [WebNN API Tutorial](https://learn.microsoft.com/zh-cn/windows/ai/directml/webnn-tutorial)

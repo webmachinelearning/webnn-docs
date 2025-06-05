@@ -1,0 +1,28 @@
+
+# Model
+
+## What is the recommended model size for WebNN applications?
+
+The optimal model size for WebNN applications depends on your users' network conditions and device capabilities. While WebNN has no strict size limits, larger models impact download times and initial load performance.
+Consider implementing Web application features to optimize performance:
+
+- Use service workers to enable offline functionality and cache models
+- Leverage the Cache API or [Origin Private File System (OPFS)](https://web.dev/articles/origin-private-file-system) to store models locally, reducing subsequent load times
+
+### ONNX Runtime Web model size limitations
+
+ONNX Runtime Web models can range significantly in size, from a few kilobytes to several gigabytes, but the ONNX model itself, serialized in protobuf format, has a maximum size of 2GB, and ONNX Runtime Web can run models up to 4GB in size. 
+
+#### Additional Resources
+
+- [Working with Large Models](https://onnxruntime.ai/docs/tutorials/web/large-models.html)
+
+##  Why not define a model format that covers both topology and weights?
+
+The WebNN API does not directly support model formats, as format handling is intentionally delegated to frameworks and applications. This design decision maintains flexibility while allowing frameworks to implement their own model loading approaches.
+
+## Are some models restricted to specific backend or hardware?
+
+Find operations and hardware support details of [LiteRT](../api-reference/browser-compatibility/litert), [DirectML](../api-reference/browser-compatibility/directml) and [Core ML](../api-reference/browser-compatibility/coreml) backends.
+
+## How to maximize the optimization of the model for better inference in WebNN?

@@ -1,0 +1,84 @@
+
+import { Cards } from 'nextra/components'
+import Image from 'next/image'
+import TransformersJs from '../../../../app/_components/icons/transformersjs.jsx'
+import OnnxRuntime from '../../../../app/_components/icons/onnxruntime.jsx'
+import LiteRt from '../../../../app/_components/icons/litert.jsx'
+import WebNn from '../../../../app/_components/icons/webnn.jsx'
+
+# Quickstart
+
+The WebNN (Web Neural Network) API enables neural network operations in web applications by implementing computational graphs. A computational graph is a directed graph where nodes represent operations or input variables, with each node’s output serving as input for subsequent nodes.
+
+## Working with Operations and Tensors
+
+The API uses two primary abstractions:
+- `Operand` objects represent tensors (multi-dimensional arrays) that can be inputs, outputs, or constants
+- `MLContext` provides operations for building and executing computational graphs
+
+## Graph Lifecycle
+
+The WebNN API supports four main phases:
+1. Building the computational graph
+2. Compiling the graph
+3. Executing the graph
+4. Integrating with other Web APIs for input data (e.g., media APIs for images/video frames or sensor APIs for sensory data)
+
+Here's a basic example that demonstrates building, compiling, and executing a graph with operations, inputs, and output. For comprehensive model construction patterns, refer to the [detailed tutorials](../tutorials).
+
+## Build Your First Graph with WebNN API
+
+```math
+C = 0.2 \cdot A + B
+```
+
+```js showLineNumbers filename="executing-an-MLGraph-using-MLTensors.js"
+const descriptor = {dataType: 'float32', shape: [2, 2]};
+const context = await navigator.ml.createContext();
+const builder = new MLGraphBuilder(context);
+
+// 1. Create a computational graph 'C = 0.2 * A + B'.
+const constant = builder.constant(descriptor, new Float32Array(4).fill(0.2));
+const A = builder.input('A', descriptor);
+const B = builder.input('B', descriptor);
+const C = builder.add(builder.mul(A, constant), B);
+
+// 2. Compile the graph.
+const graph = await builder.build({'C': C});
+
+// 3. Create reusable input and output tensors.
+const [inputTensorA, inputTensorB, outputTensorC] =
+    await Promise.all([
+      context.createTensor({
+        dataType: A.dataType, shape: A.shape, writable: true
+      }),
+      context.createTensor({
+        dataType: B.dataType, shape: B.shape, writable: true
+      }),
+      context.createTensor({
+        dataType: C.dataType, shape: C.shape, readable: true
+      })
+    ]);
+
+// 4. Initialize the inputs.
+context.writeTensor(inputTensorA, new Float32Array(4).fill(1.0));
+context.writeTensor(inputTensorB, new Float32Array(4).fill(0.8));
+
+// 5. Execute the graph.
+const inputs = {
+  'A': inputTensorA,
+  'B': inputTensorB
+};
+const outputs = {
+  'C': outputTensorC
+};
+context.dispatch(graph, inputs, outputs);
+    
+// 6. Read back the computed result.
+const result = await context.readTensor(outputTensorC);
+console.log('Output value:', new Float32Array(result));  // [1, 1, 1, 1]
+```
+
+## Additional Resources
+
+- [Framework vs Vanilla](../tutorials)

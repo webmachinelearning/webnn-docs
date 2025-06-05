@@ -1,0 +1,24 @@
+# API
+
+## What is the programming model of WebNN API?
+
+WebNN (Web Neural Network API) provides a low-level interface for executing machine learning models in web browsers.
+
+It focuses solely on neural network operations and execution infrastructure, delegating higher-level tasks like model loading and parsing to specialized libraries (e.g., ONNX Runtime Web, LiteRT) or the web application itself. This design makes WebNN format-agnostic and maintains a clear separation of concerns.
+
+Its programming model consists of two main steps: model construction and execution.
+
+### Core Steps
+
+1. Model Construction
+   The `MLGraphBuilder` API constructs the computational graph representing your model. Once defined, this graph is compiled into an executable form.
+
+2. Model Execution
+   The compiled graph processes input data to generate predictions or classifications. WebNN provides methods to select appropriate ML backends, either explicitly or by capability requirements.
+
+### Hardware Acceleration
+
+WebNN automatically leverages available hardware accelerators (CPU, GPU, NPU, TPU) to optimize model execution. This hardware-agnostic approach ensures:
+- Optimal performance across different devices
+- Reduced inference latency
+- Smooth user experience

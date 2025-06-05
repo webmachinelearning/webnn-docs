@@ -1,0 +1,222 @@
+# Image Classification
+
+This tutorial demonstrates how to implement an image classification system using WebNN and [ONNX Runtime Web](https://onnxruntime.ai/), leveraging on-device GPU and NPU acceleration. You'll use the MobileNetV2 open-source model from Hugging Face to classify images with high performance.
+
+## Step 0: WebNN API Setup Requirements
+
+### System Requirements
+
+Ensure your system meets the following prerequisites for WebNN API development:
+
+- Operating System: Windows (latest version recommended)
+- Browser: [Microsoft Edge Dev](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+- Hardware: GPU and NPU with up-to-date drivers supporting WebNN
+- Software: Install [VS Code](https://code.visualstudio.com/) and use [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension
+
+### Enable WebNN API in Edge Dev
+
+1. Download and install [Microsoft Edge Dev](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+2. Launch Edge Dev, and navigate to about:flags in the address bar
+3. Search for `WebNN API`, click the dropdown, and set to `Enabled`
+4. Restart the browser when prompted
+
+## Step 1: Initialize the Web App
+
+1. Create a new `index.html` file and add the standard HTML boilerplate code to your page.
+
+```html showLineNumbers
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+  </head>
+  <body>
+    <main>
+        <h1>Welcome to My Website</h1>
+    </main>
+  </body>
+</html>
+```
+
+Include the `Jimp` and `Lodash` library source files in `index.html`'s `<head>` tag.
+
+```js showLineNumbers
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jimp/0.22.12/jimp.min.js" integrity="sha512-8xrUum7qKj8xbiUrOzDEJL5uLjpSIMxVevAM5pvBroaxJnxJGFsKaohQPmlzQP8rEoAxrAujWttTnx3AMgGIww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+```
+
+2. Verify your setup by clicking the `Go Live` button in the bottom-right corner of VSCode, which launches a local server in Edge Dev.
+3. Create a new `main.js` file to contain your application's JavaScript code.
+4. Create an `images` subfolder in your project directory and add an image file (for this demo, name it `image.jpg`).
+5. Download the [`mobilenetv2-10_fp16.onnx`](https://huggingface.co/webnn/mobilenet-v2/resolve/main/onnx/mobilenetv2-10_fp16.onnx?download=true) model and save it in your project's root folder. Users in the PRC can download the model [here](https://hf-mirror.com/webnn/mobilenet-v2/resolve/main/onnx/mobilenetv2-10_fp16.onnx?download=true).
+6. Download the [`imagenetClasses.js`](https://github.com/microsoft/webnn-developer-preview/blob/33a497a6747eb7a0a9146a78335f15ed1bea57be/Get%20Started/WebNN%20Tutorial/imagenetClasses.js) file, which provides 1000 standard image classifications for your model.
+
+## Step 2: Add UI Elements and Parent Function
+
+1. Within the `<main>` HTML tags, replace the existing content with elements to create a classification button and display a default image.
+
+```html showLineNumbers
+<h1>Image Classification Demo!</h1> 
+<div><img src="./images/image.jpg"></div> 
+<button onclick="classifyImage('./images/image.jpg')"  type="button">Click Me to Classify Image!</button> 
+<h1 id="outputText"> This image displayed is ... </h1>
+```
+
+2. Add ONNX Runtime Web to your page by inserting the JavaScript source links in the `<head>` section.
+
+```js showLineNumbers
+<script src="./main.js"></script> 
+<script src="./imagenetClasses.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0-dev.20250306-e0b66cad28/dist/ort.all.min.js"></script> 
+```
+
+3. Open `main.js` and add the initial code snippet.
+
+```js showLineNumbers
+async function classifyImage(pathToImage){ 
+  const imageTensor = await getImageTensorFromPath(pathToImage); // Convert image to a tensor
+  const predictions = await runModel(imageTensor); // Run inference on the tensor
+  console.log(predictions); // Print predictions to console
+  document.getElementById("outputText").innerHTML += predictions[0].name; // Display prediction in HTML
+} 
+```
+
+## Step 3: Pre-process Data
+
+1. Implement the `getImageTensorFromPath` function, which includes an async function to retrieve the image.
+
+```js showLineNumbers
+ async function getImageTensorFromPath(path, width = 224, height = 224) {
+  const image = await loadImagefromPath(path, width, height); // 1. load the image
+  const imageTensor = imageDataToTensor(image); // 2. convert to tensor
+  return imageTensor; // 3. return the tensor
+} 
+
+async function loadImagefromPath(path, resizedWidth, resizedHeight) {
+  const imageData = await Jimp.read(path).then(imageBuffer => { // Use Jimp to load the image and resize it.
+    return imageBuffer.resize(resizedWidth, resizedHeight);
+  });
+  return imageData.bitmap;
+}
+```
+2. Create the `imageDataToTensor` function to convert the loaded image into a tensor compatible with the ONNX model.
+
+```js showLineNumbers
+function imageDataToTensor(image) {
+  const imageBufferData = image.data;
+  let pixelCount = image.width * image.height;
+  const float16Data = new Float16Array(
+      3 * pixelCount);  // Allocate enough space for red/green/blue channels.
+ 
+  const mean =  [0.485, 0.456, 0.406];
+  const std = [0.229, 0.224, 0.225];
+ 
+  // Loop through the image buffer, extracting the (R, G, B) channels,
+  // rearranging from packed channels to planar channels, and converting to
+  // floating point.
+  for (let i = 0; i < pixelCount; i++) {
+    float16Data[pixelCount * 0 + i] =
+        (imageBufferData[i * 4 + 0] / 255.0 - mean[0]) / std[0];  // Red
+    float16Data[pixelCount * 1 + i] =
+        (imageBufferData[i * 4 + 1] / 255.0 - mean[1]) / std[1];  // Green
+    float16Data[pixelCount * 2 + i] =
+        (imageBufferData[i * 4 + 2] / 255.0 - mean[2]) / std[2];  // Blue
+    // Skip the unused alpha channel: imageBufferData[i * 4 + 3].
+  }
+  let dimensions = [1, 3, image.height, image.width];
+  const inputTensor = new ort.Tensor('float16', float16Data, dimensions);
+  return inputTensor;
+}
+```
+
+## Step 4: Call ONNX Runtime Web
+
+With image retrieval and tensor conversion complete, use the ONNX Runtime Web library to run your model. Enabling WebNN is straightforward - simply specify the `executionProvider` as `webnn`.
+
+```js showLineNumbers
+let modelSession;
+
+async function runModel(preprocessedData) {
+  // Configure WebNN.
+  const modelPath = "./mobilenetv2-10_fp16.onnx";
+  const devicePreference = "gpu"; // Other options include "npu" and "cpu".
+  const options = {
+    executionProviders: [{ name: "webnn", deviceType: devicePreference, powerPreference: "default" }],
+    // The key names in freeDimensionOverrides should map to the real input dim names in the model.
+    // For example, if a model's only key is batch_size, you only need to set
+    freeDimensionOverrides: { "batch_size": 1 }
+  };
+  modelSession = await ort.InferenceSession.create(modelPath, options);
+
+  // Create feeds with the input name from model export and the preprocessed data. 
+  const feeds = {}; 
+  feeds[modelSession.inputNames[0]] = preprocessedData; 
+  // Run the session inference.
+  const outputData = await modelSession.run(feeds); 
+  // Get output results with the output name from the model export. 
+  const output = outputData[modelSession.outputNames[0]]; 
+  // Get the softmax of the output data. The softmax transforms values to be between 0 and 1.
+  const outputSoftmax = softmax(Array.prototype.slice.call(output.data)); 
+  // Get the top 5 results.
+  const results = imagenetClassesTopK(outputSoftmax, 5);
+
+  return results; 
+}
+```
+
+## Step 5: Post-process Data
+
+Add a softmax function to transform model outputs into probability values between 0 and 1. Implement a final function to determine the most likely image classification. Add the necessary functions to `main.js`.
+
+```js showLineNumbers
+// The `softmax` transforms values to be between 0 and 1.
+function softmax(resultArray) {
+  // Get the largest value in the array.
+  const largestNumber = Math.max(...resultArray);
+  // Apply the exponential function to each result item subtracted by the largest number, using reduction to get the
+  // previous result number and the current number to sum all the exponentials results.
+  const sumOfExp = resultArray 
+    .map(resultItem => Math.exp(resultItem - largestNumber)) 
+    .reduce((prevNumber, currentNumber) => prevNumber + currentNumber);
+
+  // Normalize the resultArray by dividing by the sum of all exponentials.
+  // This normalization ensures that the sum of the components of the output vector is 1.
+  return resultArray.map((resultValue, index) => {
+    return Math.exp(resultValue - largestNumber) / sumOfExp
+  });
+}
+
+function imagenetClassesTopK(classProbabilities, k = 5) { 
+  const probs = _.isTypedArray(classProbabilities)
+    ? Array.prototype.slice.call(classProbabilities)
+    : classProbabilities;
+
+  const sorted = _.reverse(
+    _.sortBy(
+      probs.map((prob, index) => [prob, index]),
+      probIndex => probIndex[0]
+    )
+  );
+
+  const topK = _.take(sorted, k).map(probIndex => {
+    const iClass = imagenetClasses[probIndex[1]]
+    return {
+      id: iClass[0],
+      index: parseInt(probIndex[1].toString(), 10),
+      name: iClass[1].replace(/_/g, " "),
+      probability: probIndex[0]
+    }
+  });
+  return topK;
+}
+```
+
+## Playground
+
+You can try Image Classification in [Playground](https://webnn.io/playground/onnxruntime/image-classification-mobilenet-v2).
+
+You've now implemented the complete script for WebNN-powered image classification. Use VS Code's Live Server extension to launch and test your web application.
+
+See also: [WebNN API Tutorial](https://learn.microsoft.com/en-us/windows/ai/directml/webnn-tutorial)

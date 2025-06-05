@@ -1,0 +1,37 @@
+{
+  "name": "webnn-docs",
+  "version": "0.0.1",
+  "description": "WebNN Documentation",
+  "author": "Belem Zhang",
+  "license": "CC0 1.0 Universal",
+  "scripts": {
+    "dev": "next --turbopack",
+    "build": "next build && npm run postbuild",
+    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
+    "start": "next start"
+  },
+  "keywords": [
+    "WebNN"
+  ],
+  "bugs": {
+    "url": "https://github.com/webmachinelearning/webnn-docs/issues"
+  },
+  "homepage": "https://github.com/webmachinelearning/webnn-docs#readme",
+  "dependencies": {
+    "@next/third-parties": "^15.3.0",
+    "@tailwindcss/postcss": "^4.0.6",
+    "@xyflow/react": "^12.4.3",
+    "framer-motion": "^12.4.3",
+    "next": "^15.1.7",
+    "nextra": "^4.2.13",
+    "nextra-theme-docs": "^4.2.13",
+    "postcss": "^8.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.6"
+  },
+  "devDependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "pagefind": "^1.3.0"
+  }
+}

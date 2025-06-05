@@ -1,0 +1,42 @@
+import { Tabs } from "nextra/components";
+import Image from "next/image";
+import TransformersJs from "../../../../../app/_components/icons/transformersjs.jsx";
+import WebNn from "../../../../../app/_components/icons/webnn.jsx";
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+
+<div className="mt-6 grid grid-cols-2 gap-4 items-center justify-items-center tutorials-title">
+  <TransformersJs className="transformersjs-logo" />
+  <WebNn className="webnn-logo" />
+</div>
+
+[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) provides browser-based machine learning capabilities that mirror the Hugging Face Transformers Python library. It supports a wide range of pretrained models across multiple domains. 
+
+Under the hood, [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) uses ONNX Runtime for model execution in the browser. You can convert existing PyTorch, TensorFlow, or JAX models to ONNX format using the Optimum library.
+
+```js showLineNumbers filename="example.js"
+import * as transformers from from '@huggingface/transformers';
+
+const path = 'xenova/resnet-50';
+const options = {
+  dtype: 'fp16',
+  device: 'webnn-gpu', // 'webnn', 'webnn-cpu', 'webnn-npu'
+  session_options: {
+      freeDimensionOverrides: {
+        batch_size: 1,
+        num_channels: 3,
+        height: 224,
+        width: 224,
+      },
+      context: {},
+  },
+};
+
+const classifier = await transformers.pipeline('image-classification', path, options);
+let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
+```
+
+> <InfoIcon /> WebNN does not currently support dynamic shapes and requires [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) to be set.
+
+> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) can be set in sample code above or just in config.json of your models as a field within "transformers.js_config". 
+> When `free_dimension_overrides` is not set, you may experience significant performance degradation.

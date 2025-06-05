@@ -1,0 +1,212 @@
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+# ONNX2WebNN
+
+[ONNX2WebNN](https://github.com/huningxin/onnx2webnn) is a command-line tool that converts ONNX models to WebNN JavaScript files, enabling machine learning inference in web browsers using the WebNN API.
+
+## Overview
+
+The tool generates two primary outputs:
+- A JavaScript file (`.js`) containing the WebNN model definition
+- A binary file (`.bin`) containing the model weights
+
+## Privacy and Security
+
+**🔒 Client-Side Processing Only**
+
+All model conversion and WebNN JavaScript files generation operations run exclusively in your local environment. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+
+- Proprietary models
+- Sensitive intellectual property
+- Enterprise environments with strict data governance
+- Any scenario requiring complete data privacy
+
+## Installation
+
+Install the required dependencies using pip:
+
+```bash
+pip install -U onnx protobuf numpy
+```
+
+## Command-Line Interface
+
+### Syntax
+
+```bash
+python onnx2webnn.py -if INPUT_ONNX_FILE_PATH -oj OUTPUT_JS_PATH [OPTIONS]
+```
+
+### Required Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `-if`, `--input_onnx_file_path` | Path to the input ONNX model file (`.onnx`) |
+| `-oj`, `--output_js_path` | Path for the output WebNN JavaScript file (`.js`) |
+
+### Optional Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `-nhwc`, `--nhwc` | Generate WebNN operators with NHWC input layout for `conv2d`, `convTranspose2d`, `resample2d`, and `pool2d` operations |
+| `-json`, `--dump_json` | Export a JSON representation of the ONNX model for debugging |
+| `-i`, `--json_indent` | Set indentation level for JSON output (default: 2) |
+| `-h`, `--help` | Display help information |
+
+## Basic Usage
+
+### Step 1: Prepare the ONNX Model
+
+> <InfoIcon /> Before conversion, override any free dimensions in your ONNX model using the [onnxruntime_perf_test](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/test/perftest/README.md) tool:
+
+```bash
+onnxruntime_perf_test -I -r 1 -u mobilenetv2-12-static.onnx -f batch_size:1 -o 1 mobilenetv2-12.onnx
+```
+
+### Step 2: Create Output Directory
+
+```bash
+mkdir mobilenet
+```
+
+### Step 3: Convert the Model
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet/mobilenet.js
+```
+
+This command generates the following files in the `mobilenet` directory:
+- `mobilenet.js` - WebNN model implementation
+- `mobilenet.bin` - Model weights
+- `mobilenet.json` - Model metadata (optional)
+- `index.html` - Test page for the WebNN model
+
+### Step 4: Test the Model
+
+Start a local [HTTP server](https://www.npmjs.com/package/http-server) via Node.js and navigate to the test page:
+
+```bash
+http-server
+```
+
+Open `http://localhost:8080/` in your web browser.
+
+## NHWC Layout Support
+
+### Overview
+
+ONNX models use NCHW (batch, channels, height, width) layout by default. However, some WebNN backends (such as TensorFlow Lite for CPU and GPU) perform better with NHWC (batch, height, width, channels) layout.
+
+### Generating NHWC Models
+
+Add the `-nhwc` flag to generate a model optimized for NHWC layout:
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet_nhwc/mobilenet_nhwc.js -nhwc
+```
+
+### Dynamic Layout Selection
+
+Use the WebNN API to detect the backend's preferred layout and load the appropriate model:
+
+```javascript
+const deviceType = 'gpu'; // or 'cpu', 'npu'
+const context = await navigator.ml.createContext({deviceType});
+const layout = context.opSupportLimits().preferredInputLayout;
+
+let webnnModel;
+if (layout === 'nhwc') {
+    webnnModel = new MobilenetNhwc();
+} else {
+    webnnModel = new Mobilenet();
+}
+
+// Initialize the model
+await webnnModel.build({deviceType});
+```
+
+## Generate QDQ WebNN Models
+
+This tool converts [QDQ (Quantize-Dequantize)](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html#onnx-quantization-representation-format) ONNX models to WebNN models.
+
+### Prerequisites
+
+QDQ model conversion requires proper tensor shape information to handle scale and zero-point tensor reshaping according to the [WebNN quantizeLinear and dequantizeLinear specification](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-dequantizelinear). The WebNN spec may require reshaping these tensors based on the input tensor's rank and axis parameters.
+
+#### Prepare Your ONNX Model
+
+Before conversion, ensure your ONNX model contains shape information for each output tensor by using [onnx-simplifier](https://github.com/daquexian/onnx-simplifier):
+
+1. Install onnx-simplifier:
+   ```shell
+   pip3 install onnxsim
+   ```
+
+2. Simplify your model:
+   ```shell
+   onnxsim input_model.onnx output_model_simplified.onnx
+   ```
+
+   **Example:**
+   ```shell
+   onnxsim ../sample_models/mobilenetv2-12-qdq-static.onnx ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx
+   ```
+
+### Convert to WebNN
+
+#### Basic Conversion (NCHW Layout)
+
+```shell
+python onnx2webnn.py -if input_model.onnx -oj output_directory/output_model.js
+```
+
+**Example:**
+```shell
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq/mobilenet_qdq.js
+```
+
+#### NHWC Layout Conversion
+
+For models requiring NHWC data layout, add the `-nhwc` flag:
+
+```shell
+python onnx2webnn.py -if input_model.onnx -oj output_directory/output_model.js -nhwc
+```
+
+**Example:**
+```shell
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq_nhwc/mobilenet_qdq_nhwc.js -nhwc
+```
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `-if` | Input ONNX model file path |
+| `-oj` | Output JavaScript file path for the WebNN model |
+| `-nhwc` | (Optional) Use NHWC data layout instead of default NCHW |
+
+## Debugging with JSON Export
+
+Export the model structure as JSON for debugging and analysis:
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet/mobilenet.js -json
+```
+
+This creates an additional JSON file containing the complete model structure, useful for:
+- Debugging conversion issues
+- Understanding model architecture
+- Verifying operator mappings
+
+## Best Practices
+
+1. **Model Preparation**: Always resolve [free dimensions](../onnx-runtime/free-dimension-overrides) in your ONNX model before conversion
+2. **Layout Selection**: Use dynamic layout detection to optimize performance across different backends
+3. **Testing**: Use the generated `index.html` file to verify model functionality before integration
+4. **Performance**: Consider generating both NCHW and NHWC versions for optimal cross-platform performance
+
+## Related APIs
+
+- [WebNN API Specification](https://www.w3.org/TR/webnn/)
+- [MLInputOperandLayout - MLContext.opSupportLimits()](https://www.w3.org/TR/webnn/#dom-mlopsupportlimits-preferredinputlayout)

@@ -1,0 +1,29 @@
+export default {
+  dark: 'Dark',
+  light: 'Light',
+  system: 'System',
+  banner: '🎉 WebNN Developer Preview is released →',
+  backToTop: 'Scroll to top',
+  lastUpdated: 'Last updated on',
+  logo: {
+    title: 'WebNN Documentation'
+  },
+  viewDemo: 'View Demo',
+  viewCode: 'View Code',
+  // notFound: 'This page could not be found',
+  poweredBy: 'Powered by',
+  link: {
+    vercel: 'https://webnn.io'
+  },
+  lightweight: 'Lightweight',
+  realtime: 'Realtime',
+  suspense: 'Suspense',
+  pagination: 'Pagination',
+  backendAgnostic: 'Backend Agnostic',
+  renderingStrategies: 'SSR / SSG Ready',
+  typescript: 'TypeScript Ready',
+  remoteLocal: 'Remote + Local',
+  editPage: 'Edit this page on GitHub',
+  feedbackContent: 'Question? Give us feedback',
+  by: 'by'
+}
