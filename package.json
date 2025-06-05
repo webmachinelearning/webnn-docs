@@ -14,9 +14,9 @@
     "WebNN"
   ],
   "bugs": {
-    "url": "https://github.com/ibelem/webnn-docs/issues"
+    "url": "https://github.com/webmachinelearning/webnn-docs/issues"
   },
-  "homepage": "https://github.com/ibelem/webnn-docs#readme",
+  "homepage": "https://github.com/webmachinelearning/webnn-docs#readme",
   "dependencies": {
     "@next/third-parties": "^15.3.0",
     "@tailwindcss/postcss": "^4.0.6",
