@@ -2,7 +2,7 @@ export default {
   dark: 'Dark',
   light: 'Light',
   system: 'System',
-  banner: '🎉 WebNN Developer Preview is released →',
+  banner: '🚧 The WebNN documentation is work-in-progress. Share feedback →',
   backToTop: 'Scroll to top',
   lastUpdated: 'Last updated on',
   logo: {

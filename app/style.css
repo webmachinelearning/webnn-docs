@@ -648,22 +648,21 @@ article.nextra-body-typesetting-article a:hover {
 }
 
 .nextra-banner a {
+  position: relative;
   background: none;
+  z-index: 1000;
   color: var(--white);
-  z-index: 10;
   display: grid;
   justify-items: center;
   align-items: center;
 }
 
 .nextra-banner:hover {
-  background-color: var(--light-09);
   color: var(--light);
 }
 
 .nextra-banner:hover a {
-  background: none;
-  color: var(--light);
+  color: var(--d);
 }
 
 .dark .nextra-banner {
