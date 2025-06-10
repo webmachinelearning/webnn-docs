@@ -8,4 +8,7 @@ export default {
   'webnn-code-generator': {
     title: "WebNN Code Generator"
   },
+  'webnnutils-onnxconverter': {
+    title: "WebNNUtils ONNX Converter"
+  },
 };
