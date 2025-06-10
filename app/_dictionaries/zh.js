@@ -2,7 +2,7 @@ export default {
   dark: '深色',
   light: '浅色',
   system: '自动',
-  banner: '🎉 WebNN 开发者预览发布 →',
+  banner: '🚧 WebNN 文档正在编写中。分享反馈 →',
   backToTop: '返回页顶',
   lastUpdated: '最近更新',
   logo: {
