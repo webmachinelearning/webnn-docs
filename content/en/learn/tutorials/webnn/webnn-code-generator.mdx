@@ -37,7 +37,7 @@ The conversion process involves two complementary tools:
 3. Select your model file (`.onnx`, `.tflite`, or other supported formats)
 4. Once loaded, download the required files:
    - Click **"Graph"** → Download `graph.json`
-   - Click **"Weights"** → Download `weights.json` and `weights.bin`
+   - Click **"Weights"** → Download `weights_nchw.json`, `weights_nchw.bin`, `weights_nhwc.json` and `weights_nhwc.bin`
 
 ![WebNN Netron - Graph and Weights buttons](/learn/tutorials/webnn/code-generator-1.png)
 
@@ -48,7 +48,7 @@ The conversion process involves two complementary tools:
 1. Open [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/)
 2. Upload the extracted files:
    - Click **"Choose Graph"** → Select `graph.json`
-   - Click **"Choose Weights"** → Select `weights.json`
+   - Click **"Choose Weights"** → Select `weights_nchw.json` and `weights_nhwc.json`
 
 ![WebNN Code Generator - Choose Graph, Weights and Bin buttons](/learn/tutorials/webnn/code-generator-2.png)
 
@@ -68,7 +68,7 @@ If your model contains symbolic dimensions, you'll see a **"Set free dimension o
 2. Click **"Download Code Files"** to receive:
    - Generated JavaScript file with WebNN implementation
    - `webnn.html` test file for validation
-3. Put the `weights.bin` downloaded from [WebNN Netron](https://ibelem.github.io/netron/) together with `.js` and `webnn.html` in the same folder
+3. Put the `weights_nchw.bin` and `weights_nhwc.bin` downloaded from [WebNN Netron](https://ibelem.github.io/netron/) together with `*_nchw.js`, `*_nhwc.js` and `webnn.html` in the same folder
 
 ## Testing Your Generated Code
 

@@ -22,7 +22,7 @@ When building web-based ML applications, developers face a key trade-off:
 - **Vanilla WebNN JavaScript** provides minimal footprint but requires extensive manual coding
 - **Generated WebNN code** combines the best of both: automated development with optimized bundle size
 
-Currently, the WebNN ecosystem provides two primary code generation approaches:
+Currently, the WebNN ecosystem provides three primary code generation approaches:
 
 ## Model-to-Code Conversion
 
@@ -39,16 +39,21 @@ These tools convert trained ML models directly into WebNN lean vanilla JavaScrip
     title="WebNN Code Generator"  
     href="./webnn-code-generator"
   />
+  <Cards.Card
+    icon={<VIcon />}
+    title="WebNNUtils Onnx Converter"
+    href="./webnnutils-onnxconverter"
+  />
 </Cards>
 
-| Feature | ONNX2WebNN | WebNN Code Generator |
-|---------|:----------:|:-------------------:|
-| **Interface** | Command-line (CLI) | Web application |
-| **Language** | Python | TypeScript |
-| **ONNX Support** | ✅ Yes | ✅ Preferred |
-| **TensorFlow Lite Support** | ❌ Not supported | 🔧 Yes with compatibility issues |
-| **Other Formats Support** | ❌ Not supported | 🔧 Yes with compatibility issues |
-| **Privacy** | Client-side only | Client-side only |
+| Feature | ONNX2WebNN | WebNN Code Generator | WebNNUtils/OnnxConverter |
+|---------|:----------:|:-------------------:|:------------------------:|
+| **Interface** | Command-line (CLI) | Web application | Python toolkit |
+| **Language** | Python | TypeScript | Python |
+| **ONNX Support** | ✅ Yes | ✅ Preferred | ✅ Yes |
+| **TensorFlow Lite Support** | ❌ Not supported | 🔧 Yes with compatibility issues | ❌ Not supported |
+| **Other Formats Support** | ❌ Not supported | 🔧 Yes with compatibility issues | ❌ Not supported |
+| **Privacy** | Client-side only | Client-side only | Client-side only |
 
 ### [ONNX2WebNN](https://github.com/huningxin/onnx2webnn)
 - **Best for**: Automated workflows, CI/CD pipelines, batch processing
@@ -59,6 +64,11 @@ These tools convert trained ML models directly into WebNN lean vanilla JavaScrip
 - **Best for**: Interactive development, quick prototyping
 - **Strengths**: No installation required, browser-based privacy protection
 - **Use case**: Converting individual models with complete data privacy
+
+### [WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/tree/main/OnnxConverter)
+- **Best for**: Production deployments, complex model optimization
+- **Strengths**: Advanced graph partitioning, model reordering, Microsoft Edge team support
+- **Use case**: Enterprise applications requiring optimized WebNN deployment with CPU/NPU acceleration
 
 ## Code-to-Code Translation
 
@@ -78,9 +88,10 @@ Translate Python-based ML code (particularly PyTorch/TorchScript) directly to We
 
 ## Getting Started
 
-1. **Evaluate your requirements**: Bundle size constraints, privacy needs, development workflow
-2. **Choose your tool**: CLI automation (ONNX2WebNN) or web interface (Code Generator)
-3. **Prepare your model**: Ensure compatibility and optimization for web deployment
+1. **Evaluate your requirements**: Bundle size constraints, privacy needs, development workflow, performance requirements
+2. **Choose your tool**: CLI automation (ONNX2WebNN), advanced optimization (WebNNUtils/OnnxConverter), or browser interface (Code Generator)
+3. **Prepare your model**: Ensure ONNX compatibility and optimization for web deployment
 4. **Generate and test**: Convert your model and validate performance in target environments
+5. **Deploy and monitor**: Integrate generated code and monitor real-world performance
 
 The WebNN code generation ecosystem provides flexible options for deploying optimized ML inference in web applications while maintaining the performance benefits of vanilla JavaScript.

@@ -1,0 +1,245 @@
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+# WebNNUtils/OnnxConverter
+
+[WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/) is a WebNN compiler for producing pure JavaScript (JS) models from .onnx models, enabling machine learning inference in web browsers using the WebNN API without framework overhead.
+
+## Overview
+
+While JS ML frameworks can evaluate models in the browser, they involve shipping a framework and expensive load time preprocessing that impacts latency. During preprocessing, frameworks determine input shapes for operators, partition operators between CPU and accelerated execution, and optimize the model graph.
+
+With OnnxConverter there is no such overhead. At compile time, OnnxConverter takes a static .onnx file and emits JS code that will build an equivalent WebNN graph. The resulting JS code can be used directly in the browser without any additional framework dependencies.
+
+## Privacy and Security
+
+**🔒 Client-Side Processing Only**
+
+All model conversion and JavaScript generation operations run exclusively in your local environment. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+
+- Proprietary models
+- Sensitive intellectual property
+- Enterprise environments with strict data governance
+- Any scenario requiring complete data privacy
+
+## Generated Output
+
+OnnxConverter generates several files:
+- A JavaScript file (`.js`) containing the WebNN graph building function
+- One or more binary files (`.bin`) containing the model weights
+- Optional JSON metadata files for debugging
+
+The core output is a JavaScript function with the following signature:
+
+```javascript
+function loadModelGraph(operand_input, weights_buffers, builder) {
+    // Generated WebNN graph building code
+    return output_operand; // or {output1: operand1, output2: operand2}
+}
+```
+
+Where:
+- `operand_input` - Input operands for the model
+- `weights_buffers` - Array of ArrayBuffers containing model weights
+- `builder` - MLGraphBuilder WebNN object
+
+## Installation
+
+Install the required Python dependencies:
+
+```bash
+pip install -U onnx protobuf numpy
+```
+
+## Command-Line Interface
+
+### Syntax
+
+```bash
+python OnnxConverter.py MODEL_FILE [OPTIONS]
+```
+
+### Required Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `model_file` | Path to the input ONNX model file (`.onnx`) |
+
+### Optional Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `--weights_file` | Path to the output weights file (default: `weights.bin`) |
+| `--output_file` | Path to the output JavaScript file (default: `model.js`) |
+| `--max_weights_size` | Maximum size of a single weights file in MB (default: 1024) |
+
+## Basic Usage
+
+### Step 1: Convert the Model
+
+```bash
+python OnnxConverter.py mobilenetv2-12.onnx --output_file mobilenet/mobilenet.js --weights_file mobilenet/weights.bin
+```
+
+This command generates:
+- `mobilenet/mobilenet.js` - WebNN graph building function
+- `mobilenet/weights0.bin` - Model weights (may be split into multiple files)
+
+### Step 2: Post-Processing (Required)
+
+The generated JavaScript requires post-processing to handle code ordering and CPU/GPU partitioning:
+
+```bash
+# Reorder operations to ensure proper dependency resolution
+python ReorderModel.py mobilenet/mobilenet.js
+
+# Partition operations between CPU and GPU execution
+python CPUGraphPartitioner.py mobilenet/mobilenet.js
+```
+
+### Step 3: Load Weights in Browser
+
+Load the weights file(s) and pass them to your WebNN model:
+
+```javascript
+const weights_file = 'weights0.bin';
+let cache = await caches.open("weights");
+let weights_response = await cache.match(weights_file);
+if (!weights_response) {
+    await cache.add(weights_file);
+    weights_response = await cache.match(weights_file);
+}
+const weights_buffer = await weights_response.arrayBuffer();
+
+// Create WebNN context and builder
+const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+const builder = new MLGraphBuilder(context);
+
+// Install CPU operations polyfill
+InstallCpuOps(builder);
+
+// Load the model graph
+const model_output = loadModelGraph(input_operand, [weights_buffer], builder);
+```
+
+## Architecture and Processing Pipeline
+
+### Shape Inference Handling
+
+OnnxConverter does not perform traditional shape inference. Instead, it generates WebNN graph nodes that handle dynamic shapes at runtime. The WebNN graph builder is augmented with polyfilled methods that can work with JavaScript numbers (not just tensors).
+
+For example, an ONNX graph with shape operations:
+```javascript
+// Pseudocode
+a = tensor.shape();
+b = a * 2;
+```
+
+Generates WebNN nodes that call `shape()` and `mul()` operations, where `mul` is polyfilled to handle JavaScript numbers returned by `shape()`.
+
+### CPU Operations Polyfill
+
+Before calling `loadModelGraph`, install the CPU operations polyfill:
+
+```javascript
+const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+const builder = new MLGraphBuilder(context);
+InstallCpuOps(builder);
+```
+
+The polyfill (defined in `CpuOps.js`) augments `MLGraphBuilder` with operators that work on JavaScript numbers, enabling operations like shape manipulation and constant folding.
+
+### Processing Pipeline
+
+The complete conversion process involves three stages:
+
+1. **OnnxConverter.py** - Main compiler that emits JS graph building code
+2. **ReorderModel.py** - Fixes code generation where input operands are computed after being needed
+3. **CPUGraphPartitioner.py** - Annotates operations that need CPU execution with `cpu_` prefix
+
+## Multi-File Weight Support
+
+For large models, weights can be automatically split across multiple files:
+
+```bash
+python OnnxConverter.py large_model.onnx --max_weights_size 512
+```
+
+This creates multiple weight files (`weights0.bin`, `weights1.bin`, etc.) that must all be loaded:
+
+```javascript
+const weight_files = ['weights0.bin', 'weights1.bin'];
+const weights_buffers = [];
+
+for (const file of weight_files) {
+    const response = await fetch(file);
+    weights_buffers.push(await response.arrayBuffer());
+}
+
+const model_output = loadModelGraph(input_operand, weights_buffers, builder);
+```
+
+## Supported ONNX Operations
+
+OnnxConverter supports a comprehensive set of ONNX operations including:
+
+### Core Operations
+- **Convolution**: Conv (with groups, padding, strides, dilations)
+- **Activation**: Relu, Sigmoid, Softmax, LeakyRelu
+- **Pooling**: GlobalAveragePool
+- **Arithmetic**: Add, Sub, Mul, Div, Pow, Sqrt
+
+### Tensor Operations
+- **Shape Manipulation**: Reshape, Transpose, Unsqueeze, Squeeze
+- **Data Movement**: Concat, Gather, Slice, Expand
+- **Comparison**: Equal, Less, Where
+
+### Advanced Operations
+- **Quantization**: DequantizeLinear, DynamicQuantizeLinear, MatMulInteger
+- **Matrix Operations**: MatMul
+- **Specialized**: DepthToSpace, ConstantOfShape, ReduceMean
+
+### Software-Implemented Operations
+Some operations are implemented in JavaScript rather than native WebNN:
+- **Slice**: Limited implementation for constant slicing
+- **Squeeze**: Dynamic axis squeezing
+- **Range**: Sequence generation
+
+## Debugging and Analysis
+
+### Code Generation Issues
+
+If the generated code has dependency issues, use the processing pipeline:
+
+```bash
+python OnnxConverter.py model.onnx --output_file model.js
+python ReorderModel.py model.js
+python CPUGraphPartitioner.py model.js
+```
+
+### Understanding Generated Code
+
+The generated JavaScript contains:
+- Constant definitions for model weights
+- WebNN operation calls building the computation graph
+- Input/output handling for the model
+
+## Best Practices
+
+1. **Always Post-Process**: Run ReorderModel.py and CPUGraphPartitioner.py on generated code
+2. **Install Polyfills**: Use InstallCpuOps() before loading models
+3. **Handle Multiple Weights**: Account for split weight files in large models
+4. **Cache Weights**: Use browser caching for weight files to improve loading performance
+5. **Test Locally**: Serve files from HTTP server for proper loading behavior
+
+## Limitations
+
+- No dynamic shape inference (shapes resolved at runtime)
+- Requires post-processing pipeline for complex models
+- Limited support for some ONNX operations
+- CPU fallback required for certain operation types
+
+## Related APIs
+
+- [WebNN API Specification](https://www.w3.org/TR/webnn/)
+- [ONNX Specification](https://onnx.ai/onnx/)
+- [MLGraphBuilder Interface](https://www.w3.org/TR/webnn/#api-mlgraphbuilder)
