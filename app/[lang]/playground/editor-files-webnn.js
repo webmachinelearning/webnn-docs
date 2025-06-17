@@ -976,53 +976,82 @@ button {
     "static": {
       '/webnn.js': {
         active: true,
-        code: `async function webnn() {
+        code: `let resultArray = null;
+let currentIndex = 0;
+let chunkSize = 512;
+
+async function webnn() {
   // Compute softmax() on N-D tensors (N > 2)
-  const context = await navigator.ml.createContext();
-  await navigator.ml.createContext({deviceType: 'cpu'});
+  const context = await navigator.ml.createContext({ deviceType: 'gpu' });
   const builder = new MLGraphBuilder(context);
-  const input = builder.input('input', {dataType: 'float32', shape: [1, 5, 1024, 1024]});
+  const input = builder.input('input', { dataType: 'float32', shape: [1, 5, 1024, 1024] });
   const out = builder.softmax(input, 1);
-  const graph = await builder.build({'output': out});
-  const [inputTensor, outputTensor] =  await Promise.all([
-      context.createTensor({dataType: input.dataType, shape: input.shape, writable: true}),
-      context.createTensor({dataType: input.dataType, shape: input.shape, readable: true})
+  const graph = await builder.build({ 'output': out });
+
+  const [inputTensor, outputTensor] = await Promise.all([
+    context.createTensor({ dataType: input.dataType, shape: input.shape, writable: true }),
+    context.createTensor({ dataType: input.dataType, shape: input.shape, readable: true })
   ]);
-  
-  context.writeTensor(inputTensor, new Float32Array(1*5*1024*1024).fill(1.0));
-  
-  const inputs = {'input': inputTensor};
-  const outputs = {'output': outputTensor};
-  context.dispatch(graph, inputs, outputs);
+
+  const size = 1 * 5 * 1024 * 1024;
+  const randomData = new Float32Array(size);
+  for (let i = 0; i < size; i++) {
+    randomData[i] = Math.random();
+  }
+  context.writeTensor(inputTensor, randomData);
+
+  const inputs = { 'input': inputTensor };
+  const outputs = { 'output': outputTensor };
+  await context.dispatch(graph, inputs, outputs);
   const result = await context.readTensor(outputTensor);
   return new Float32Array(result);
 }
- 
-// Debounce utility to prevent rapid successive clicks
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
+
+function showChunk() {
+  const output = document.querySelector("#output");
+  if (!resultArray) return;
+  const end = Math.min(currentIndex + chunkSize, resultArray.length);
+  const chunk = Array.from(resultArray.slice(currentIndex, end));
+  output.textContent += (currentIndex === 0 ? "" : "\n") + chunk.join(', ');
+  currentIndex = end;
+  // Hide button if all data is shown
+  if (currentIndex >= resultArray.length) {
+    document.getElementById("showMoreBtn").style.display = "none";
+  }
 }
 
-// Event listener with debouncing
-document.querySelector("#run").addEventListener(
-  "click",
-  debounce(async () => {
-    const output = document.querySelector("#output");
-    output.textContent = "Inferencing...";
-    try {
-      const { result } = await webnn(); // Use default values
-      console.log(result);
-      output.innerHTML = "Output value:" + result;
-    } catch (error) {
-      console.log(error.message);
-      output.textContent = "Error: " + error.message;
+async function main() {
+  const output = document.querySelector("#output");
+  const btn = document.getElementById("showMoreBtn");
+  const chunkInput = document.getElementById("chunkInput");
+  chunkSize = parseInt(chunkInput.value, 10) || 256;
+  output.textContent = "Inferencing...";
+  btn.style.display = "none";
+  try {
+    resultArray = await webnn();
+    currentIndex = 0;
+    output.textContent = "";
+    showChunk();
+    if (resultArray.length > chunkSize) {
+      btn.style.display = "inline-block";
     }
-  }, 300) // 300ms debounce
-);`
+  } catch (error) {
+    output.textContent = "Error: " + error.message;
+  }
+}
+
+document.getElementById("showMoreBtn").addEventListener("click", showChunk);
+document.getElementById("chunkInput").addEventListener("change", function () {
+  chunkSize = parseInt(this.value, 10) || 256;
+  currentIndex = 0;
+  document.querySelector("#output").textContent = "";
+  showChunk();
+  if (resultArray && resultArray.length > chunkSize) {
+    document.getElementById("showMoreBtn").style.display = "inline-block";
+  }
+});
+document.addEventListener("DOMContentLoaded", main, false);
+`
       },
       '/index.html': {
         code: `<!DOCTYPE html>
@@ -1037,7 +1066,10 @@ document.querySelector("#run").addEventListener(
 
 <body>
   <h1>Compute softmax() on N-D tensors (N > 2)</h1>
+  <label for="chunkInput">Chunk size:</label>
+  <input type="number" id="chunkInput" value="512" min="1" style="width:80px;">
   <div id="output"></div>
+  <button id="showMore" style="display:none;">Show next chunk</button>
   <script src="./webnn.js"></script>
 </body>
 
@@ -1050,10 +1082,16 @@ document.querySelector("#run").addEventListener(
 
 h1 {
   color: #E44D26;
+  font-size: 0.8rem;
 }
 
 button {
   margin: 0.5rem 0;
+  padding: 0.5rem 1rem;
+}
+  
+#output {
+  font-size: 0.6rem;
 }`}
     },
   },
