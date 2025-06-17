@@ -970,6 +970,93 @@ button {
 }`},
     },
   },
+  "softmax() on N-D tensors": {
+    "title": "softmax() on N-D tensors",
+    "description": "Compute softmax() on N-D tensors (N > 2)",
+    "static": {
+      '/webnn.js': {
+        active: true,
+        code: `async function webnn() {
+  // Compute softmax() on N-D tensors (N > 2)
+  const context = await navigator.ml.createContext();
+  await navigator.ml.createContext({deviceType: 'cpu'});
+  const builder = new MLGraphBuilder(context);
+  const input = builder.input('input', {dataType: 'float32', shape: [1, 5, 1024, 1024]});
+  const out = builder.softmax(input, 1);
+  const graph = await builder.build({'output': out});
+  const [inputTensor, outputTensor] =  await Promise.all([
+      context.createTensor({dataType: input.dataType, shape: input.shape, writable: true}),
+      context.createTensor({dataType: input.dataType, shape: input.shape, readable: true})
+  ]);
+  
+  context.writeTensor(inputTensor, new Float32Array(1*5*1024*1024).fill(1.0));
+  
+  const inputs = {'input': inputTensor};
+  const outputs = {'output': outputTensor};
+  context.dispatch(graph, inputs, outputs);
+  const result = await context.readTensor(outputTensor);
+  return new Float32Array(result);
+}
+ 
+// Debounce utility to prevent rapid successive clicks
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+// Event listener with debouncing
+document.querySelector("#run").addEventListener(
+  "click",
+  debounce(async () => {
+    const output = document.querySelector("#output");
+    output.textContent = "Inferencing...";
+    try {
+      const { result } = await webnn(); // Use default values
+      console.log(result);
+      output.innerHTML = "Output value:" + result;
+    } catch (error) {
+      console.log(error.message);
+      output.textContent = "Error: " + error.message;
+    }
+  }, 300) // 300ms debounce
+);`
+      },
+      '/index.html': {
+        code: `<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Compute softmax() on N-D tensors (N > 2)</title>
+</head>
+
+<body>
+  <h1>Compute softmax() on N-D tensors (N > 2)</h1>
+  <div id="output"></div>
+  <script src="./webnn.js"></script>
+</body>
+
+</html>` },
+      '/styles.css': {
+        code: `body {
+  font-family: 'Intel One Mono', 'Trebuchet MS', sans-serif;
+  padding: 0 1rem;
+}
+
+h1 {
+  color: #E44D26;
+}
+
+button {
+  margin: 0.5rem 0;
+}`}
+    },
+  },
   "conv2d": {
     "title": "conv2d",
     "description": "Compute a 2-D convolution given 4-D input and filter tensors",
