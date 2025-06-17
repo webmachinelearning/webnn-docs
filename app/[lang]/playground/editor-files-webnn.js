@@ -978,7 +978,7 @@ button {
         active: true,
         code: `let resultArray = null;
 let currentIndex = 0;
-let chunkSize = 512;
+let chunkSize = 256;
 
 async function webnn() {
   // Compute softmax() on N-D tensors (N > 2)
@@ -1012,17 +1012,18 @@ function showChunk() {
   if (!resultArray) return;
   const end = Math.min(currentIndex + chunkSize, resultArray.length);
   const chunk = Array.from(resultArray.slice(currentIndex, end));
-  output.textContent += (currentIndex === 0 ? "" : "\n") + chunk.join(', ');
+  output.textContent += (currentIndex === 0 ? "" : "") + chunk.join(', ');
+  
   currentIndex = end;
   // Hide button if all data is shown
   if (currentIndex >= resultArray.length) {
-    document.getElementById("showMoreBtn").style.display = "none";
+    document.getElementById("more").style.display = "none";
   }
 }
 
 async function main() {
   const output = document.querySelector("#output");
-  const btn = document.getElementById("showMoreBtn");
+  const btn = document.getElementById("more");
   const chunkInput = document.getElementById("chunkInput");
   chunkSize = parseInt(chunkInput.value, 10) || 256;
   output.textContent = "Inferencing...";
@@ -1040,18 +1041,17 @@ async function main() {
   }
 }
 
-document.getElementById("showMoreBtn").addEventListener("click", showChunk);
+document.getElementById("more").addEventListener("click", showChunk);
 document.getElementById("chunkInput").addEventListener("change", function () {
   chunkSize = parseInt(this.value, 10) || 256;
   currentIndex = 0;
   document.querySelector("#output").textContent = "";
   showChunk();
   if (resultArray && resultArray.length > chunkSize) {
-    document.getElementById("showMoreBtn").style.display = "inline-block";
+    document.getElementById("more").style.display = "inline-block";
   }
 });
-document.addEventListener("DOMContentLoaded", main, false);
-`
+document.addEventListener("DOMContentLoaded", main, false);`
       },
       '/index.html': {
         code: `<!DOCTYPE html>
@@ -1069,7 +1069,7 @@ document.addEventListener("DOMContentLoaded", main, false);
   <label for="chunkInput">Chunk size:</label>
   <input type="number" id="chunkInput" value="512" min="1" style="width:80px;">
   <div id="output"></div>
-  <button id="showMore" style="display:none;">Show next chunk</button>
+  <button id="more" style="display:none;">Show next chunk</button>
   <script src="./webnn.js"></script>
 </body>
 
@@ -1081,16 +1081,21 @@ document.addEventListener("DOMContentLoaded", main, false);
 }
 
 h1 {
-  color: #E44D26;
-  font-size: 0.8rem;
+  font-size: 1rem;
+}
+
+label {
+  font-size: 0.9rem;
 }
 
 button {
   margin: 0.5rem 0;
-  padding: 0.5rem 1rem;
+  padding: 0.2rem 1rem;
 }
   
 #output {
+  color: #333;
+  padding: 0.5rem 0;
   font-size: 0.6rem;
 }`}
     },
