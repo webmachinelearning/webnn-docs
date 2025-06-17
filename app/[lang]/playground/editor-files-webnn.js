@@ -970,7 +970,7 @@ button {
 }`},
     },
   },
-  "softmax() on N-D tensors": {
+  "softmax-n-d-tensors": {
     "title": "softmax() on N-D tensors",
     "description": "Compute softmax() on N-D tensors (N > 2)",
     "static": {
