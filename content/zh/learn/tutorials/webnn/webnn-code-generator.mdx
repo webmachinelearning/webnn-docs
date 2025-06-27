@@ -34,10 +34,9 @@ The conversion process involves two complementary tools:
 
 1. Navigate to [WebNN Netron](https://ibelem.github.io/netron/)
 2. Click the **"Open Model..."** button
-3. Select your model file (`.onnx`, `.tflite`, or other supported formats)
+3. Select your model file (`.onnx`, `.tflite`, or other supported formats with weights and computational graphs)
 4. Once loaded, download the required files:
-   - Click **"Graph"** → Download `graph.json`
-   - Click **"Weights"** → Download `weights.json`, `weights_nchw.bin` and `weights_nhwc.bin`
+   - Click **"Graph and Weights"** → Download `graph.json`, `weights_nchw.bin` and `weights_nhwc.bin`
 
 ![WebNN Netron - Graph and Weights buttons](/learn/tutorials/webnn/code-generator-1.png)
 
@@ -47,8 +46,8 @@ The conversion process involves two complementary tools:
 
 1. Open [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/)
 2. Upload the extracted files:
-   - Click **"Choose Graph"** → Select `graph.json`
-   - Click **"Choose Weights"** → Select `weights.json`
+   - Choose **"Graph"** → Select `graph.json`
+   - Choose **"Weights NCHW"** and **"Weights NHWC"** → Select `weights_nchw.bin` and `weights_nhwc.bin`
 
 ![WebNN Code Generator - Choose Graph, Weights and Bin buttons](/learn/tutorials/webnn/code-generator-2.png)
 
@@ -66,7 +65,7 @@ If your model contains symbolic dimensions, you'll see a **"Set free dimension o
 
 1. Click **"Generate WebNN Code"**
 2. Click **"Download Code Files"** to receive:
-   - Generated JavaScript file with WebNN implementation
+   - Generated JavaScript files `*_nchw.js` and `*_nhwc.js` with WebNN implementation
    - `webnn.html` test file for validation
 3. Put the `weights_nchw.bin` and `weights_nhwc.bin` downloaded from [WebNN Netron](https://ibelem.github.io/netron/) together with `*_nchw.js`, `*_nhwc.js` and `webnn.html` in the same folder
 
@@ -115,5 +114,4 @@ The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) is id
 ## Related Resources
 - [WebNN Netron](https://ibelem.github.io/netron/) - Model visualization tool with enhanced features for WebNN API
 - [GitHub Issues - WebNN Code Generator](https://github.com/ibelem/webnn-code-generator/issues) - Report bugs and request features
-- [ONNX2WebNN](https://github.com/huningxin/onnx2webnn) - Command-line alternative
 - [WebNN API Specification](https://www.w3.org/TR/webnn/) - Official API documentation
