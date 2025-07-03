@@ -164,6 +164,18 @@ h5 {
   color: var(--light);
 }
 
+.light h3 .x\:text-primary-600 {
+  color: var(--n-1);
+  background-color: var(--dark-bg);
+  border-radius: 5px;
+  padding: 0 0.4rem;
+}
+
+.light h3:hover .x\:text-primary-600 {
+  color: white;
+  background-color: var(--n-1);
+}
+
 .x\:mt-16 {
   margin-top: 0;
   display: none;
