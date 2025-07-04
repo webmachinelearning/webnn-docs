@@ -168,7 +168,7 @@ h5 {
   color: var(--n-1);
   background-color: var(--dark-bg);
   border-radius: 5px;
-  padding: 0 0.4rem;
+  padding: 0.2rem 0.6rem;
 }
 
 .light h3:hover .x\:text-primary-600 {
