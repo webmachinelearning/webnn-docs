@@ -1,0 +1,242 @@
+---
+title: ONNX2WebNN - Reducing Web AI Framework Overhead by 400x
+description:
+  'WebNN is a privacy-first browser API enabling hardware-accelerated, client-side AI inference. While frameworks 
+  offer convenience, they inflate bundle sizes (2-20 MB) and slow startup. Alternatively, using WebNN directly in 
+  vanilla JavaScript yields minimal overhead (tens to hundreds of KB). Tools like ONNX2WebNN and browser‑based code 
+  generators automate converting ONNX models to optimized WebNN code, supporting layout tuning and quantization.'
+date: 2025-07-02
+authors:
+  - name: Belem Zhang
+    link: https://x.com/ibelem
+  - name: Ningxin Hu
+    link: https://x.com/ningxinhu
+---
+
+import { TopContent } from '../../../app/_components/authors'
+import InfoIcon from '../../../app/_components/icons/info.jsx'
+
+<TopContent lang={props.params.lang} {...metadata} />
+
+![ONNX2WebNN - Reducing Web AI Framework Overhead by 400x](/blog/onnx2webnn/article.png)
+
+Machine learning in web browsers has come a long way from the early days of running everything on CPUs through JavaScript. The Web Neural Network (WebNN) API represents the latest evolution - a browser standard that taps directly into hardware acceleration, whether that's your CPU, GPU, or NPU.
+
+What makes WebNN particularly interesting is its privacy-first approach. All inference happens locally on the user’s device. No data gets sent to servers, no API calls to remote services - everything stays put. In an era where privacy concerns are front and center, this local-first approach is a significant advantage.
+
+WebNN API is more like a foundation that other tools can build on top of. You can use it through familiar JavaScript ML frameworks, or you can go directly with vanilla JavaScript.
+
+## Two Paths, Two Different Trade-offs
+
+WebNN gives you two main ways to build AI-powered web applications, and they couldn't be more different in their approach.
+
+### The Framework Route: Familiar Territory with Overheads 
+
+The first option is to use WebNN through established JavaScript ML frameworks like ONNX Runtime Web, Transformers.js, or LiteRT. If you've worked with these frameworks before, this is the comfortable path - you get the same APIs you know, but with WebNN providing hardware acceleration under the hood. You can refer to [Transformers.js](../learn/tutorials/transformers-js/transformers-js) and [ONNXRuntime](../learn/tutorials/onnx-runtime/onnx-runtime) for more information.
+
+The framework handles all the WebNN complexity for you, and falls back gracefully if hardware acceleration isn't supported.
+
+**Framework Trade-offs**:
+- Bundle size impact: Frameworks typically add 2-20 MB to your application
+- Runtime overhead: Models need preprocessing that can delay first inference
+- Less control: Framework abstractions can hide optimization opportunities
+- Dependency complexity: More dependencies to manage and potential security considerations
+
+![Bundle Size Comparison](/blog/onnx2webnn/bundle-size.png)
+Figure 1: Bundle Size Comparison (JS ML Framework vs WebNN Vanilla JavaScript)
+
+Due to unexpectedly large bundle sizes, many web application developers urgently need solutions to address this issue. The second option below addresses this challenge effectively.
+
+### The Vanilla JavaScript Path: Maximum Control, Minimum Overhead
+
+The second option is using WebNN directly through vanilla JavaScript. This means building your neural network graphs by hand using the raw WebNN API. It's more work, but it gives you complete control over every aspect of model execution.
+
+**Vanilla JavaScript Advantages**:
+- Tiny bundle size: No framework overhead - just your model code and weights
+- Maximum performance: Direct access without framework overhead
+- Complete control: Fine-tune every detail of model loading and execution
+- Transparency: You know exactly what's happening at every step
+- Custom optimization: Implement specialized optimizations for your specific use case
+
+**Vanilla JavaScript Challenges**:
+- Development complexity: Requires significantly more code than framework solutions
+- Model conversion: Need to convert from standard formats to WebNN-compatible code
+- Fallback responsibility: You handle graceful degradation when WebNN isn't available
+- Maintenance overhead: Updates and optimizations require manual implementation
+
+## When Bundle Size Becomes Critical
+
+This is where the vanilla JavaScript approach really shines. If you're building bundle size sensitive applications - any scenario where load time directly impacts user experience - the size difference is dramatic.
+Let's break down the numbers:
+
+**Framework-based implementation**:
+- Framework library: 2-20 MB
+- Model weights: 400KB-50 MB (depending on your model)
+- Generated bundle overhead: 2.4-70 MB total
+
+**WebNN Vanilla JavaScript implementation**:
+- Generated JavaScript code: 40-200 KB
+- Model weights: 400KB-50 MB (same weights)
+- Total overhead: 0.44-50.2 MB
+
+That 2-20 MB difference translates to real-world impact. On a slow 3G connection, saving 3 MB means users see your app 15-20 seconds sooner. For many applications, that's the difference between users staying or leaving.
+Beyond the size savings, WebNN Vanilla JavaScript eliminates runtime preprocessing overhead.
+
+## The Code Generation Game Changer
+
+Here's where WebNN Vanilla JavaScript gets interesting: you don't have to write all that low-level code yourself. The WebNN community is building sophisticated code generation tools that automatically convert standard ML models into optimized vanilla JavaScript.
+
+These tools bridge the gap between "easy to develop" and "efficient to run." You get the bundle size and performance benefits of WebNN Vanilla JavaScript without the manual coding complexity.
+
+### ONNX2WebNN: The Command Line Powerhouse
+
+[ONNX2WebNN](https://github.com/huningxin/onnx2webnn) is a Python-based command-line tool that's perfect for automated workflows and development pipelines. It takes ONNX models and generates clean WebNN JavaScript code.
+
+####  Generate WebNN JavaScript model
+
+Most ONNX models contain dynamic dimensions - flexible input shapes that can vary between inference runs. WebNN performs optimally with fixed. 
+
+The first step is converting your dynamic ONNX model to a static version using the [onnxruntime_perf_test](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/test/perftest/README.md) tool.
+
+```bash
+onnxruntime_perf_test -I -r 1 -u mobilenetv2-12-static.onnx -f batch_size:1 -o 1 mobilenetv2-12.onnx
+```
+
+Make a folder "mobilenet" that will contain the generated files:
+
+```bash
+mkdir mobilenet
+```
+
+Then run the following command to create WebNN JavaScript model for the static ONNX model:
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet/mobilenet.js
+```
+
+#### Understanding the Generated Code
+
+This generates two files: a `.js` file containing your WebNN model implementation and a `.bin` file with the model weights. An `index.html` is also generated for testing the WebNN model. All processing happens locally on your machine - your model data never leaves your environment.
+Start a node.js `http-server` in the folder containing generated model files and launch a web browser with URL `http://localhost:8080/`.
+
+```bash
+http-server
+```
+
+The generated JavaScript file typically contains two main functions:
+
+- `build()` - Constructs the WebNN computational graph
+- `run(inputs)` - Executes inference with the provided inputs
+
+#### NCHW and NHWC layouts support
+
+What makes ONNX2WebNN particularly clever is its handling of data layouts. Different WebNN backends prefer different tensor layouts (`NCHW` vs `NHWC`), and performance can vary dramatically based on this choice.
+
+```bash
+# Generate both layout versions
+python onnx2webnn.py -if model.onnx -oj model_nchw.js
+python onnx2webnn.py -if model.onnx -oj model_nhwc.js -nhwc
+```
+
+Your application can then dynamically choose the optimal version:
+
+```javascript
+const deviceType = 'gpu'; // or 'cpu', 'npu'
+const context = await navigator.ml.createContext({deviceType});
+const layout = context.opSupportLimits().preferredInputLayout;
+let webnnModel;
+if (layout == 'nhwc') {
+    webnnModel = new MobilenetNhwc();
+} else {
+    webnnModel = new Mobilenet();
+}
+// Load the weights in preferred layout and build the graph.
+await webnnModel.build({deviceType});
+// Do inference with webnnModel.run()
+```
+
+We've observed significant performance improvements simply by using the backend-preferred layout, achieving a 3x performance boost for MobileNetV2. It's one of those optimizations that separates demo code from production-ready implementations. 
+
+#### Generate QDQ WebNN models
+
+One of the standout features of [ONNX2WebNN](https://github.com/huningxin/onnx2webnn) is its support for quantized models using the QDQ (Quantize-Dequantize) format. Quantized models can significantly reduce memory usage and improve inference speed, making them ideal for web deployment where resources are constrained.
+However, working with QDQ models requires a crucial preprocessing step. The WebNN specification for quantizeLinear and dequantizeLinear operations requires proper tensor reshaping based on the tensor rank and quantization axis. To ensure this works correctly, your ONNX model must contain complete shape information for all output tensors.
+
+```bash
+pip3 install onnxsim
+onnxsim ../sample_models/mobilenetv2-12-qdq-static.onnx ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx
+```
+
+After that, generate WebNN model with the following command line
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq/mobilenet_qdq.js
+```
+
+For NHWC model, use
+
+```bash
+python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq_nhwc/mobilenet_qdq_nhwc.js -nhwc
+```
+
+### WebNN Code Generator: Easy-to-Use Interactive Tool
+
+The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator) takes a completely different approach - it runs entirely in your browser. All model conversion and code generation occur client-side, which means your models never leave your machine.
+
+This browser-based approach is invaluable when you're working with proprietary or sensitive models where even uploading to a "secure" conversion service isn't acceptable.
+
+**The workflow involves two complementary tools**:
+
+1. [WebNN Netron](https://ibelem.github.io/netron/): Extracts model structure and weights from your model file
+2. [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator): Converts these into WebNN JavaScript code
+
+![Bundle Size Comparison](/blog/onnx2webnn/webnn-code-generator.png)
+_Figure 2: WebNN Code Generator screenshot_
+
+You start by loading your model (ONNX, TensorFlow Lite, or other formats) into [WebNN Netron](https://ibelem.github.io/netron/). Once loaded, you download the extracted components: `graph.json` containing the model architecture, and `weights_nchw.bin` and `weights_nhwc.bin` containing the parameters.
+
+Then you feed these files into the Code Generator, which produces ready-to-use WebNN JavaScript files optimized for both `NCHW` and `NHWC` layouts.
+
+What's particularly nice about this tool is how it handles dynamic dimensions. Many models have `symbolic dimensions` (like variable batch sizes), and the generator provides a clean interface to override these with concrete values that WebNN can work with efficiently.
+
+### WebNNUtils: An Alternative Tool
+
+[WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/) represents Microsoft's experimental approach to ONNX-to-WebNN conversion. 
+
+The key insight behind WebNNUtils is eliminating runtime overhead entirely. While JavaScript ML frameworks perform expensive preprocessing during model loading - determining input shapes, partitioning operations between CPU and GPU, optimizing the computation graph - WebNNUtils does all this work at compile time. The multi-step process handles sophisticated optimizations like automatically determining which operations should run on CPU vs GPU, ensuring proper dependency ordering.
+
+## Practical Considerations: When to Choose What
+
+The choice between JavaScript ML famework and WebNN vanilla JavaScript isn't just technical - it's about matching your approach to your project's real constraints and requirements.
+
+**Choose Framework Integration when**:
+
+- Development velocity is more important than bundle size
+- Your team is already familiar with ML frameworks 
+- Maintenance overhead should be minimized
+- You're building a proof-of-concept or MVP
+
+**Choose WebNN Vanilla JavaScript when**:
+
+- Bundle size directly impacts user experience
+- You're building specialized AI applications
+- Privacy requirements prevent framework dependencies
+- You have the development resources for custom optimization
+
+## The Current State of Affairs
+
+WebNN browser support is improving rapidly. Google Chrome and Microsoft Edge offer [experimental support behind flags](https://webmachinelearning.github.io/webnn-status/). The trajectory is clear - WebNN will be widely available sooner than later.
+
+The tooling ecosystem is also maturing. All three code generation tools are actively maintained with regular improvements in model compatibility and optimization capabilities. For applications where bundle size is critical, WebNN Vanilla JavaScript offers compelling advantages today. For rapid development and broad compatibility, framework integration provides a smoother path.
+
+The beauty of WebNN as a standard is that it supports both approaches. You can start with framework integration for faster development, then migrate to vanilla JavaScript for specific performance-critical components. Or you can begin with WebNN Vanilla JavaScript for maximum control from day one.
+
+Whether you're building a lightweight mobile experience where every kilobyte counts, or a full-featured AI application where development speed matters most, WebNN provides a path forward. The key is honestly assessing your constraints and choosing the approach that best serves your users' needs.
+
+> <InfoIcon /> WebNN is an evolving standard with rapid improvements in browser support and tooling. Check current [compatibility documentation](../api-reference/browser-compatibility/api) for the latest capabilities before starting your implementation.
+
+## About the Authors
+
+- [Belem Zhang](https://x.com/ibelem): Software Engineering Manager at Intel. Focuses on the Web Neural Network (WebNN) API implementation on Intel client platforms. He is part of the Intel Web Platform Engineering team.
+- [Ningxin Hu](https://x.com/ningxinhu): Intel Principal Engineer, initiator and co-editor of the W3C Web Neural Network specification, Chromium committer and co-owner of the Chromium WebNN component.
+- [Web Guru @ medium.com](https://medium.com/@qzhang8/onnx2webnn-reducing-web-ai-framework-overhead-by-400x-521aa9355d0d)

@@ -22,6 +22,10 @@ export default {
     title: 'FAQ',
     type: 'page',
   },
+  blog: {
+    title: 'Blog',
+    type: 'page',
+  },
   showcase: {
     title: 'Showcase',
     type: 'page',

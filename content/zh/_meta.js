@@ -22,6 +22,10 @@ export default {
     title: '常见问题',
     type: 'page',
   },
+  blog: {
+    title: 'Blog',
+    type: 'page',
+  },
   showcase: {
     title: '示例',
     type: 'page',
