@@ -5,84 +5,38 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 > <InfoIcon /> To use WebNN before the [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) milestone, complete these setup requirements.
 
-- Window 11, version 21H2 or newer
-- It's recommended to install the latest [Intel® Arc™ & Iris® Xe Graphics on Windows](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html)
-- It's recommended to install the latest [Intel® Core™ Ultra NPU Driver on Windows](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
+Windows OS:
+- It's recommended to install the latest [Intel® Arc™ & Iris® Xe Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html)
+- It's recommended to install the latest [Intel® Core™ Ultra NPU Driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
 
 ## Enabling WebNN
 
 <Steps>
-### Download and install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+### Install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
 ### Navigate to `about://flags` in browser address bar
 ### Search for `Enables WebNN API` and change it to `Enabled`
 ### Exit browser
 </Steps>
 
-## Running WebNN on Windows ML backend 🚧 (CPU, GPU and NPU)
+## Running WebNN on Windows ML backend (CPU, GPU and NPU)
+
+> <InfoIcon /> Window 11, version 24H2 or newer
 
 <Steps>
 ### Install [Windows ML Runtime](https://apps.microsoft.com/detail/9mvl55dvgwww) from Microsoft Store
 ### Install [Windows ML Runtime Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) from Microsoft Store
 ### Navigate to `about://flags` in browser address bar
 ### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`
-### Exit browser
+### Relaunch browser
 </Steps>
 
-#### Launch Chrome Canary or Edge Canary
+## Running WebNN on LiteRT backend (CPU and GPU)
 
-```bash copy showLineNumbers filename="launch-chrome-canary"
-  "%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe"
-```
+> <InfoIcon /> Windows 11, Windows 10 and Linux
 
-```bash copy showLineNumbers filename="launch-edge-canary"
-  "%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe"
-```
-
-## Running WebNN on DirectML backend
-
-### GPU
-
-#### Launch Chrome Canary or Edge Canary
-
-```bash copy showLineNumbers filename="launch-chrome-canary"
-  "%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe"
-```
-
-```bash copy showLineNumbers filename="launch-edge-canary"
-  "%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe"
-```
-
-### NPU
-
-- Window 11, version 24H2 or newer
-- It's recommended to install the [Intel® Core™ Ultra NPU Driver 32.0.100.3717 on Windows](https://www.intel.com/content/www/us/en/download/794734/848729/intel-npu-driver-windows.html) for improved WebNN compatibility and performance
-- Prepare the `DirectML.dll`. Download the latest redistributable [Microsoft.AI.DirectML](https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.2), rename `microsoft.ai.directml.[version].nupkg` to `microsoft.ai.directml.[version].nupkg.zip` and extract it
-
-#### Chrome Canary 
-
-##### Put the `DirectML.dll` into correct path
-  
-Copy `\bin\x64-win\DirectML.dll` to `%LOCALAPPDATA%\Google\Chrome SxS\Application\[version]\`
-  - `%LOCALAPPDATA%` means `C:\Users\<username>\AppData\Local\`
-  - Note that Chrome Canary frequently updates automatically. When this occurs, recopy the `DirectML.dll` to the new version's directory.
-##### Launch Chrome Canary in Windows Command Line
-    
-```bash copy showLineNumbers filename="enable-webnn-npu-chrome-canary"
-  "%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml --disable_webnn_for_npu=0
-```
-
-#### Edge Canary 
-
-##### Put the `DirectML.dll` into correct path
-
-Copy `\bin\x64-win\DirectML.dll` to `%LOCALAPPDATA%\Microsoft\Edge SxS\Application\[version]\`
-  - `%LOCALAPPDATA%` means `C:\Users\<username>\AppData\Local\`
-  - Note that Edge Canary frequently updates automatically. When this occurs, recopy the `DirectML.dll` to the new version's directory.
-
-##### Launch Edge Canary in Windows Command Line
-
-```bash copy showLineNumbers filename="enable-webnn-npu-edge-canary"
-  "%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe" --disable_webnn_for_npu=0
-```
-
-Test your WebNN API installation at [Playground - Hello WebNN](../../playground/webnn/hello-webnn).
+<Steps>
+### Navigate to `about://flags` in browser address bar
+### Search for `ONNX Runtime backend for WebNN` and change it to `Disabled`
+### Search for `DirectML backend for WebNN` and change it to `Disabled`
+### Relaunch browser
+</Steps>
