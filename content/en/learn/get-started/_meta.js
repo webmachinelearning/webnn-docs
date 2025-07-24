@@ -8,4 +8,7 @@ export default {
   'using-typescript': {
     title: "Using TypeScript"
   },
+  'testing': {
+    title: "🧪 Testing"
+  },
 };

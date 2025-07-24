@@ -1,0 +1,116 @@
+import { Steps } from 'nextra/components'
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+import ActionIcon from '../../../../app/_components/icons/action.jsx'
+
+# WebNN Testing
+
+This guide covers the testing methodologies and tools available for validating WebNN implementations across different browsers and devices.
+
+## Prerequisites
+
+Before testing WebNN functionality, ensure you have properly configured your browser by following the [WebNN Installation](./installation.mdx) guide for your target backend (e.g., WebNN Windows ML / OpenVINO EP GPU).
+
+## Web Platform Tests (WPT) / Conformance Test Suite
+
+The WebNN API follows W3C standards and includes comprehensive test suites to ensure cross-browser compatibility.
+
+| Resource | Link |
+| --- | --- |
+| W3C WebNN API Specification | [WebNN API](https://www.w3.org/TR/webnn/) |
+| W3C WebNN API Repository | [webmachinelearning/webnn](https://github.com/webmachinelearning/webnn) |
+
+### WebNN Web Platform Tests / Conformance Test Suite
+
+The [WebNN Conformance Test Suite (CTS)](https://github.com/web-platform-tests/wpt/tree/master/webnn) is part of the [web-platform-tests](https://github.com/web-platform-tests/) project, a cross-browser test suite that ensures Web platform compatibility across all major browsers.
+
+These tests provide confidence to:
+- **Browser implementers** that their WebNN implementation is compatible with other browsers
+- **Web developers** that they can rely on consistent WebNN behavior across browsers and devices
+
+#### Web IDL Tests
+
+**File:** `idlharness.https.any.js`
+
+Validates that the WebNN API correctly implements the interfaces defined in the Web IDL specification. The test uses a daily-updated snapshot of the spec's Web IDL located at `../interfaces/webnn.idl`.
+
+#### Validation Tests
+
+**Location:** `validation_tests/`
+
+These tests verify that WebNN methods properly validate input parameters according to the specification algorithms. They ensure invalid inputs are correctly rejected.
+
+**Example:** `validation_tests/matmul.https.any.js` confirms that:
+- Exceptions are thrown when input tensor ranks are less than 2
+- Input tensor shapes must be broadcastable
+- Other parameter validation requirements are met
+
+#### Conformance Tests
+
+**Location:** `conformance_tests/`
+
+These tests verify that WebNN operators produce correct computational results.
+
+**Example:** `conformance_tests/matmul.https.any.js` validates that N-dimensional matrix multiplication produces mathematically accurate outputs.
+
+### Test Execution Contexts
+
+#### Device Variations
+WebNN supports multiple compute devices (CPU, GPU, NPU). Tests use `META: variant=?...` to run the same test across different device types automatically.
+
+#### Global Contexts
+WebNN interfaces are available in both Window and Worker contexts via `navigator.ml`. Tests use:
+- `.any.js` convention
+- `META: global=window,dedicatedworker`
+
+This allows the same test to run in multiple JavaScript execution contexts.
+
+**Note:** Most operator-specific tests only specify `global=window` to reduce compute overhead, as behavior differences between contexts for individual operators are unlikely.
+
+> <ActionIcon /> **Running WPT Tests**
+
+<Steps>
+### Navigate to the test runner
+Visit [wpt.live/tools/runner](https://wpt.live/tools/runner/index.html)
+
+### Configure test path
+In the "Run tests under path" field, enter `/webnn`
+
+### Start testing
+Click the "Start" button to begin test execution
+</Steps>
+
+## WebNN Samples & Developer Preview Demos Testing
+
+Interactive samples and demos help validate real-world WebNN usage patterns.
+
+| Resource | Repository |
+| --- | --- |
+| W3C WebNN Samples | [webmachinelearning/webnn-samples](https://github.com/webmachinelearning/webnn-samples) |
+| WebNN Developer Preview Demos | [microsoft/webnn-developer-preview](https://github.com/microsoft/webnn-developer-preview) |
+
+- [W3C WebNN Samples](https://webmachinelearning.github.io/webnn-samples-intro/) demonstrating practical WebNN API usage in web applications.
+- [WebNN Developer Preview Demos](https://microsoft.github.io/webnn-developer-preview/) showcases featuring WebNN API integration with ONNX Runtime Web.
+
+> <ActionIcon /> **Testing Sample and Demo Applications**
+
+An automated test framework is available for comprehensive sample testing:
+
+<Steps>
+### Access the test framework
+Visit the [webnn-samples-test-framework](https://github.com/webmachinelearning/webnn-samples-test-framework) repository
+
+### Follow setup instructions
+Review the [README](https://github.com/webmachinelearning/webnn-samples-test-framework/blob/main/README.md) for configuration details
+
+### Run tests and generate reports
+Execute the automated tests to validate sample functionality and generate detailed test reports
+</Steps>
+
+## Performance Testing
+
+For comprehensive WebNN performance testing tools and Web AI benchmarking website, contact the Intel Web Team.
+
+## Additional Resources
+
+- [WebNN API Specification](https://www.w3.org/TR/webnn/) - Complete technical specification
+- [Web Platform Tests](https://web-platform-tests.org/) - Cross-browser testing initiative
