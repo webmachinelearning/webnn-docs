@@ -168,7 +168,7 @@ const initialNodes = [
   {
     id: "n4a",
     type: "netronNode0",
-    position: { x: 205, y: 200 },
+    position: { x: 140, y: 200 },
     data: {
       label: "LiteRT",
       nodeClassName:
@@ -179,7 +179,7 @@ const initialNodes = [
   {
     id: "n4b",
     type: "netronNode0",
-    position: { x: 307, y: 200 },
+    position: { x: 284, y: 200 },
     data: {
       label: "Windows ML",
       nodeClassName:
@@ -190,7 +190,7 @@ const initialNodes = [
   {
     id: "n4c",
     type: "netronNode0",
-    position: { x: 410, y: 200 },
+    position: { x: 430, y: 200 },
     data: {
       label: "CoreML",
       nodeClassName:

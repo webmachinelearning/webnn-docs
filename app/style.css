@@ -160,8 +160,12 @@ h5 {
   color: var(--dark);
 }
 
-.light .x\:text-primary-600 {
+/* .light .x\:text-primary-600 {
   color: var(--light);
+} */
+
+.light .x\:text-primary-600 {
+    color: var(--n-1);
 }
 
 .light h3 .x\:text-primary-600 {
@@ -447,10 +451,6 @@ summary {
   width: 102px;
 }
 
-.architecture .native {
-  width: 80px;
-}
-
 .architecture .title:hover {
   color: white;
 }
@@ -536,10 +536,6 @@ article.nextra-body-typesetting-article a:hover {
 
 .x\:bg-primary-100 {
   background-color: var(--light-09);
-}
-
-.x\:font-semibold {
-  font-weight: 500;
 }
 
 @keyframes spin {
