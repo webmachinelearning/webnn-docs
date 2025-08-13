@@ -1,15 +1,30 @@
 import { Steps } from 'nextra/components'
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
+import AppleIcon from '../../../../app/_components/icons/ihv/apple.jsx'
+import AMDIcon from '../../../../app/_components/icons/ihv/amd.jsx'
+import IntelIcon from '../../../../app/_components/icons/ihv/intel.jsx'
+import QualcommIcon from '../../../../app/_components/icons/ihv/qualcomm.jsx'
+import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
+
 
 # Installation
 
 > <InfoIcon /> To use WebNN before the [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) milestone, complete these setup requirements.
 
-Windows OS:
-- It's recommended to install the latest [Intel® Arc™ & Iris® Xe Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html)
-- It's recommended to install the latest [Intel® Core™ Ultra NPU Driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
+## Install GPU and NPU drivers for optimal compatibility and performance
 
-## Enabling WebNN
+### Windows OS
+
+<div class="table-center">
+| IHVs | GPU Driver | NPU Driver |
+| --- | --- | -- |
+| <IntelIcon /> | [Intel® Arc™ & Iris® Xe Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) | [Intel® Core™ Ultra NPU Driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
+| <AMDIcon /> | TBD | TBD |
+| <NvidiaIcon /> | TBD | TBD |
+| <QualcommIcon /> | TBD | TBD |
+</div>
+
+## Enable WebNN
 
 <Steps>
 ### Install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
@@ -18,24 +33,34 @@ Windows OS:
 ### Exit browser
 </Steps>
 
-## Running WebNN on Windows ML backend (CPU, GPU and NPU)
+## Run WebNN on Windows ML backend (CPU, GPU and NPU)
 
 > <InfoIcon /> Window 11, version 24H2 or newer
 
 <Steps>
 ### Install Windows App SDK
 
-| Chrome Version | Known compatible Windows App SDK Version |
-| --- | --- |
-| [Latest Canary](https://google.com/chrome/canary) | 1.8.250702007-experimental4 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x86.exe)] |
+| Chrome Version | Edge Version | Known compatible Windows App SDK Version |
+| --- | --- | -- |
+| [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.250702007-experimental4 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-arm64.exe)] |
 
-### Install [Windows ML Runtime Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) from Microsoft Store
+### Install Execution Provider
+
+<div class="table-center">
+| IHVs | Execution Provider | 
+| --- | --- |
+| <IntelIcon /> | [Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) |
+| <AMDIcon /> | TBD |
+| <NvidiaIcon /> | TBD |
+| <QualcommIcon /> | TBD |
+</div>
+
 ### Navigate to `about://flags` in browser address bar
 ### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`
 ### Relaunch browser
 </Steps>
 
-## Running WebNN on LiteRT backend (CPU and GPU)
+## Run WebNN on LiteRT backend (CPU and GPU)
 
 > <InfoIcon /> Windows 11, Windows 10 and Linux
 
