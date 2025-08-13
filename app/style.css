@@ -830,6 +830,13 @@ article.nextra-body-typesetting-article a:hover {
   justify-items: center;
 }
 
+.table-center {
+  margin: 0.5rem auto;
+  justify-items: center;
+  display: grid;
+  align-items: center;
+}
+
 .tutorials-title svg.transformersjs-logo {
   max-height: 40px;
 }
