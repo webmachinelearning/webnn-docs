@@ -977,3 +977,7 @@ article.nextra-body-typesetting-article a:hover {
 .reference-icon, .nextra-cards .c-icon {
   width: 16px !important;
 }
+
+.shell-font-small code {
+  font-size: 0.75rem;
+}
