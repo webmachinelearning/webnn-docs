@@ -6,7 +6,6 @@ import IntelIcon from '../../../../app/_components/icons/ihv/intel.jsx'
 import QualcommIcon from '../../../../app/_components/icons/ihv/qualcomm.jsx'
 import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
-
 # Installation
 
 > <InfoIcon /> To use WebNN before the [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) milestone, complete these setup requirements.
@@ -15,7 +14,7 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
 ### Windows OS
 
-<div class="table-center">
+<div className="table-center">
 | IHVs | GPU Driver | NPU Driver |
 | --- | --- | -- |
 | <IntelIcon /> | [Intel® Arc™ & Iris® Xe Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) | [Intel® Core™ Ultra NPU Driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
@@ -44,15 +43,39 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 | --- | --- | -- |
 | [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.250702007-experimental4 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-arm64.exe)] |
 
-### Install Execution Provider
+### Install Execution Providers via the EP Catalog executable file
 
-<div class="table-center">
-| IHVs | Execution Provider | 
-| --- | --- |
-| <IntelIcon /> | [Intel OpenVINO Execution Provider](https://apps.microsoft.com/detail/9ph4ckr43xlp) |
-| <AMDIcon /> | TBD |
-| <NvidiaIcon /> | TBD |
-| <QualcommIcon /> | TBD |
+1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/0.1.0-alpha)
+2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/0.1.0-alpha/ExecutionProviderCatalog.exe)
+3. Run the executable file to install Execution Providers
+
+<div className="shell-font-small">
+```shell
+C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
+Creating dynamic dependency on Microsoft.WindowsAppRuntime.1.8-experimental4_8wekyb3d8bbwe
+Successfully created package dependency with ID: T:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+Successfully added package dependency. Package: Microsoft.WindowsAppRuntime.1.8-experimental4_8000.548.2012.0_x64__8wekyb3d8bbwe
+Package dependency will be automatically cleaned up when process exits
+Got default ExecutionProviderCatalog
+Found 1 providers
+Provider 1:
+    Name: OpenVINOExecutionProvider
+    Calling EnsureReadyAsync...
+    EnsureReadyAsync started successfully
+    Waiting for EnsureReadyAsync to complete...
+    [SUCCESS] Provider ready successfully
+    Library Path: C:\Program Files\WindowsApps\Microsoft.WindowsMLRuntime.Intel.OpenVINO.EP_2025.1.7.0_x64__8wekyb3d8bbwe\ExecutionProvider\onnxruntime_providers_openvino.dll
+```
+</div>
+
+> <InfoIcon /> The installation time may vary depending on your network speed. The Execution Providers (EPs) to be installed depend on your computer's hardware configuration.
+
+
+<div className="table-center">
+| IHVs | Execution Provider | IHVs | Execution Provider |
+| --- | --- | --- | --- |
+| <IntelIcon /> | Intel OpenVINO EP | <AMDIcon /> | TBD |
+| <NvidiaIcon /> | TBD | <QualcommIcon /> | TBD |
 </div>
 
 ### Navigate to `about://flags` in browser address bar
