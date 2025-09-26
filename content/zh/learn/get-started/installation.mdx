@@ -39,22 +39,21 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 <Steps>
 ### Install Windows App SDK
 
-| Chrome Version | Edge Version | Known compatible Windows App SDK Version |
+| Chrome Version | Edge Version | Known compatible [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) Version |
 | --- | --- | -- |
-| [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.250702007-experimental4 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250702007-experimental4/windowsappruntimeinstall-arm64.exe)] |
+| [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.1 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-arm64.exe)] |
 
 ### Install Execution Providers via the EP Catalog executable file
 
-1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/0.1.0-alpha)
-2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/0.1.0-alpha/ExecutionProviderCatalog.exe)
+1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
+2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
 3. Run the executable file to install Execution Providers
 
 <div className="shell-font-small">
 ```shell
-C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
-Creating dynamic dependency on Microsoft.WindowsAppRuntime.1.8-experimental4_8wekyb3d8bbwe
+Creating dynamic dependency on Microsoft.WindowsAppRuntime.1.8_8wekyb3d8bbwe
 Successfully created package dependency with ID: T:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-Successfully added package dependency. Package: Microsoft.WindowsAppRuntime.1.8-experimental4_8000.548.2012.0_x64__8wekyb3d8bbwe
+Successfully added package dependency. Package: Microsoft.WindowsAppRuntime.1.8_8000.625.330.0_x64__8wekyb3d8bbwe
 Package dependency will be automatically cleaned up when process exits
 Got default ExecutionProviderCatalog
 Found 1 providers
@@ -64,7 +63,7 @@ Provider 1:
     EnsureReadyAsync started successfully
     Waiting for EnsureReadyAsync to complete...
     [SUCCESS] Provider ready successfully
-    Library Path: C:\Program Files\WindowsApps\Microsoft.WindowsMLRuntime.Intel.OpenVINO.EP_2025.1.7.0_x64__8wekyb3d8bbwe\ExecutionProvider\onnxruntime_providers_openvino.dll
+    Library Path: C:\Program Files\WindowsApps\MicrosoftCorporationII.WinML.Intel.OpenVINO.EP.1.8_1.8.15.0_x64__8wekyb3d8bbwe\ExecutionProvider\onnxruntime_providers_openvino_plugin.dll
 ```
 </div>
 
