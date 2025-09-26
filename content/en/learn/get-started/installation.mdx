@@ -39,7 +39,7 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 <Steps>
 ### Install Windows App SDK
 
-| Chrome Version | Edge Version | Known compatible [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) Version |
+| Chrome Version | Edge Version | Known compatible Windows App SDK Version |
 | --- | --- | -- |
 | [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.1 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-arm64.exe)] |
 
@@ -47,7 +47,12 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
 1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
 2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
-3. Run the executable file to install Execution Providers
+3. Run the executable file to install Execution Providers 
+
+```shell
+C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
+```
+It will display the following similar logs:
 
 <div className="shell-font-small">
 ```shell
@@ -84,7 +89,7 @@ Provider 1:
 
 ## Run WebNN on LiteRT backend (CPU and GPU)
 
-> <InfoIcon /> Windows 11, Windows 10 and Linux
+> <InfoIcon /> Windows 11 versions prior to 24H2, Windows 10 and Linux
 
 <Steps>
 ### Navigate to `about://flags` in browser address bar
