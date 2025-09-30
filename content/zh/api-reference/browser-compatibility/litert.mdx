@@ -10,10 +10,10 @@ import { AndroidIcon, WindowsIcon, ChromeosIcon, MacosIcon, LinuxIcon, IosIcon }
 <div className="table">
 | WebNN | CPU | GPU | NPU |
 | --- | --- | --- | --- |
-| <ChromeosIcon /> chromsOS	| ✅ LiteRT/XNNPACK | 🚀ℹ️ LiteRT/MLDrift | 🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK | 
-|<LinuxIcon /> Linux | ✅ LiteRT/XNNPACK |  🚀ℹ️ LiteRT/MLDrift |  🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK | 
-|<WindowsIcon /> Windows| ✅ LiteRT/XNNPACK<br />🚀ℹ️ WCR/MLAS (deprecated) | ℹ️ DirectML (deprecated)<br /> 🚀ℹ️ Windows ML | ℹ️ DirectML (deprecated)<br />🚀ℹ️ Windows ML | 
-|<AndroidIcon /> Android| ✅ LiteRT/XNNPACK | 🚀ℹ️ LiteRT/MLDrift | 🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK |
+| <ChromeosIcon /> chromsOS	| ✅ LiteRT / XNNPACK | ✅ LiteRT / MLDrift | 🚀ℹ️   LiteRT<br />To do, temporarily fallback to XNNPACK | 
+|<LinuxIcon /> Linux | ✅ LiteRT / XNNPACK |  ✅ LiteRT / MLDrift |  🚀ℹ️   LiteRT<br />To do, temporarily fallback to XNNPACK | 
+|<WindowsIcon /> Windows 10<br/> Windows 11 prior to 24H2 | ✅ LiteRT / XNNPACK | ✅ LiteRT / MLDrift  | 🚀ℹ️   LiteRT<br />To do, temporarily fallback to XNNPACK | 
+|<AndroidIcon /> Android| ✅ LiteRT / XNNPACK | ✅ LiteRT / MLDrift | 🚀ℹ️  LiteRT<br />To do, temporarily fallback to XNNPACK |
 </div>
 
 The WebNN LiteRT backend mainly supported on ChromeOS, Linux, Windows and Android.
@@ -55,11 +55,15 @@ The WebNN LiteRT backend mainly supported on ChromeOS, Linux, Windows and Androi
 | [element-wise unary / erf](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ SIGN | M128 | 
 | [element-wise unary / exp](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ EXP | M123 | 
 | [element-wise unary / floor](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ FLOOR | M116 | 
+| [element-wise unary / isInfinite](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulate with abs(x) == +inf | M140 | 
+| [element-wise unary / isNaN](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulate with `x != x` | M141 | 
 | [element-wise unary / log](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ LOG | M123 | 
 | [element-wise unary / neg](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ NEG | M116 | 
 | [element-wise unary / reciprocal](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulated with 1/x | M127 | 
+| [element-wise unary / roundEven](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Round | M141 | 
 | [element-wise unary / sin](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ SIN | M123 |
 | [element-wise unary / sqrt](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ SQRT | M122 | 
+| [element-wise unary / tan](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulated with sin(x)/cos(x) | M126 |
 | [elu](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-elu) | ✅ ELU | M115 | 
 | [expand](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-expand) | ✅ BROADCAST\_TO | M128 | 
 | [gather](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-gather) | ✅ GATHER | M126 | 
