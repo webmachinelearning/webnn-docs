@@ -27,7 +27,7 @@ The WebNN Core ML backend mainly supported on macOS.
 | [conv2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-conv2d) | ✅ conv | M125 |
 | [convTranspose2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-convtranspose2d) | ✅ conv\_transpose | M126 |
 | [cumulativeSum](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-cumulativesum) | ✅ cumsum | M132 |
-| [dequantizeLinear](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-dequantizelinear) | 🚀 dequantize\_linear | |
+| [dequantizeLinear](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-dequantizelinear) | ✅ dequantize\_linear | M133 |
 | [element-wise binary / add](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-binary) | ✅ add | M122 |
 | [element-wise binary / div](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-binary) | ✅ real\_div | M124 |
 | [element-wise binary / max](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-binary) | ✅ maximum | M124 |
@@ -52,9 +52,12 @@ The WebNN Core ML backend mainly supported on macOS.
 | [element-wise unary / erf](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ erf | M126 |
 | [element-wise unary / exp](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ exp | M126 |
 | [element-wise unary / floor](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ floor | M126 |
+| [element-wise unary / isInfinite](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulate with equal(abs(a), Infinity) | M141 | 
+| [element-wise unary / isNaN](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulate with not_equal(a, a) | M141 | 
 | [element-wise unary / log](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ log | M126 |
 | [element-wise unary / neg](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ Emulated with mul(a, -1) | M127 |
 | [element-wise unary / reciprocal](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ inverse | M126 |
+| [element-wise unary / roundEven](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ round, todo: emulate when device type is not CPU | M141 | 
 | [element-wise unary / sin](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ sin | M126 |
 | [element-wise unary / sqrt](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ sqrt | M126 |
 | [element-wise unary / tan](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ tan | M126 |
@@ -80,8 +83,8 @@ The WebNN Core ML backend mainly supported on macOS.
 | [pooling / averagePool2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-pool2d) | ✅ avg\_pool | M126 |
 | [pooling / l2Pool2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-pool2d) | ✅ l2\_pool | M126 |
 | [pooling / maxPool2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-pool2d) | ✅ max\_pool | M126 |
-| [prelu](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-prelu) | 🚀 prelu | |
-| [quantizeLinear](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-quantizelinear) | 🚀 quantize\_linear |  |
+| [prelu](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-prelu) | ✅ prelu | M136 |
+| [quantizeLinear](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-quantizelinear) | ✅ quantize\_linear | M134 |
 | [reduction / reduceL1](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reduce) | ✅ reduce\_l1\_norm | M126 |
 | [reduction / reduceL2](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reduce) | ✅ reduce\_l2\_norm | M126 |
 | [reduction / reduceLogSum](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reduce) | ✅ reduce\_log\_sum | M126 |
@@ -95,11 +98,11 @@ The WebNN Core ML backend mainly supported on macOS.
 | [relu](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-relu) | ✅ relu | M125 |
 | [resample2d](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-resample2d) | ✅ upsample\_bilinear ✅ upsample\_nearest\_neighbor | M126 |
 | [reshape](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reshape) | ✅ reshape | M126 |
-| [reverse](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reverse) | 🚀 reverse | |
+| [reverse](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reverse) | ✅ reverse | M137 |
 | [scatterElements](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-scatterelements) | ✅ scatter\_along\_axis | M132 |
 | [scatterND](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-scatternd) | ✅ scatter\_nd | M132 |
 | [sigmoid](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-sigmoid) | ✅ sigmoid | M126 |
-| [sign](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | 🚀 sign | |
+| [sign](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-unary) | ✅ sign | M139 |
 | [slice](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-slice) | ✅ slice\_by\_size | M126 |
 | [softmax](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-softmax) | ✅ softmax | M127 |
 | [softplus](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-softplus) | ✅ softplus | M126 |
