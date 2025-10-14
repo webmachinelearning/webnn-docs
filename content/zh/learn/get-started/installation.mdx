@@ -47,12 +47,12 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
 1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
 2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
-3. Run the executable file to install Execution Providers
+3. Run the executable file to install Execution Providers 
 
 ```shell
 C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
 ```
-It will display the following similar logs:
+The Execution Providers (EPs) to be installed depend on your computer’s hardware configuration. It will display the following similar logs:
 
 <div className="shell-font-small">
 ```shell
@@ -72,15 +72,7 @@ Provider 1:
 ```
 </div>
 
-> <InfoIcon /> The installation time may vary depending on your network speed. The Execution Providers (EPs) to be installed depend on your computer's hardware configuration.
-
-
-<div className="table-center">
-| IHVs | Execution Provider | IHVs | Execution Provider |
-| --- | --- | --- | --- |
-| <IntelIcon /> | Intel OpenVINO EP | <AMDIcon /> | TBD |
-| <NvidiaIcon /> | TBD | <QualcommIcon /> | TBD |
-</div>
+> <InfoIcon /> The installation time may vary depending on your network speed
 
 ### Navigate to `about://flags` in browser address bar
 ### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`

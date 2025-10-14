@@ -21,6 +21,7 @@ Visit via `about://flags/`
 | Name   | Windows ML / ONNX Runtime backend for WebNN |
 | :--: | :-------- |
 | Description | Enables using ONNX Runtime for CPU, GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to DirectML or TFLite. – Windows |
+| Expiry Milestone | 146 |
 | Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime` |
 
 
@@ -37,7 +38,14 @@ Visit via `about://flags/`
 
 | Name   | Core ML backend for WebNN |
 | :--: | :-------- |
-| Description    | Enables using Core ML for GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. |
+| Description    | Enables using Core ML for GPU and NPU inference with the WebNN API |
+| Expiry Milestone | 146 |
+
+### `#webnn-coreml-explicit-gpu-or-npu`
+
+| Name   | Core ML backend (explicit GPU or NPU) for WebNN |
+| :--: | :-------- |
+| Description    | Enables using Core ML for explicit GPU and NPU inference with the WebNN API |
 | Expiry Milestone | 146 |
 
 ### `#webnn-directml`
@@ -49,32 +57,12 @@ Visit via `about://flags/`
 
 ## Switches (Command Line Flags)
 
-### `--use-redist-ort`
-
-| Name | Use redistributable ONNX Runtime |
-| :--: | :-------- |
-| Description | Try to use a redistributable onnxruntime.dll. |
-
-### `--webnn-use-ort`
-
-| Name | WebNN Use ONNX Runtime |
-| :--: | :-------- |
-| Description | Introduces `webnn_use_ort` build flag and enable it for Windows. Replaces the DirectML backend with the ONNX Runtime backend. |
-
-### `--webnn-ort-use-openvino`
-
-| Name | WebNN ONNX Runtime Use OpenVINO |
-| :--: | :-------- |
-| Description | Enables the OpenVINO Execution Provider, OpenVINO EP will be
-used for GPU and NPU devices. ONNX Runtime will run with the CPU EP by default. |
-| Usage (No Sandbox) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-use-ort --webnn-ort-use-openvino --use-redist-ort` |
-| Usage (Within Sandbox) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe"  --allow-third-party-modules --webnn-use-ort --webnn-ort-use-openvino` |
-
 ### `--use-redist-dml`
 
 | Name | Use redistributable DirectML |
 | :--: | :-------- |
-| Description | Try to use a redistributable DirectML.dll. Used for testing WebNN against newer DirectML release before it is integrated into Windows OS. Please see more info about DirectML releases at: https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history.|
+| Description | Try to use a redistributable DirectML.dll. Used for testing WebNN against newer DirectML release before it is integrated into Windows OS. Please see more info about [DirectML releases](https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history).|
+| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration. |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml` |
 
 ### `--disable_dml_meta_commands_for_gpu`
@@ -82,6 +70,7 @@ used for GPU and NPU devices. ONNX Runtime will run with the CPU EP by default. 
 | Name | Disable DirectML Metacommands for GPU |
 | :--: | :-------- |
 | Description | Run with DirectML fallback shaders if disabling Metacommands |
+| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.|
 | Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=1` |
 | Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=0` |
 
@@ -89,14 +78,14 @@ used for GPU and NPU devices. ONNX Runtime will run with the CPU EP by default. 
 
 | Name | Disable WebNN for GPU |
 | :--: | :-------- |
-| Description | If `--disable_webnn_for_gpu` workaround is enabled for the GPU device, we need to check to see if there is a NPU device available before setting the WebNN gpu feature status. If there is a NPU device, check the `--disable_webnn_for_npu` workaround. | 
+| Description | If `--disable_webnn_for_gpu` workaround is enabled for the GPU device, we need to check to see if there is a NPU device available before setting the WebNN gpu feature status. | 
 | Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_gpu=1` |
 
 ### `--disable_webnn_for_npu`
 
 | Name | Disable WebNN for NPU |
 | :--: | :-------- |
-| Description | |
+| Description | If there is a NPU device, check the `--disable_webnn_for_npu` workaround |
 | Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=1` |
 | Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0` |
 
@@ -104,32 +93,88 @@ used for GPU and NPU devices. ONNX Runtime will run with the CPU EP by default. 
 
 | Name | WebNN Core ML Dump Model |
 | :--: | :-------- |
-| Description | Copy the generated Core ML model to the folder specified by `--webnn-coreml-dump-model`. |
-| Note | The folder needs to be accessible from the GPU sandbox or use `--no-sandbox`. |
+| Description | Copy the generated Core ML model |
+| Note | The folder needs to be accessible from the GPU sandbox or use `--no-sandbox` |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-coreml-dump-model=/tmp/CoreMLModels` |
 
 ### `--webnn-tflite-dump-model`
 
 | Name | WebNN TFLite Dump Model |
 | :--: | :-------- |
-| Description | Save the generated TFLite model file to the folder specified by `--webnn-tflite-dump-model`. |
-| Note | The folder needs to be accessible from the GPU process sandbox or `--no-sandbox` must be used. |
+| Description | Save the generated TFLite model file |
+| Note | The folder needs to be accessible from the GPU process sandbox or `--no-sandbox` must be used |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-tflite-dump-model=/tmp/tflite_models` |
 
+### `--webnn-ort-logging-level`
+
+| Name | WebNN ONNX Runtime Logging Level |
+| :--: | :-------- |
+| Description | Configure the logging severity level of ONNX Runtime |
+| Note | "VERBOSE", other severity levels could be "INFO", "WARNING", "ERROR" (default), and "FATAL"|
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-logging-level=VERBOSE` |
+
+### `--webnn-ort-dump-model`
+
+| Name | WebNN Windows ML Dump Model |
+| :--: | :-------- |
+| Description | To save optimized ONNX model after graph level transformations |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-dump-model=/tmp/ort_models` |
+
+### `--webnn-ort-library-path-for-testing`
+
+| Name | WebNN ONNX Runtime Library Path For Testing |
+| :--: | :-------- |
+| Description | Force `onnxruntime.dll` to be loaded from a location specified by the switch for testing development ORT build. |
+| Note |This switch is not to be used in shipping scenarios and is ignored by default|
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-library-path-for-testing="C:\Program Files\ONNXRuntime" --allow-third-party-modules` |
+
+### `--webnn-ort-ep-library-path-for-testing`
+
+| Name | WebNN ONNX Runtime Execution Provider Library Path For Testing |
+| :--: | :-------- |
+| Description | Specify the ORT EP name and library path pair via this switch for testing development EP builds. Libraries of the ORT EP specified by the EP name are forced to be loaded from the specified path. The value should be in the format `<ep_name>?<ep_library_path>`. |
+| Note |This switch is not to be used in shipping scenarios and is ignored by default |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?"C:\Program Files\ONNXRuntime-EP\onnxruntime_providers_openvino_plugin.dll" --allow-third-party-modules` |
+
+### `--webnn-ort-graph-optimization-level`
+
+| Name | WebNN ONNX Runtime Graph Optimization Level |
+| :--: | :-------- |
+| Description | Configure the graph optimization level of ONNX Runtime |
+| Note | Levels could be "DISABLE_ALL", "BASIC", "EXTENDED" and "ALL" |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-graph-optimization-level=DISABLE_ALL` |
+
+### `--webnn-ort-enable-profiling`
+
+| Name | WebNN ONNX Runtime Enable Profiling |
+| :--: | :-------- |
+| Description | Collect ORT profile data for performance analysis. The profile data file is generated in Chrome's folder with a fixed naming format `prefix_date_time.json`.|
+| Note | The prefix can be provided by user or use `WebNNOrtProfile` as default |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-enable-profiling="WebNNOrtOvCpuProfile"` |
+
 ## Other Switches
+
+### `--disable-gpu-sandbox`
+
+| Name | Disable GPU Sandbox |
+| :--: | :-------- |
+| Description | Often used to fix crashes related to the GPU process. Should only be used when necessary for development or troubleshooting, as it makes the application vulnerable to exploits. | 
+| Note | This is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable-gpu-sandbox` |
 
 ### `--no-sandbox`
 
 | Name | No Sandbox |
 | :--: | :-------- |
-| Description | The `--no-sandbox` flag disables Chromium's security sandbox, which isolates browser processes to prevent malicious code execution. While sometimes used in development/testing environments, using this flag in regular browsing is dangerous as it removes essential security protections. | 
-| Note | Running with `--no-sandbox` is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
+| Description | Disables Chromium's security sandbox, which isolates browser processes to prevent malicious code execution. While sometimes used in development/testing environments, using this flag in regular browsing is dangerous as it removes essential security protections. | 
+| Note | This is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox` |
+
 
 ### `--allow-third-party-modules`
 | Name | Allow Third-party Modules |
 | :--: | :-------- |
-| Description | The `--allow-third-party-modules` flag permits third-party software to inject DLLs or modules into Chrome's processes. |
+| Description | Permits third-party software to inject DLLs or modules into Chrome's processes |
 | Note | While useful for legitimate software like antivirus or accessibility tools, it can pose security risks by allowing potentially malicious code injection. |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --allow-third-party-modules` |
 
