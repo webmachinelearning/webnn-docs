@@ -981,3 +981,12 @@ article.nextra-body-typesetting-article a:hover {
 .shell-font-small code {
   font-size: 0.75rem;
 }
+
+.ort-ep pre {
+  text-wrap: pretty;
+  margin: 1rem;
+}
+
+.ort-ep pre code.nextra-code {
+  font-size: .75rem !important;
+}

@@ -11,4 +11,7 @@ export default {
   'testing': {
     title: "🧪 Testing"
   },
+  'debug': {
+    title: "🧪 Debug"
+  },
 };
