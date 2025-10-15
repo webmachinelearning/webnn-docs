@@ -12,7 +12,7 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
 1. Follow the [WebNN Installation Guide](installation) to enable WebNN API and switch to Windows ML / ONNX Runtime backend
 2. Put the ONNX Runtime dynamic link librares into a folder under `C:\Program Files\`, e.g. `C:\Program Files\ONNXRuntime`
-3. Launch your Chrome or Edge browser with switch [--webnn-ort-library-path-for-testing](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-library-path-for-testing)
+3. Launch your Chrome or Edge browser with switch [`--webnn-ort-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-library-path-for-testing)
 
 <div className="ort-ep">
 ```shell
@@ -32,7 +32,7 @@ If you are running WebNN on AMD, Intel, Nvidia, or Qualcomm devices and need to 
 
 1. Follow the [WebNN Installation Guide](installation) to enable WebNN API and switch to Windows ML / ONNX Runtime backend
 2. Put the ONNX Runtime and Execution Provider dynamic link librares into a folder under `C:\Program Files\`, e.g. `C:\Program Files\ONNXRuntime-EP`
-3. Launch your Chrome or Edge browser with switch [--webnn-ort-ep-library-path-for-testing](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-library-path-for-testing)
+3. Launch your Chrome or Edge browser with switch [`--webnn-ort-ep-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-library-path-for-testing)
 
 ### Execution Provider Mapping Table for Independent Hardware Vendors
 
@@ -97,7 +97,7 @@ TBD
 
 ## Use Custom Build of GPU or NPU Drivers
 
-If you are testing with custom or internal GPU or NPU drivers, add the [--allow-third-party-modules](../../api-reference/browser-compatibility/chrome-flags#--allow-third-party-modules) switch when launching the browser.
+If you are testing with custom or internal GPU or NPU drivers, add the [`--allow-third-party-modules`](../../api-reference/browser-compatibility/chrome-flags#--allow-third-party-modules) switch when launching the browser.
 
 <div className="ort-ep">
 ```shell
@@ -113,7 +113,7 @@ If you are testing with custom or internal GPU or NPU drivers, add the [--allow-
 
 ## Debug Sandbox Issues
 
-In some cases, you may need to debug WebNN by disabling Chromium's security sandbox using the [--disable-gpu-sandbox](../../api-reference/browser-compatibility/chrome-flags#--disable-gpu-sandbox) switch.
+In some cases, you may need to debug WebNN by disabling Chromium's security sandbox using the [`--disable-gpu-sandbox`](../../api-reference/browser-compatibility/chrome-flags#--disable-gpu-sandbox) switch.
 
 <div className="ort-ep">
 ```shell
@@ -129,7 +129,7 @@ In some cases, you may need to debug WebNN by disabling Chromium's security sand
 
 ## Inspect the Verbose Logging
 
-You can configure the logging severity level of ONNX Runtime using the switch [--webnn-ort-logging-level](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-logging-level). Other available severity levels include "INFO", "WARNING", "ERROR" (default), and "FATAL".
+You can configure the logging severity level of ONNX Runtime using the switch [`--webnn-ort-logging-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-logging-level). Other available severity levels include "INFO", "WARNING", "ERROR" (default), and "FATAL".
 
 <div className="ort-ep">
 ```shell
@@ -143,6 +143,17 @@ You can configure the logging severity level of ONNX Runtime using the switch [-
 ```
 </div>
 
+## Additional Debug Options
+
+Additional WebNN switches are available:
+
+- [`--webnn-ort-graph-optimization-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-graph-optimization-level)
+- [`--webnn-ort-enable-profiling`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-enable-profiling)
+- [`--webnn-ort-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-dump-model)
+- [`--webnn-tflite-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-tflite-dump-model)
+
+
 ## Additional Resources
 
 - [WebNN Flags and Switches in Chromium](../../api-reference/browser-compatibility/chrome-flags)
+- [Chromium: services/webnn/webnn_switches.h](https://source.chromium.org/chromium/chromium/src/+/main:services/webnn/webnn_switches.h;l=30)
