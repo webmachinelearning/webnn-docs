@@ -32,16 +32,16 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 ### Exit browser
 </Steps>
 
-## Run WebNN on Windows ML backend (CPU, GPU and NPU)
+## Run WebNN on Windows ML backend (CPU, GPU)
 
 > <InfoIcon /> Window 11, version 24H2 or newer
 
 <Steps>
 ### Install Windows App SDK
 
-| Chrome Version | Edge Version | Known compatible Windows App SDK Version |
-| --- | --- | -- |
-| [Canary](https://google.com/chrome/canary) | [Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ) | 1.8.1 [[x64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x64.exe)] [[x86](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-x86.exe)] [[arm64](https://aka.ms/windowsappsdk/1.8/1.8.250916003/windowsappruntimeinstall-arm64.exe)] |
+Download and install the latest stable version of [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads#stable-release).
+
+- Known compatible Windows App SDK versions: 1.8.2, 1.8.1
 
 ### Install Execution Providers via the EP Catalog executable file
 
@@ -78,6 +78,25 @@ Provider 1:
 ### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`
 ### Relaunch browser
 </Steps>
+
+## Run WebNN on Windows ML backend (NPU)
+
+<Steps>
+### Complete the steps for CPU and GPU above
+### Launch Chrome or Edge browser with switch `--disable_webnn_for_npu=0`
+</Steps>
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0
+```
+</div>
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe" --disable_webnn_for_npu=0
+```
+</div>
 
 ## Run WebNN on LiteRT backend (CPU and GPU)
 
