@@ -29,19 +29,48 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 ### Install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
 ### Navigate to `about://flags` in browser address bar
 ### Search for `Enables WebNN API` and change it to `Enabled`
-### Exit browser
+### Relaunch browser
 </Steps>
 
-## Run WebNN on Windows ML backend (CPU, GPU)
+## Run WebNN on Windows ML backend
 
 > <InfoIcon /> Window 11, version 24H2 or newer
+
+<Steps>
+### Navigate to `about://flags` in browser address bar
+### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`
+### Relaunch browser
+</Steps>
+
+## Run WebNN on Windows ML backend (NPU)
+
+<Steps>
+### Launch Chrome or Edge browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu)
+</Steps>
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0
+```
+</div>
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe" --disable_webnn_for_npu=0
+```
+</div>
+
+## Windows App SDK and Execution Providers Manual Installation
+
+> <InfoIcon /> The Windows App SDK and Execution Providers will be installed automatically in the background when the `ONNX Runtime backend for WebNN` is enabled.
+The installation time may vary depending on your network speed. Follow these steps if the Windows App SDK and Execution Providers were not installed successfully.
 
 <Steps>
 ### Install Windows App SDK
 
 Download and install the latest stable version of [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads#stable-release).
 
-- Known compatible Windows App SDK versions: 1.8.2, 1.8.1
+- Known minimum compatible Windows App SDK version: 1.8.1
 
 ### Install Execution Providers via the EP Catalog executable file
 
@@ -71,32 +100,7 @@ Provider 1:
     Library Path: C:\Program Files\WindowsApps\MicrosoftCorporationII.WinML.Intel.OpenVINO.EP.1.8_1.8.15.0_x64__8wekyb3d8bbwe\ExecutionProvider\onnxruntime_providers_openvino_plugin.dll
 ```
 </div>
-
-> <InfoIcon /> The installation time may vary depending on your network speed
-
-### Navigate to `about://flags` in browser address bar
-### Search for `ONNX Runtime backend for WebNN` and change it to `Enabled`
-### Relaunch browser
 </Steps>
-
-## Run WebNN on Windows ML backend (NPU)
-
-<Steps>
-### Complete the steps for CPU and GPU above
-### Launch Chrome or Edge browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu)
-</Steps>
-
-<div className="ort-ep">
-```shell
-"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0
-```
-</div>
-
-<div className="ort-ep">
-```shell
-"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe" --disable_webnn_for_npu=0
-```
-</div>
 
 ## Run WebNN on LiteRT backend (CPU and GPU)
 
