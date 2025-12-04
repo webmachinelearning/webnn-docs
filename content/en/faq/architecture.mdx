@@ -1,3 +1,5 @@
+import { Steps } from 'nextra/components'
+import InfoIcon from '../../../app/_components/icons/info.jsx'
 import ArchitectureDiagramIntro from '../../../app/_components/architecture/architecture-intro.jsx'
 
 # Architecture
@@ -29,11 +31,11 @@ The WebNN API runs on common computing devices and operating systems. Performanc
 
 The API is platform-independent and integrates with major ML acceleration frameworks:
 
-- Windows: DirectML
+- Windows: Windows ML (ONNX Runtime)
 - ChromeOS: LiteRT
 - Linux: LiteRT
 - Android: LiteRT
-- Apple platforms: CoreML
+- Apple platforms: Core ML
 
 The API automatically leverages available hardware acceleration features, including CPU parallel processing, GPU compute capabilities, and dedicated ML accelerators, while maintaining hardware abstraction. Developers can tune performance parameters without managing specific hardware details.
 
@@ -62,3 +64,90 @@ WebGPU's graphics abstraction layer cannot fully utilize hardware-specific optim
 The diverse hardware ecosystem and multiple driver versions make it difficult to ensure consistent and accurate results across different devices when implementing neural network operations through graphics frameworks. Operating systems traditionally excel at hardware conformance testing and quality assurance - crucial capabilities for ML frameworks, especially in critical applications like healthcare and industrial processes where result accuracy is paramount.
 
 ## When should web developers use WebNN instead of WebGPU + Wasm?
+
+## How do I determine if I am running on Windows ML / OpenVINO Execution Provider on Windows 11?
+
+You can verify which backend you are using by following these steps:
+
+1. Visit https://webnnreport.org/
+2. Navigate to `chrome://histograms/` and search `WebNN`
+
+### WebNN.ORT.WinAppRuntimeInstallState
+
+Find `WebNN.ORT.WinAppRuntimeInstallState` and check the status code:
+
+```
+  0: Windows Version Too Old    5: Paused 
+  1: Activation Failure         6: Paused Low Battery
+  2: Completed                  7: Paused WiFi Recommended
+  3: Error                      8: Paused WiFi Required
+  4: Canceled                   9: Runtime Already Present
+```
+
+```
+0  ... 
+9  -O          (1 = 100.0%) {0.0%}  // Already installed
+10 ... 
+```
+
+### WebNN.ORT.OpenVINOExecutionProvider.Status
+
+Find `WebNN.ORT.OpenVINOExecutionProvider.Status` and check the status code:
+
+```
+  0: Unknown                    3: Ensure ready failed
+  1: EP version too low         4: Ready for use
+  2: Not installed
+```
+
+```
+  0  ... 
+  2  -O          (1 = 50.0%) {0.0%}
+  3  O           (0 = 0.0%) {50.0%}
+  4  -O          (1 = 50.0%) {50.0%} // Installed
+  5  O           (0 = 0.0%) {100.0%}
+```
+
+If the Windows ML Runtime and OpenVINO Execution Provider failed to install properly, you can install them manually instead.
+
+### Windows App SDK and Execution Providers Manual Installation
+
+> <InfoIcon /> On Window 11, version 24H2 or newer, the Windows App SDK and Execution Providers will be installed automatically in the background when you install and launch the browser.
+The installation time may vary depending on your network speed. Follow these steps if the Windows App SDK and Execution Providers were not installed successfully.
+
+<Steps>
+#### Install Windows App SDK
+
+Download and install the latest stable version of [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads#stable-release).
+
+- Known minimum compatible Windows App SDK version: 1.8.1
+
+#### Install Execution Providers via the EP Catalog executable file
+
+1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
+2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
+3. Run the executable file to install Execution Providers 
+
+```shell
+C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
+```
+The Execution Providers (EPs) to be installed depend on your computer’s hardware configuration. It will display the following similar logs:
+
+<div className="shell-font-small">
+```shell
+Creating dynamic dependency on Microsoft.WindowsAppRuntime.1.8_8wekyb3d8bbwe
+Successfully created package dependency with ID: T:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+Successfully added package dependency. Package: Microsoft.WindowsAppRuntime.1.8_8000.625.330.0_x64__8wekyb3d8bbwe
+Package dependency will be automatically cleaned up when process exits
+Got default ExecutionProviderCatalog
+Found 1 providers
+Provider 1:
+    Name: OpenVINOExecutionProvider
+    Calling EnsureReadyAsync...
+    EnsureReadyAsync started successfully
+    Waiting for EnsureReadyAsync to complete...
+    [SUCCESS] Provider ready successfully
+    Library Path: C:\Program Files\WindowsApps\MicrosoftCorporationII.WinML.Intel.OpenVINO.EP.1.8_1.8.15.0_x64__8wekyb3d8bbwe\ExecutionProvider\onnxruntime_providers_openvino_plugin.dll
+```
+</div>
+</Steps>
