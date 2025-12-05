@@ -1,10 +1,15 @@
 import ArchitectureDiagramIntro from '../../../app/_components/architecture/architecture-intro.jsx'
+import InfoIcon from '../../../app/_components/icons/info.jsx'
 
 # Introduction to WebNN API
 
 Learn about WebNN API, how it works, and how to use it.
 
 WebNN API is a new web standard that allows web apps and frameworks to accelerate deep neural networks with on-device hardware such as GPUs, CPUs, or purpose-built AI accelerators.
+
+> <InfoIcon /> WebNN utilizes graph-based computation that is optimally suited for NPU acceleration, while also supporting GPU and CPU.
+
+> <InfoIcon /> WebNN is currently the only web API that enables NPU access.
 
 ## Architecture
 
@@ -25,6 +30,9 @@ The WebNN API runs natively in the browser without requiring additional developm
 ### Hardware-Optimized Performance
 
 WebNN automatically utilizes available hardware acceleration (CPU, GPU, or dedicated NPU processors) for neural network operations. This optimization occurs transparently across different devices and operating systems, maximizing inference speed without requiring hardware-specific code.
+
+ - Multi-hardware acceleration support - WebNN utilizes graph-based computation that is optimally suited for NPU acceleration, while also supporting GPU and CPU.
+ - Unique NPU access - Currently WebNN is the only web API providing access to NPU hardware acceleration
 
 ### Client-Side Data Processing
 
