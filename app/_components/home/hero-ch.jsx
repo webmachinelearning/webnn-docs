@@ -14,7 +14,7 @@ export default function HeroCh() {
       <div>
         Web Neural Network API 使 Web 应用能够直接在浏览器中执行高性能机器学习推理。WebNN 基于图计算,专为 <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">NPU</span> 加速而优化,同时支持 <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">GPU</span> 和 <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">CPU</span>。目前, WebNN 是唯一能够在 Web 中访问 <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">NPU</span> 的 API。
       </div>
-      <div className="my-4 flex flex-row gap-2 text-sm">
+      <div className="my-4 flex flex-col xl:flex-row gap-2 text-sm">
         <span className="w-fit px-2 py-1 border rounded-full">端侧推理</span>
         <span className="w-fit px-2 py-1 border rounded-full">基于计算图</span>
         <span className="w-fit px-2 py-1 border rounded-full">唯一 NPU 访问</span>

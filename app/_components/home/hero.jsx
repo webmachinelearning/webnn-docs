@@ -13,7 +13,7 @@ export default function Hero() {
       <div>
         The Web Neural Network API enables web applications to perform high-performance machine learning inference directly in the browser, utilizing graph-based computation that is optimally suited for <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">NPU</span> acceleration, while also supporting <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">GPU</span> and <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">CPU</span>. WebNN is currently the only API that provides access to <span className="underline decoration-dashed decoration-pink-500 underline-offset-4">NPU</span> through Web.
       </div>
-      <div className="my-4 flex flex-row gap-2 text-sm">
+      <div className="my-4 flex flex-col xl:flex-row gap-2 text-sm">
         <span className="w-fit px-2 py-1 border rounded-full">On-device AI</span>
         <span className="w-fit px-2 py-1 border rounded-full">Graph-based Computation</span>
         <span className="w-fit px-2 py-1 border rounded-full">Unique NPU Access</span>
