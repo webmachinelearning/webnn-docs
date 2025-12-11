@@ -4,7 +4,37 @@ import { usePathname } from "next/navigation";
 
 const demosEn = [
   {
-    id: "1",
+    id: "51",
+    title: "Background Removal",
+    description: "Real-time background removal w/ MODNet",
+    imageUrl: "https://webnn.io/demos/img/rbr.jpg",
+    demoUrl: "https://webnn.io/demos/video-background-removal/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/video-background-removal",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "52",
+    title: "Object Detection",
+    description: "Real-time object detection w/ YOLO12n",
+    imageUrl: "https://webnn.io/demos/img/rod.jpg",
+    demoUrl: "https://webnn.io/demos/video-object-detection/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/video-object-detection",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "53",
+    title: "Depth Estimation",
+    description: "Real-time depth estimation w/ Depth Anything V2",
+    imageUrl: "https://webnn.io/demos/img/rde.jpg",
+    demoUrl: "https://webnn.io/demos/depth-estimation-video/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/depth-estimation-video",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "101",
     title: "Text Generation",
     description: "Text Generation",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/phi-3-mini.jpg",
@@ -14,7 +44,7 @@ const demosEn = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "2",
+    id: "102",
     title: "Image Classification",
     description: "Classification: MobileNet, ResNet, EfficientNet Lite",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/ic.jpg",
@@ -24,7 +54,7 @@ const demosEn = [
     framework: ["Transformers.js"],
   },
   {
-    id: "3",
+    id: "103",
     title: "SD Turbo",
     description: "Text-to-Image: Text Encoder, UNet, VAE Decoder, Safety Checker",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sd-turbo.jpg",
@@ -34,7 +64,7 @@ const demosEn = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "4",
+    id: "104",
     title: "Stable Diffusion 1.5",
     description: "Text-to-Image: Text Encoder, UNet, VAE Decoder, Safety Checker",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sd1.5.jpg",
@@ -44,7 +74,7 @@ const demosEn = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "5",
+    id: "105",
     title: "Segment Anything",
     description: "Image Segmentation: SAM",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sam.jpg",
@@ -54,7 +84,7 @@ const demosEn = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "6",
+    id: "106",
     title: "Whisper Base",
     description: "Automatic Speech Recognition: Whisper Encoder, Decoder",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/whisper.jpg",
@@ -64,7 +94,7 @@ const demosEn = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "7",
+    id: "207",
     title: "NNotepad",
     description: "A browser-based playground for experimenting with WebNN",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/nnotepad.png",
@@ -74,7 +104,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "8",
+    id: "208",
     title: "Code Editor",
     description: "Evaluate, review and modify WebNN sample codes",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/codeeditor.jpg",
@@ -84,7 +114,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "9",
+    id: "209",
     title: "Image Classification",
     description: "Classification: MobileNet, SqueezeNet, ResNet, EfficientNet Lite",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/ic.jpg",
@@ -94,7 +124,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "10",
+    id: "210",
     title: "Handwritten Classification",
     description: "Use LeNet to classify handwritten digits from the MNIST data set",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/handwritten.png",
@@ -104,7 +134,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "11",
+    id: "211",
     title: "Fast Style Transfer",
     description: "Applying the STARRY NIGHT and other styles of Van Gogh to image",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/starrynight.jpg",
@@ -112,8 +142,8 @@ const demosEn = [
     codeUrl: "https://github.com/webmachinelearning/webnn-samples/tree/master/style_transfer",
     tags: ["CPU", "GPU"],
     framework: ["Vanilla JS"],
-  },  {
-    id: "12",
+  }, {
+    id: "212",
     title: "Object Detection",
     description: "Detecting instances of semantic objects in digital images and videos",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/od.png",
@@ -123,7 +153,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "13",
+    id: "213",
     title: "Noise Suppression",
     description: "A NSNet2 baseline impl. of deep learning-based noise suppression",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/noise.png",
@@ -131,8 +161,8 @@ const demosEn = [
     codeUrl: "https://github.com/webmachinelearning/webnn-samples/tree/master/nsnet2/",
     tags: ["CPU", "GPU"],
     framework: ["Vanilla JS"],
-  },  {
-    id: "14",
+  }, {
+    id: "214",
     title: "Noise Suppression",
     description: "An RNNoise baseline impl. of deep learning-based noise suppression",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/rnnoise.png",
@@ -142,7 +172,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "15",
+    id: "215",
     title: "Semantic Segmentation",
     description: "Partitioning image into semantically meaningful parts",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/ss.png",
@@ -150,8 +180,8 @@ const demosEn = [
     codeUrl: "https://github.com/webmachinelearning/webnn-samples/tree/master/semantic_segmentation/",
     tags: ["CPU", "GPU"],
     framework: ["Vanilla JS"],
-  },  {
-    id: "16",
+  }, {
+    id: "216",
     title: "Facial Landmark Detection",
     description: "Detecting facial landmarks like eyes, nose, mouth, etc.",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/fld.png",
@@ -161,7 +191,7 @@ const demosEn = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "17",
+    id: "217",
     title: "Face Recognition",
     description: "Detecting faces of participants using object detection",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/fr.png",
@@ -174,7 +204,37 @@ const demosEn = [
 
 const demosCh = [
   {
-    id: "1",
+    id: "51",
+    title: "背景移除",
+    description: "使用 MODNet 进行实时背景移除",
+    imageUrl: "https://webnn.io/demos/img/rbr.jpg",
+    demoUrl: "https://webnn.io/demos/video-background-removal/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/video-background-removal",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "52",
+    title: "物体检测",
+    description: "使用 YOLO12n 进行实时物体检测",
+    imageUrl: "https://webnn.io/demos/img/rod.jpg",
+    demoUrl: "https://webnn.io/demos/video-object-detection/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/video-object-detection",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "53",
+    title: "深度估计",
+    description: "使用 Depth Anything V2 进行实时深度估计",
+    imageUrl: "https://webnn.io/demos/img/rde.jpg",
+    demoUrl: "https://webnn.io/demos/depth-estimation-video/index.html",
+    codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/depth-estimation-video",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "101",
     title: "文本生成",
     description: "文本生成",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/phi-3-mini.jpg",
@@ -184,7 +244,7 @@ const demosCh = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "2",
+    id: "102",
     title: "图像分类",
     description: "分类：MobileNet、ResNet、EfficientNet Lite",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/ic.jpg",
@@ -194,7 +254,7 @@ const demosCh = [
     framework: ["Transformers.js"],
   },
   {
-    id: "3",
+    id: "103",
     title: "SD Turbo",
     description: "文本生成图像：文本编码器、UNet、VAE 解码器、安全检查器",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sd-turbo.jpg",
@@ -204,7 +264,7 @@ const demosCh = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "4",
+    id: "104",
     title: "Stable Diffusion 1.5",
     description: "文本生成图像：文本编码器、UNet、VAE 解码器、安全检查器",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sd1.5.jpg",
@@ -214,7 +274,7 @@ const demosCh = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "5",
+    id: "105",
     title: "任意分割",
     description: "图像分割：SAM",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/sam.jpg",
@@ -224,7 +284,7 @@ const demosCh = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "6",
+    id: "106",
     title: "Whisper Base",
     description: "自动语音识别：Whisper 编码器、解码器",
     imageUrl: "https://microsoft.github.io/webnn-developer-preview/assets/img/demos/whisper.jpg",
@@ -234,7 +294,7 @@ const demosCh = [
     framework: ["ONNX Runtime"],
   },
   {
-    id: "7",
+    id: "207",
     title: "NNotepad",
     description: "基于浏览器的 WebNN Playground",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/nnotepad.png",
@@ -244,7 +304,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "8",
+    id: "208",
     title: "代码编辑器",
     description: "评估、审查和修改 WebNN 示例代码",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/codeeditor.jpg",
@@ -254,7 +314,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "9",
+    id: "209",
     title: "图像分类",
     description: "分类：MobileNet、SqueezeNet、ResNet、EfficientNet Lite",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/ic.jpg",
@@ -264,7 +324,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "10",
+    id: "210",
     title: "手写数字分类",
     description: "使用 LeNet 对 MNIST 数据集中的手写数字进行分类",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/handwritten.png",
@@ -274,7 +334,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "11",
+    id: "211",
     title: "快速风格迁移",
     description: "将梵高的星空夜等风格应用到图像中",
     imageUrl: "https://webmachinelearning.github.io/assets/images/webnnsamples/starrynight.jpg",
@@ -284,7 +344,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "12",
+    id: "212",
     title: "目标检测",
     description: "在数字图像和视频中检测语义对象实例",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/od.png",
@@ -294,7 +354,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "13",
+    id: "213",
     title: "噪声抑制",
     description: "基于深度学习的噪声抑制 NSNet2 实现",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/noise.png",
@@ -304,7 +364,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "14",
+    id: "214",
     title: "噪声抑制",
     description: "基于深度学习的噪声抑制 RNNoise 实现",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/rnnoise.png",
@@ -314,7 +374,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "15",
+    id: "215",
     title: "语义分割",
     description: "将图像分割成具有语义意义的部分",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/ss.png",
@@ -324,7 +384,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "16",
+    id: "216",
     title: "面部特征点检测",
     description: "检测眼睛、鼻子、嘴等面部特征点",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/fld.png",
@@ -334,7 +394,7 @@ const demosCh = [
     framework: ["Vanilla JS"],
   },
   {
-    id: "17",
+    id: "217",
     title: "人脸识别",
     description: "使用物体检测识别参与者的面部",
     imageUrl: "https://webmachinelearning.github.io/webnn-samples/common/img/fr.png",
@@ -347,7 +407,7 @@ const demosCh = [
 
 export function Showcases() {
   const pathname = usePathname()
-  const showcaseTitle = pathname.indexOf("/zh") !== -1 ? '示例' : 'Showcase' ;
+  const showcaseTitle = pathname.indexOf("/zh") !== -1 ? '示例' : 'Showcase';
   const demos = pathname.indexOf("/zh") !== -1 ? demosCh : demosEn;
   return (
     <div className="min-h-screen">
@@ -356,4 +416,3 @@ export function Showcases() {
     </div>
   )
 }
-
