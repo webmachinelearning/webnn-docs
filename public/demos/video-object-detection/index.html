@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transformers.js | Real-time object detection</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <h1>
+      Real-time object detection w/ YOLO12n
+    </h1>
+    <h4>
+      Runs locally in your browser, powered by
+      <a href="http://github.com/huggingface/transformers.js" target="_blank"
+        >🤗 Transformers.js</a
+      > x <label id="device"></label>
+    </h4>
+    <div id="container">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="canvas" width="360" height="240"></canvas>
+      <div id="overlay"></div>
+    </div>
+    <div id="controls">
+      <div id="size-container">
+        <label>Image size</label>
+        (<label id="size-value">640</label>)
+        <br />
+        <input
+          id="size"
+          type="range"
+          min="640"
+          max="640"
+          step="32"
+          value="640"
+          disabled
+        />
+      </div>
+      <div>
+        <label>Threshold</label>
+        (<label id="threshold-value">0.25</label>)
+        <br />
+        <input
+          id="threshold"
+          type="range"
+          min="0.01"
+          max="1"
+          step="0.01"
+          value="0.25"
+          disabled
+        />
+      </div>
+      <div id="scale-container">
+        <label>Scale</label>
+        (<label id="scale-value">1</label>)
+        <br />
+        <input
+          id="scale"
+          type="range"
+          min="1"
+          max="1"
+          step="0.01"
+          value="1"
+          disabled
+        />
+      </div>
+    </div>
+    <label id="status"></label>
+    <div>
+      <a href="?device=webnn-gpu">WebNN GPU</a> · <a href="?device=webnn-npu">WebNN NPU</a>
+    </div>
+    <div id="versions">
+      @huggingface/transformers: 3.7.3 · onnxruntime-web: 1.22.0-dev.20250409-89f8206ba4
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

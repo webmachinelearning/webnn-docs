@@ -78,6 +78,12 @@ export default withNextra({
         port: '',
         search: '',
       },
+      {
+        protocol: 'https',
+        hostname: 'webnn.io',
+        port: '',
+        search: '',
+      },
     ],
   },
 })
