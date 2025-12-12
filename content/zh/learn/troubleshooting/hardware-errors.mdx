@@ -2,6 +2,85 @@
  
 ## NPU Errors
 
-### Unable to run WebNN NPU on Qualcomm Snapdragon X Elite?
+### NPU utilization not visible in Windows Task Manager when running on WebNN NPU
 
-Ensure the Qualcomm NPU driver is updated.
+#### Problem
+
+NPU (Neural Processing Unit) utilization does not appear in Windows Task Manager when running WebNN applications on NPU, e.g. [Whisper Base on NPU](https://microsoft.github.io/webnn-developer-preview/demos/whisper-base/?devicetype=npu), even after updating to the latest NPU driver.
+
+#### Cause
+
+Windows may automatically revert NPU and GPU drivers to previous versions through Windows Update, particularly on OEM devices (Lenovo, ASUS, Dell, HP, etc.). This typically occurs when:
+
+- The newly installed driver is not [WHQL (Windows Hardware Quality Labs)](https://www.intel.com/content/www/us/en/support/articles/000093158/graphics.html) certified
+- Windows determines the driver is incompatible or unstable
+- The driver has not passed the OEM manufacturer's validation process
+
+This behavior affects both Neural Processor (NPU, Intel AI Boost) and Graphics drivers.
+
+#### Solution
+
+To maintain your preferred NPU driver version, you need to disable automatic driver updates in Windows and then reinstall the desired driver.
+
+##### Method 1: Disable via System Settings
+
+1. Press <kbd>Win</kbd> + <kbd>R</kbd>, type `sysdm.cpl`, and press <kbd>Enter</kbd>
+2. Navigate to the **Hardware** tab
+3. Click **Device Installation Settings**
+4. Select **No (your device might not work as expected)**
+5. Click **Save Changes**
+
+##### Method 2: Use Group Policy Editor
+
+> **Note:** Group Policy Editor is only available in Windows Pro, Enterprise, and Education editions.
+
+1. Press <kbd>Win</kbd> + <kbd>R</kbd>, type `gpedit.msc`, and press <kbd>Enter</kbd>
+2. Navigate to: `Computer Configuration` > `Administrative Templates` > `Windows Components` > `Windows Update` > `Manage updates offered from Windows Update`
+3. Double-click **Do not include drivers with Windows Updates**
+4. Select **Enabled**
+5. Click **Apply**, then **OK**
+
+##### Reinstalling the NPU driver
+
+After disabling automatic driver updates:
+
+1. Download the latest Intel [Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) and [NPU](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html) driver from [Intel's official driver download page](https://www.intel.com/content/www/us/en/download-center/home.html)
+2. Install the driver manually following Intel's installation instructions
+3. Verify the installation in Device Manager
+
+The driver should now persist across system restarts and Windows Updates.
+
+#### Alternative: Using WebNN with default drivers and launch browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu)
+
+In many cases, WebNN NPU functionality works with the default OEM-provided drivers that come with Windows Update. 
+
+If stability is more important than having the absolute latest driver version, consider using the Windows-provided driver instead of manually updating, launch browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu) to enable WebNN NPU functionality in Chrome or Edge.
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0
+```
+</div>
+
+<div className="ort-ep">
+```shell
+"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe" --disable_webnn_for_npu=0
+```
+</div>
+
+#### See also
+
+- [Intel NPU driver support documentation](https://www.intel.com/content/www/us/en/support.html)
+- [Windows driver management documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/)
+
+## GPU Errors
+
+### Graphics driver rollbacks affecting WebNN GPU performance
+
+#### Problem
+
+Windows Update automatically reverts graphics drivers to previous versions, preventing WebNN from achieving optimal GPU performance.
+
+#### Solution
+
+Refer to [NPU solution](hardware-errors#cause)
