@@ -22,7 +22,7 @@ flowchart TD
     WinApp -->|Yes| WinML[Windows ML Backend]
     WinApp -->|No| TFLite[TFLite Backend]
     
-    WinML --> OVCheck{OpenVINO EP installed<br/>before launching WebNN page<br/>Intel MTL, LNL, PTL}
+    WinML --> OVCheck{OpenVINO EP installed<br/>before launching WebNN page<br/>Intel Core Ultra Series}
     
     OVCheck -->|Yes| DevType1{Device Type}
     OVCheck -->|No| DevType2{Device Type}
