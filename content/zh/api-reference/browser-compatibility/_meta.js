@@ -14,4 +14,7 @@ export default {
   "chrome-flags": {
     title: "Chrome Flags"
   },
+    deviceselection: {
+    title: "Device Selection"
+  },
 };

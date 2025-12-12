@@ -1,0 +1,64 @@
+import { AndroidIcon, WindowsIcon, ChromeosIcon, MacosIcon, LinuxIcon, IosIcon } from '../../../../app/_components/icons/os.jsx'
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
+# Browser Compatibility
+
+## Device Selection Diagram
+
+### Windows ML · OpenVINO Execution Provider 
+
+This diagram shows the device selection flow for the Windows ML and OpenVINO EP.
+
+> <InfoIcon /> This diagram applies only to Windows platforms with Intel devices, assuming no non-Intel hardware components are present.
+Multiple devices can be selected in priority order.
+
+<div className="mermaid">
+```mermaid
+flowchart TD
+    Start[Launch browser with WebNN flag enabled]
+    
+    Start --> WinApp{Windows App Runtime<br/>installed}
+    
+    WinApp -->|Yes| WinML[Windows ML Backend]
+    WinApp -->|No| TFLite[TFLite Backend]
+    
+    WinML --> OVCheck{OpenVINO EP installed<br/>before launching WebNN page<br/>Intel MTL, LNL, PTL}
+    
+    OVCheck -->|Yes| DevType1{Device Type}
+    OVCheck -->|No| DevType2{Device Type}
+    
+    DevType1 -->|NPU| NPUHw{NPU hardware}
+    DevType1 -->|CPU| OVCPU1[OV CPU&lt;Preferred&gt;<br/>Default CPU]
+    
+    NPUHw -->|Yes| OVNPU1[OV NPU<br/>Default CPU]
+    NPUHw -->|No| OVGPU1[OV GPU &lt;Preferred&gt;<br/>Default CPU]
+    
+    DevType2 -->|GPU / NPU| DefaultGPU[Default GPU &lt;WebGPU / DirectML · Preferred&gt; <br/>Default CPU]
+    DevType2 -->|CPU| DefaultCPU1[Default CPU]
+    
+    OVNPU1 --> SubGraphNPU{Sub-graph supported<br/>on OV NPU}
+    
+    SubGraphNPU -->|Yes| Compile{Graph compilation<br/>successful}
+    SubGraphNPU -->|No| FallbackCPU1[Default CPU]
+    
+    Compile -->|Yes| FinalNPU[OV NPU]
+    Compile -->|No| FallbackOVCPU[Internal fallback to OV CPU]
+    
+    OVCPU1 --> SubGraph1{Sub-graph supported<br/>on preferred device}
+    OVGPU1 --> SubGraph1
+    DefaultGPU --> SubGraph1
+    
+    SubGraph1 -->|Yes| Preferred[Preferred device]
+    SubGraph1 -->|No| FallbackCPU2[Default CPU]
+    ```
+</div>
+
+Based on each device's capabilities, the graph may be partitioned into subgraphs if certain operators are unsupported on a device. Each subgraph is then assigned to an appropriate device. If all operators are supported, the entire graph is assigned to the highest-priority selected device.
+
+The default CPU serves as the final fallback device to ensure maximum coverage of operator sets and individual operators.
+
+### Lite RT
+
+This diagram shows the device selection flow for the WebNN LiteRT backend.
+
+To-do.

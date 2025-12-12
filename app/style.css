@@ -990,3 +990,16 @@ article.nextra-body-typesetting-article a:hover {
 .ort-ep pre code.nextra-code {
   font-size: .75rem !important;
 }
+
+.mermaid svg div, .mermaid svg span, .mermaid svg span p {
+  background-color: transparent !important;
+}
+
+/* Customize colors and styles */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node polygon {
+  fill: rgba(0, 200, 255, 0.1) !important;
+  stroke: rgba(3, 4, 94, 0.9) !important;
+  stroke-width: 1px;
+}
