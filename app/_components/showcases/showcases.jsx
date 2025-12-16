@@ -4,8 +4,18 @@ import { usePathname } from "next/navigation";
 
 const demosEn = [
   {
+    id: "50",
+    title: "Background Removal / RMBG v1.4",
+    description: "Image background removal w/ RMBG v1.4 ",
+    imageUrl: "https://webnn.io/demos/img/br.png",
+    demoUrl: "https://webnn.io/demos/remove-background/index.html",
+    codeUrl: "https://github.com/ibelem/webnn-hf-spaces/tree/main/remove-background",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
     id: "51",
-    title: "Background Removal",
+    title: "Video Background Removal",
     description: "Real-time background removal w/ MODNet",
     imageUrl: "https://webnn.io/demos/img/rbr.jpg",
     demoUrl: "https://webnn.io/demos/video-background-removal/index.html",
@@ -204,9 +214,19 @@ const demosEn = [
 
 const demosCh = [
   {
+    id: "50",
+    title: "图像背景移除 / RMBG v1.4",
+    description: "使用 RMBG v1.4 进行图像背景移除",
+    imageUrl: "https://webnn.io/demos/img/br.png",
+    demoUrl: "https://webnn.io/demos/remove-background/index.html",
+    codeUrl: "https://github.com/ibelem/webnn-hf-spaces/tree/main/remove-background",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
     id: "51",
-    title: "背景移除",
-    description: "使用 MODNet 进行实时背景移除",
+    title: "视频背景移除",
+    description: "使用 MODNet 进行实时视频背景移除",
     imageUrl: "https://webnn.io/demos/img/rbr.jpg",
     demoUrl: "https://webnn.io/demos/video-background-removal/index.html",
     codeUrl: "https://github.com/webmachinelearning/webnn-docs/tree/main/public/demos/video-background-removal",
