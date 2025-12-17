@@ -1,5 +1,6 @@
 "use client"
 
+import { GoogleAnalytics } from '@next/third-parties/google'
 import React, { useState, useEffect } from 'react';
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { useTheme } from 'nextra-theme-docs';
@@ -60,6 +61,7 @@ export default function Page() {
   };
 
   return (
+    <>
     <div>
       <div className="md:px-8 xl:px-8 mb-8">
         <div className="mx-1 md:mx-0 playground-nav">
@@ -195,6 +197,8 @@ export default function Page() {
           files={files}
         />
       </div>
+      <GoogleAnalytics gaId="G-0MBRQQNHVC" />
     </div>
+    </>
   )
 }

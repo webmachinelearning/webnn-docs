@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Host
+Host: https://webnn.io
+
+# Sitemaps
+Sitemap: https://webnn.io/sitemap.xml

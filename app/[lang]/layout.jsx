@@ -7,26 +7,48 @@ import 'nextra-theme-docs/style.css'
 import '../style.css'
 
 export const metadata = {
-  description:
-    'WebNN, WebNN Neural Network API',
+  description: 'WebNN, WebNN Neural Network API',
   title: {
     absolute: 'WebNN',
     template: '%s | WebNN · Web Neural Network API'
   },
   metadataBase: new URL('https://webnn.io'),
   openGraph: {
-    images:
-      'https://webnn.io/android-chrome-512x512.png'
+    type: 'website',
+    siteName: 'WebNN',
+    url: 'https://webnn.io',
+    title: 'WebNN · Web Neural Network API',
+    description: 'WebNN, a new web standard that allows web apps and frameworks to accelerate deep neural networks with on-device hardware such as GPUs, CPUs, or purpose-built AI accelerators. WebNN is currently the only web API that enables NPU access.',
+    images: [
+      {
+        url: 'https://webnn.io/android-chrome-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'WebNN Logo',
+      }
+    ],
+    locale: 'en_US',
   },
   twitter: {
-    site: '@webmachinelearning'
+    card: 'summary_large_image',
+    site: '@ibelem',
+    title: 'WebNN · Web Neural Network API',
+    description: 'WebNN, a new web standard that allows web apps and frameworks to accelerate deep neural networks with on-device hardware such as GPUs, CPUs, or purpose-built AI accelerators. WebNN is currently the only web API that enables NPU access.',
+    images: ['https://webnn.io/android-chrome-512x512.png'],
   },
   appleWebApp: {
     title: 'WebNN'
   },
   other: {
     'msapplication-TileColor': '#fff'
-  }
+  },
+  alternates: {
+    canonical: './',
+    languages: {
+      'en': '/en',
+      'zh': '/zh',
+    },
+  },
 }
  
 const navbar = (
@@ -214,6 +236,36 @@ export default async function RootLayout({ children, params }) {
         {/* Your additional tags should be passed as `children` of `<Head>` element */}
       </Head>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "name": "WebNN",
+                  "url": "https://webnn.io",
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://webnn.io/search?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                  }
+                },
+                {
+                  "@type": "Organization",
+                  "name": "Web Machine Learning",
+                  "url": "https://webnn.io",
+                  "logo": "https://webnn.io/android-chrome-512x512.png",
+                  "sameAs": [
+                    "https://github.com/webmachinelearning",
+                    "https://x.com/ibelem"
+                  ]
+                }
+              ]
+            })
+          }}
+        />
         <Layout
           banner={
             <Banner storageKey="webnn-announcement">
