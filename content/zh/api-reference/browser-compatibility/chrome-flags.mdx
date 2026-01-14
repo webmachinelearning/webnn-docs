@@ -136,6 +136,22 @@ Visit via `about://flags/`
 | Note |This switch is not to be used in shipping scenarios and is ignored by default |
 | Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?"C:\Program Files\ONNXRuntime-EP\onnxruntime_providers_openvino_plugin.dll" --allow-third-party-modules` |
 
+### `--webnn-ort-ep-device`
+
+| Name | Force ONNX Runtime to Only Select Specific Execution Provider (EP) Device |
+| :--: | :-------- |
+| Description | Matches the given EP name, hardware vendor id and hardware device id for WebNN during the ORT session creation stage. The value should be in the format: `ep_name`,`hardware_vendor_id`,`hardware_device_id`. |
+| Note | Available EP devices can be queried in logs when the `webnn-ort-logging-level` is set to `VERBOSE` or `INFO`. If no matching device is found, the ORT session creation fails. All the entries must be provided in order, and both hardware_vendor_id and hardware_device_id are hexadecimal strings. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-device=OpenVINOExecutionProvider,0x8086,0x4680` |
+
+### `--webnn-ort-ignore-ep-blocklist`
+
+| Name | Enable All Execution Providers, Ignoring the Enabled Flag Blocklist |
+| :--: | :-------- |
+| Description | Controls whether the execution provider is enabled or not. Disabled execution providers can be enabled all at once via the `--webnn-ort-ignore-ep-blocklist` command line switch. |
+| Note | The listed EPs must match the names of the histogram variants `WebNNOrtExecutionProvider` in `tools/metrics/histograms/metadata/webnn/histograms.xml`. |
+| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ignore-ep-blocklist` |
+
 ### `--webnn-ort-graph-optimization-level`
 
 | Name | WebNN ONNX Runtime Graph Optimization Level |
