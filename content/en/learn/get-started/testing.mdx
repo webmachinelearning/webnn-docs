@@ -12,20 +12,24 @@ Before testing WebNN functionality, ensure you have properly configured your bro
 
 ## Test Plan
 
-WebNN testing encompasses multiple validation approaches to cover various [test suites](#webnn-test-suites) to ensure correctness, performance, and stability.
+WebNN testing encompasses multiple validation approaches to cover various [test suites](#webnn-test-suites) to ensure correctness, performance, security and stability.
 
 ### Test Infrastructure
 
-- **Chromium bots**: Continuous integration testing (in progress)
-- Microsoft Edge testing facilities
-- Hardware vendor testing facilities
+- **Chromium bots**: Continuous integration testing covers unit tests and WPT conformance tests
+- Microsoft Edge team testing facilities
+  - [WebNN Automation Tests](https://github.com/webgfx/webnn-test), covers WPT, samples and demos
+- W3C WebML community testing facilities
+  - [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework), covers WebNN samples and demos
+- Other hardware vendor testing facilities
 
-### Backend Versions
+### Backends
 
 WebNN is validated against multiple versions of backends implementation:
 
-- **Public releases**: Stable Windows ML, Execution Provider, and GPU, NPU driver
-- **Pre-release versions**: Early access builds
+- **Public releases**: Stable Windows ML, Execution Providers, and GPU, NPU drivers
+  - IHV EP certification test suites
+- **Pre-releases**
 
 ### Test Devices
 
@@ -38,7 +42,7 @@ In addition to continuous integration testing for all code changes, WebNN follow
 - **Nightly**: WPT and demo automation tests
 - **Daily**: Performance and model tests
 - **Continuous Fuzzing**: Fuzz targets are automatically discovered by buildbots, built with different fuzzing engines, then uploaded to the distributed ClusterFuzz system to run at scale
-- **Pre-release**: PageHeap testing before each major release
+- **On-demand**: PageHeap testing before major releases for debugging purposes
 
 ## WebNN Test suites
 
@@ -112,6 +116,8 @@ In the "Run tests under path" field, enter `/webnn`
 Click the "Start" button to begin test execution
 </Steps>
 
+> <ActionIcon /> **You can also run WPT Automation Tests via [WebNN Automation Tests](https://github.com/webgfx/webnn-test)**
+
 ### Samples & Developer Preview Demos Testing
 
 Interactive samples and demos help validate real-world WebNN usage patterns.
@@ -120,20 +126,22 @@ Interactive samples and demos help validate real-world WebNN usage patterns.
 | --- | --- |
 | W3C WebNN Samples | [webmachinelearning/webnn-samples](https://github.com/webmachinelearning/webnn-samples) |
 | WebNN Developer Preview Demos | [microsoft/webnn-developer-preview](https://github.com/microsoft/webnn-developer-preview) |
+| HuggingFace: WebNN Spaces | [huggingface.co/webnn/spaces](https://huggingface.co/webnn/spaces) |
 
-- [W3C WebNN Samples](https://webmachinelearning.github.io/webnn-samples-intro/) demonstrating practical WebNN API usage in web applications.
-- [WebNN Developer Preview Demos](https://microsoft.github.io/webnn-developer-preview/) showcases featuring WebNN API integration with ONNX Runtime Web.
+- [W3C WebNN Samples](https://webmachinelearning.github.io/webnn-samples-intro/) demonstrating practical WebNN API usage in web applications
+- [WebNN Developer Preview Demos](https://microsoft.github.io/webnn-developer-preview/) showcases featuring WebNN API integration with ONNX Runtime Web
+- [HuggingFace: WebNN Spaces](https://huggingface.co/webnn/spaces) implements more Transformers.js based WebNN examples
 
 > <ActionIcon /> **Testing Sample and Demo Applications**
 
-An automated test framework is available for comprehensive sample testing:
+Automated test frameworks are available for comprehensive sample and demo testing:
 
 <Steps>
 #### Access the test framework
-Visit the [webnn-samples-test-framework](https://github.com/webmachinelearning/webnn-samples-test-framework) repository
+Visit the [WebNN Automation Tests](https://github.com/webgfx/webnn-test) or [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework) repository
 
 #### Follow setup instructions
-Review the [README](https://github.com/webmachinelearning/webnn-samples-test-framework/blob/main/README.md) for configuration details
+Review the README for configuration details
 
 #### Run tests and generate reports
 Execute the automated tests to validate sample functionality and generate detailed test reports
