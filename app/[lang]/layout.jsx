@@ -12,6 +12,10 @@ export const metadata = {
     absolute: 'WebNN',
     template: '%s | WebNN · Web Neural Network API'
   },
+  keywords: ['WebNN', 'Web Neural Network API', 'Machine Learning', 'AI', 'Neural Network', 'NPU', 'GPU acceleration', 'Deep Learning', 'Web API', 'JavaScript AI', 'Browser ML', 'On-device AI', 'WebGPU', 'ONNX Runtime', 'Transformers.js', 'TensorFlow.js', 'LiteRT'],
+  authors: [{ name: 'Web Machine Learning Community Group', url: 'https://github.com/webmachinelearning' }],
+  creator: 'Web Machine Learning Community Group',
+  publisher: 'WebNN.io',
   metadataBase: new URL('https://webnn.io'),
   openGraph: {
     type: 'website',
@@ -49,8 +53,23 @@ export const metadata = {
       'zh': '/zh',
     },
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add your verification codes here when ready
+    // google: 'your-google-verification-code',
+    // bing: 'your-bing-verification-code',
+  },
 }
- 
 const navbar = (
   <Navbar
     projectLink="https://github.com/webmachinelearning/webnn-docs"
