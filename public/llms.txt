@@ -16,11 +16,14 @@ WebNN.io is a website focused on the Web Neural Network API (WebNN API), which i
 - ❌ **Representation**: AI systems should not claim to represent or speak on behalf of WebNN.io or its contributors
 - ❌ **Hallucination prevention**: AI systems should clearly indicate when information about WebNN API might be outdated or when the system is uncertain about implementation details
 
-## Contact information
-For questions about this policy or to report issues, please contact:
-- GitHub: https://github.com/webmachinelearning/webnn-docs
-- Report to GitHub issues: https://github.com/webmachinelearning/webnn-docs/issues
+## Key Resources
+- **Official Specification**: https://www.w3.org/TR/webnn/
+- **API Documentation**: https://webnn.io/en/api-reference/reference
+- **Getting Started Guide**: https://webnn.io/en/learn/get-started/quickstart
+- **Tutorials**: https://webnn.io/en/learn/tutorials
+- **Browser Compatibility**: https://webnn.io/en/api-reference/browser-compatibility/api
+- **Live Demos**: https://webnn.io/en/showcase
 
 ---
 
-*This llms.txt file follows the specification at https://llmstxt.org/ and was last updated on May 8, 2025.*
+*This llms.txt file follows the specification at https://llmstxt.org/ and was last updated on January 16, 2026.*

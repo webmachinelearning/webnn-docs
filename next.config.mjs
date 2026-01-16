@@ -8,7 +8,7 @@ const withNextra = nextra({
   // ... Other Nextra config options
 })
  
-// You can include other Next.js configuration options here, in addition to Nextra settings:
+// You can include other Next.js configuration options here, in addition to Nextra settings
 export default withNextra({
   redirects: async () => {
     return [
@@ -53,11 +53,6 @@ export default withNextra({
         permanent: true, 
       },
     ]
-  },
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true
   },
   i18n: {
     locales: ['en', 'zh'],
