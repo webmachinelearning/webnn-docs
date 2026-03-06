@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transformers.js | Real-time Pose Landmark Detection</title>
+    <script type="module" crossorigin src="./assets/index-HgNiOt2u.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D51B1cqL.css">
+  </head>
+
+  <body>
+    <h1>
+      Real-time Pose Landmark Detection w/ YOLO26n-pose
+    </h1>
+    <h4>
+      Runs locally in your browser, powered by
+      <a href="http://github.com/huggingface/transformers.js" target="_blank"
+        >🤗 Transformers.js</a
+      > x <label id="device"></label>
+    </h4>
+    <div id="container">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    <div id="controls">
+      <div>
+        <label>Threshold</label>
+        (<label id="threshold-value">0.35</label>)
+        <br />
+        <input
+          id="threshold"
+          type="range"
+          min="0.01"
+          max="1"
+          step="0.01"
+          value="0.35"
+          disabled
+        />
+      </div>
+      <div>
+        <label>Keypoint</label>
+        (<label id="kp-threshold-value">0.35</label>)
+        <br />
+        <input
+          id="kp-threshold"
+          type="range"
+          min="0.01"
+          max="1"
+          step="0.01"
+          value="0.35"
+          disabled
+        />
+      </div>
+    </div>
+    <label id="status"></label>
+    <div>
+      <a href="?device=webgpu">WebGPU</a> · <a href="?device=webnn-gpu">WebNN GPU</a> · <a href="?device=webnn-npu">WebNN NPU</a>
+    </div>
+    <div id="versions">
+      @huggingface/transformers: 3.8.1 · onnxruntime-web: 1.22.0-dev.20250409-89f8206ba4
+    </div>
+  </body>
+</html>
