@@ -4,7 +4,17 @@ import { usePathname } from "next/navigation";
 
 const demosEn = [
   {
-    id: "50",
+    id: "504",
+    title: "Pose Landmark Detection / YOLO26n-pose",
+    description: "Real-time pose landmark detection w/ YOLO26n-pose",
+    imageUrl: "https://webnn.io/demos/img/pld.jpg",
+    demoUrl: "https://webnn.io/demos/pose-landmark-detection/index.html",
+    codeUrl: "https://github.com/ibelem/webnn-hf-spaces/tree/main/pose-landmark-detection",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "500",
     title: "Background Removal / RMBG v1.4",
     description: "Image background removal w/ RMBG v1.4 ",
     imageUrl: "https://webnn.io/demos/img/br.png",
@@ -14,7 +24,7 @@ const demosEn = [
     framework: ["Transformers.js"],
   },
   {
-    id: "51",
+    id: "501",
     title: "Video Background Removal",
     description: "Real-time background removal w/ MODNet",
     imageUrl: "https://webnn.io/demos/img/rbr.jpg",
@@ -24,7 +34,7 @@ const demosEn = [
     framework: ["Transformers.js"],
   },
   {
-    id: "52",
+    id: "502",
     title: "Object Detection",
     description: "Real-time object detection w/ YOLO12n",
     imageUrl: "https://webnn.io/demos/img/rod.jpg",
@@ -34,7 +44,7 @@ const demosEn = [
     framework: ["Transformers.js"],
   },
   {
-    id: "53",
+    id: "503",
     title: "Depth Estimation",
     description: "Real-time depth estimation w/ Depth Anything V2",
     imageUrl: "https://webnn.io/demos/img/rde.jpg",
@@ -214,7 +224,17 @@ const demosEn = [
 
 const demosCh = [
   {
-    id: "50",
+    id: "504",
+    title: "姿势特征点检测 / YOLO26n-pose",
+    description: "实时姿势特征点检测 w/ YOLO26n-pose",
+    imageUrl: "https://webnn.io/demos/img/pld.jpg",
+    demoUrl: "https://webnn.io/demos/pose-landmark-detection/index.html",
+    codeUrl: "https://github.com/ibelem/webnn-hf-spaces/tree/main/pose-landmark-detection",
+    tags: ["GPU", "NPU"],
+    framework: ["Transformers.js"],
+  },
+  {
+    id: "500",
     title: "图像背景移除 / RMBG v1.4",
     description: "使用 RMBG v1.4 进行图像背景移除",
     imageUrl: "https://webnn.io/demos/img/br.png",
@@ -224,7 +244,7 @@ const demosCh = [
     framework: ["Transformers.js"],
   },
   {
-    id: "51",
+    id: "501",
     title: "视频背景移除",
     description: "使用 MODNet 进行实时视频背景移除",
     imageUrl: "https://webnn.io/demos/img/rbr.jpg",
@@ -234,7 +254,7 @@ const demosCh = [
     framework: ["Transformers.js"],
   },
   {
-    id: "52",
+    id: "502",
     title: "物体检测",
     description: "使用 YOLO12n 进行实时物体检测",
     imageUrl: "https://webnn.io/demos/img/rod.jpg",
@@ -244,7 +264,7 @@ const demosCh = [
     framework: ["Transformers.js"],
   },
   {
-    id: "53",
+    id: "503",
     title: "深度估计",
     description: "使用 Depth Anything V2 进行实时深度估计",
     imageUrl: "https://webnn.io/demos/img/rde.jpg",
