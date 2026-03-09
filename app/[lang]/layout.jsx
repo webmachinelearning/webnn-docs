@@ -51,6 +51,7 @@ export const metadata = {
     languages: {
       'en': '/en',
       'zh': '/zh',
+      'x-default': '/en',
     },
   },
   robots: {
@@ -65,8 +66,7 @@ export const metadata = {
     },
   },
   verification: {
-    // Add your verification codes here when ready
-    // google: 'your-google-verification-code',
+    google: 'google-site-verification=Y-7I0pF0dfwHWYNquADutSHzLCjRdBkUlj-kx_Pfq_o',
     // bing: 'your-bing-verification-code',
   },
 }
