@@ -6,7 +6,18 @@ export const generateStaticParams = generateStaticParamsFor('mdxPath')
 export async function generateMetadata(props) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath, params.lang);
-  return metadata;
+  const pagePath = params.mdxPath ? params.mdxPath.join('/') : '';
+  return {
+    ...metadata,
+    alternates: {
+      canonical: `https://webnn.io/${params.lang}${pagePath ? '/' + pagePath : ''}`,
+      languages: {
+        'en': `https://webnn.io/en${pagePath ? '/' + pagePath : ''}`,
+        'zh': `https://webnn.io/zh${pagePath ? '/' + pagePath : ''}`,
+        'x-default': `https://webnn.io/en${pagePath ? '/' + pagePath : ''}`,
+      },
+    },
+  };
 }
 
 const Wrapper = useMDXComponents().wrapper;
