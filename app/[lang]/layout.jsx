@@ -48,11 +48,6 @@ export const metadata = {
   },
   alternates: {
     canonical: './',
-    languages: {
-      'en': '/en',
-      'zh': '/zh',
-      'x-default': '/en',
-    },
   },
   robots: {
     index: true,
