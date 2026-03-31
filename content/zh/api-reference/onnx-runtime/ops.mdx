@@ -2,116 +2,116 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 <div className="mdx-table">
 
-# WebNN   ONNX Runtime 支持的运算符
+# WebNN Supported Operators in ONNX Runtime
 
-该表记录了  ONNX  Runtime Web 中  WebNN  EP 支持的  ONNX  运算符。Opset 列表示对版本 7 到 12 以及版本 13 及更高版本的支持。
+This table documents the ONNX operators supported by WebNN EP in ONNX Runtime Web. The Opset column indicates support for versions 7 through 12, plus version 13 and above.
 
-> <InfoIcon />   ONNX Runtime 保证仅支持在“ai.onnx”域中使用 opset 版本 7 或更高版本的模型。
+> <InfoIcon /> ONNX Runtime guarantees support only for models using opset version 7 or higher in the 'ai.onnx' domain.
 
 <div className="table">
 
-|操作员|奥塞特 |WebNN API |WebNN CPU |WebNN GPU |评论 |
+| Operator | Opset | WebNN API | WebNN CPU | WebNN GPU | Comments |
 |:---:|:---:|:---:|:-:|:-:|:------|
-|腹肌 |ai.onnx（7-12、13+）|腹肌|✓ |✓ ||
-|添加|ai.onnx（7-12、13、14+）|添加|✓ |✓ ||
-|和|ai.onnx (7+) |逻辑与|✗ |✓ ||
-|精氨酸最大 |ai.onnx（7-10、11、12、13+）|argMax |✓ |✓ ||
-|精氨酸最小值| ai.onnx（7-10、11、12、13+）| argMin | ✓ | ✓ | |
-|平均池 |ai.onnx（7-9、10、11、12-18、19+）|平均池2d |✓ |✓ |仅支持4维输入，2维'kernel_shape'，'count_include_pad'值为0 |
-|批量归一化 |ai.onnx（7-8、9-13、14、15+）|批量归一化 |✓ |✓ |只支持'training_mode'值为0，1个输出 |
-|演员 |ai.onnx（7-8、9-12、13-18、19-20、21+）|演员 |✓ |✓ |WebNN CPU 后端不支持转换为 uint64 数据类型 |
-|赛尔 | ai.onnx（7-12、13+）|天花板| ✓ | ✓ | |
-|剪辑|ai.onnx（7-10、11、12、13+）|夹子|✓ |✓ |WebNN CPU 后端仅支持 3 个特定范围：[0.0, 无穷大]、[-1.0, 1.0]、[0.0, 6.0]（Chromium 问题：https://issues.chromium.org/issues/326156496）|
-|康卡特|ai.onnx（7-10、11-12、13+）|连接 |✓ |✓ ||
-|转化 |ai.onnx（7-10、11+）|转换 2d |✓ |✓ |仅支持 3-D 或 4-D 输入和“W”（重量）|
-|转换转置|ai.onnx（7-10、11+）|转换转置2d |✓ |✓ |仅支持 3-D 或 4-D 输入和“W”（重量）。WebNN CPU后端仅支持默认扩张和分组|
-|篮子| ai.onnx (7+) |篮子| ✓ | ✓ | |
-|总和 |ai.onnx (11-13, 14+) |累计总和 |✓ |✓ |“轴”输入应该是一个常量 |
-|部门 |ai.onnx（7-12、13、14+）|分区 |✓ |✓ ||
-|反量化线性 |ai.onnx (10-12, 13-18, 19-20, 21-22, 23+) |反量化线性 |✓ |✓ |x_scale 的形状应该是输入 | 形状的子样本
-|辍学|ai.onnx（7-9、10-11、12、13-21、22+）|身份|✓ |✓ |仅支持测试模式|
-|埃因苏姆 |ai.onnx (12+) |重塑、转置、matmul、reduceSum、mul、三角形 |✓ |✓ ||
-|埃鲁|ai.onnx (7+) |埃卢|✓ |✓ |WebNN CPU后端仅支持'alpha'值为1.0 |
-|平等|ai.onnx（7-10、11-12、13-18、19+）|等于|✓ |✓ ||
-|继承| ai.onnx（7-9、10-12、13+）|继承| ✓ | ✓ | |
-|经验 |ai.onnx（7-12、13+）|经验 |✓ |✓ ||
-|展开 |ai.onnx（8-12、13+）|展开 |✓ |✓ |“形状”输入应该是一个常量 |
-|压扁|ai.onnx（7-8、9-10、11-12、13-20、21+）|重塑|✓ |✓ ||
-|楼层|ai.onnx（7-12、13+）|地板|✓ |✓ ||
-|聚集|ai.onnx（7-10、11-12、13+）|聚集|✓ |✓ ||
-|收集元素|ai.onnx (11-12, 13+) |聚集元素|✗ |✓ ||
-|聚集ND |ai.onnx (11, 12, 13+) |聚集ND |✓ |✓ |仅支持 'batch_dims' == 0 |
-|凝胶| ai.onnx (20+) |凝胶| ✓ | ✓ | |
-|宝石 |ai.onnx（7-8、9-10、11-12、13+）|宝石 |✓ |✓ |仅支持一维“C”输入 |
-|全球平均池 |ai.onnx (7+) |平均池2d |✓ |✓ |仅支持 4-D 输入 |
-|全局最大池 |ai.onnx (7+) |最大池2d |✓ |✓ |仅支持 4-D 输入 |
-|全球LP池|ai.onnx (7+) |l2Pool2d |✗ |✓ |仅支持 4-D 输入，'p' 值为 2 |
-|更大|ai.onnx（7-8、9-12、13+）|更大|✓ |✓ ||
-|大于或等于 |ai.onnx (12-15, 16+) |大于或等于 |✓ |✓ ||
-|格鲁乌|ai.onnx（7-13、14-21、22+）|格鲁|✓ |✓ |仅支持 'layout' == 0。不支持 'clip'。“activations”中的激活函数必须是“Relu”、“Tanh”、“Sigmoid”之一。如果是双向的，前向和后向激活必须相同。“sequence_lens”（如果存在）应为常量，其值等于输入“X”的第一维长度 |
-|硬Sigmoid |ai.onnx (7+) |硬Sigmoid |✓ |✓ ||
-|硬交换 |ai.onnx (14+) |硬Swish |✓ |✓ ||
-|身份|ai.onnx（7-13、14-15、16-18、19-20、21+）|身份|✓ |✓ ||
-|实例标准化 |ai.onnx (7+) |实例标准化 |✓ |✓ ||
-|层归一化 |ai.onnx（7-16、17+）|层归一化 |✓ |✓ ||
-| LeakyRelu| ai.onnx（7-15、16+）|漏水Relu | ✓ | ✓ | |
-|少 |ai.onnx（7-8、9-12、13+）|较小 |✓ |✓ ||
-|小于或等于 |ai.onnx (12-15, 16+) |小于或等于 |✓ |✓ ||
-|日志|ai.onnx（7-12、13+）|日志|✓ |✓ ||
-|LP池|ai.onnx（7-10、11-17、18+）|l2Pool2d |✗ |✓ |仅支持4维输入，2维'kernel_shape'，'p'值为2 |
-|LRN |ai.onnx（7-12、13+）|pad、averagePool2d、转置、添加、mul、pow、div |✓ |✓ ||
-|LSTM |ai.onnx（7-13、14-21、22+）|LSTM|✓ |✓ |仅支持 'layout' == 0、'input_forget' == 0。不支持 'clip'。“activations”中的激活函数必须是“Relu”、“Tanh”、“Sigmoid”之一。如果是双向的，前向和后向激活必须相同。“sequence_lens”（如果存在）应为常量，其值等于输入“X”的第一维长度 |
-|矩阵乘法 |ai.onnx（7-8、9-12、13+）|矩阵相乘 |✓ |✓ ||
-|最大|ai.onnx (7, 8-11, 12, 13+) |最大|✓ |✓ ||
-|最大池 |ai.onnx (7, 8-9, 10, 11, 12+) |最大池2d |✓ |✓ |只支持4维输入，2维'kernel_shape', 'storage_order' != 1, 1个输出 |
-|最小| ai.onnx (7, 8-11, 12, 13+) |分钟| ✓ | ✓ | |
-|穆尔 | ai.onnx（7-12、13、14+）|穆尔 | ✓ | ✓ | |
-|负|ai.onnx（7-12、13+）|否定|✓ |✓ ||
-|不|ai.onnx (7+) |逻辑非|✓ |✓ ||
-|或者 |ai.onnx (7+) |逻辑或 |✗ |✓ ||
-|垫|ai.onnx（7-10、11-12、13-17、18、19-20、21+）|垫|✓ |✓ |不支持模式 == 'wrap' |
-|战俘 |ai.onnx（7-11、12、13-14、15+）|战俘 |✓ |✓ ||
-|预Relu |ai.onnx（7-8、9-15、16+）|前奏|✓ |✓ |WebNN CPU后端限制输入的最后一个维度和斜率相同（Chromium问题：https://issues.chromium.org/issues/335517470）|
-|量化线性 |ai.onnx (10-12, 13-18, 19-20, 21-22, 23+) |量化线性 |✓ |✓ |x_scale 的形状应该是输入 | 形状的子样本
-|互惠|ai.onnx（7-12、13+）|互惠|✓ |✓ ||
-|减少L1 |ai.onnx（7-10、11-12、13-17、18+）|减少L1 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少L2 |ai.onnx（7-10、11-12、13-17、18+）|减少L2 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少对数总和|ai.onnx（7-10、11-12、13-17、18+）|减少对数总和|✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少LogSumExp |ai.onnx（7-10、11-12、13-17、18+）|减少LogSumExp |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少最大 |ai.onnx（7-10、11、12、13-17、18-19、20+）|减少最大 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少均值 |ai.onnx（7-10、11-12、13-17、18+）|减少均值 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少最小|ai.onnx（7-10、11、12、13-17、18-19、20+）|减少最小|✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少产品 |ai.onnx（7-10、11-12、13-17、18+）|减少产品 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少总和 |ai.onnx（7-10、11-12、13+）|减少总和 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|减少和平方 |ai.onnx（7-10、11-12、13-17、18+）|减少和平方 |✓ |✓ |输入“轴”（如果存在）应为常量 |
-|回复 | ai.onnx（7-12、13、14+）|重播| ✓ | ✓ | |
-|重塑|ai.onnx（7-12、13、14-18、19-20、21+）|重塑|✓ |✓ |输入“shape”应为常量，不支持“shape”中的 0 维值 |
-|调整大小 |ai.onnx (11-12, 13-17, 18, 19+) |重新采样2d |✓ |✓ |仅支持 4-D 输入，antialias == 0，exclude_outside == 0，keep_aspect_ratio_policy == 'stretch'，'linear' 和 'nearest' 模式，输入 'scales' 和 'sizes'（如果存在）必须是常量 |
-|旋转包埋|com.microsoft(1+) |添加、连接、聚集、相乘、重塑、分割 |✓ |✓ ||
-|散布元素 |ai.onnx (11-12, 13-15, 16-17, 18+) |分散元素 |✗ |✓ |仅支持 'reduction' == 'none' |
-|分散ND |ai.onnx (11-12, 13-15, 16-17, 18+) |分散ND |✗ |✓ |仅支持 'reduction' == 'none' |
-|形状|ai.onnx（7-12、13-14、15-18、19-20、21+）|切片|✓ |✓ ||
-|简化层标准化 |ai.onnx (1+) |pow、reduceMean、add、sqrt、div、mul |✓ |✓ ||
-|乙状结肠 |ai.onnx（7-12、13+）|乙状结肠 |✓ |✓ ||
-|标志 |ai.onnx (9-12, 13+) |标志|✓ |✓ ||
-|跳过简化层标准化 |com.microsoft(1+) |pow、reduceMean、add、sqrt、div、mul |✓ |✓ ||
-|软加 |ai.onnx (7+) |软加 |✓ |✓ ||
-|软签名|ai.onnx (7+) |软签名|✓ |✓ ||
-|罪恶 | ai.onnx (7+) |罪恶| ✓ | ✓ | |
-|切片|ai.onnx（7-9、10、11-12、13+）|切片、反转 |✓ |✓ |输入“开始”、“结束”、“轴”和“步骤”（如果存在）必须是常量 |
-|Softmax|ai.onnx（7-10、11-12、13+）|软最大 |✓ |✓ ||
-|分裂|ai.onnx（7-10、11-12、13-17、18+）|分裂|✓ |✓ |输入“split”（如果存在）应该是一个常量 |
-|平方|ai.onnx（7-12、13+）|开方|✓ |✓ ||
-|挤压|ai.onnx（7-10、11-12、13-20、21+）|重塑|✓ |✓ |输入“轴”（如果存在）应为常量 |
-|下 | ai.onnx（7-12、13、14+）|下| ✓ | ✓ | |
-|棕褐色 | ai.onnx (7+) |棕褐色 | ✓ | ✓ | |
-|腥味| ai.onnx（7-12、13+）|腥味| ✓ | ✓ | |
-|瓷砖|ai.onnx（7-12、13+）|瓷砖|✗ |✓ |输入“重复”应该是一个常量 |
-|转置 |ai.onnx（7-12、13-20、21+）|转置 |✓ |✓ ||
-|特里鲁 |ai.onnx (14+) |三角形|✓ |✓ |输入“k”（WebNN的选项“对角线”）如果存在应该是一个常数 |
-|松开|ai.onnx（7-10、11-12、13-20、21+）|重塑|✓ |✓ ||
-|哪里 |ai.onnx（7-8、9-15、16+）|哪里 |✓ |✓ ||
-|异或|ai.onnx (7+) |逻辑异或 |✗ |✓ ||
+| Abs | ai.onnx (7-12, 13+) | abs | ✓ | ✓ | |
+| Add | ai.onnx (7-12, 13, 14+) | add | ✓ | ✓ | |
+| And | ai.onnx (7+) | logicalAnd | ✗ | ✓ | |
+| ArgMax | ai.onnx (7-10, 11, 12, 13+) | argMax | ✓ | ✓ | |
+| ArgMin | ai.onnx (7-10, 11, 12, 13+) | argMin | ✓ | ✓ | |
+| AveragePool | ai.onnx (7-9, 10, 11, 12-18, 19+) | averagePool2d | ✓ | ✓ | Only supports 4-D input, 2-D 'kernel_shape', 'count_include_pad' value is 0 |
+| BatchNormalization | ai.onnx (7-8, 9-13, 14, 15+) | batchNormalization | ✓ | ✓ | Only supports 'training_mode' value is 0, one output |
+| Cast | ai.onnx (7-8, 9-12, 13-18, 19-20, 21+) | cast | ✓ | ✓ | WebNN CPU backend doesn't support casting to uint64 data type |
+| Ceil | ai.onnx (7-12, 13+) | ceil | ✓ | ✓ | |
+| Clip | ai.onnx (7-10, 11, 12, 13+) | clamp | ✓ | ✓ | WebNN CPU backend only supports 3 specific ranges: [0.0, infinity], [-1.0, 1.0], [0.0, 6.0] (Chromium issue: https://issues.chromium.org/issues/326156496) |
+| Concat | ai.onnx (7-10, 11-12, 13+) | concat | ✓ | ✓ | |
+| Conv | ai.onnx (7-10, 11+) | conv2d | ✓ | ✓ | Only supports 3-D or 4-D input and 'W' (weight) |
+| ConvTranspose | ai.onnx (7-10, 11+) | convTranspose2d | ✓ | ✓ | Only supports 3-D or 4-D input and 'W' (weight). WebNN CPU backend only supports default dilations and group |
+| Cos | ai.onnx (7+) | cos | ✓ | ✓ | |
+| CumSum | ai.onnx (11-13, 14+) | cumulativeSum | ✓ | ✓ | 'axis' input should be a constant |
+| Div | ai.onnx (7-12, 13, 14+) | div | ✓ | ✓ | |
+| DequantizeLinear | ai.onnx (10-12, 13-18, 19-20, 21-22, 23+) | dequantizeLinear | ✓ | ✓ | The shape of x_scale should be a subsample of the shape of input |
+| Dropout | ai.onnx (7-9, 10-11, 12, 13-21, 22+) | identity | ✓ | ✓ | Only supports test mode |
+| Einsum | ai.onnx (12+) | reshape, transpose, matmul, reduceSum, mul, triangular | ✓ | ✓ | |
+| Elu | ai.onnx (7+) | elu | ✓ | ✓ | WebNN CPU backend only supports 'alpha' value is 1.0 |
+| Equal | ai.onnx (7-10, 11-12, 13-18, 19+) | equal | ✓ | ✓ | |
+| Erf | ai.onnx (7-9, 10-12, 13+) | erf | ✓ | ✓ | |
+| Exp | ai.onnx (7-12, 13+) | exp | ✓ | ✓ | |
+| Expand | ai.onnx (8-12, 13+) | expand | ✓ | ✓ | 'shape' input should be a constant |
+| Flatten | ai.onnx (7-8, 9-10, 11-12, 13-20, 21+) | reshape | ✓ | ✓ | |
+| Floor | ai.onnx (7-12, 13+) | floor | ✓ | ✓ | |
+| Gather | ai.onnx (7-10, 11-12, 13+) | gather | ✓ | ✓ | |
+| GatherElements | ai.onnx (11-12, 13+) | gatherElements | ✗ | ✓ | |
+| GatherND | ai.onnx (11, 12, 13+) | gatherND | ✓ | ✓ | Only supports 'batch_dims' == 0 |
+| Gelu | ai.onnx (20+) | gelu | ✓ | ✓ | |
+| Gemm | ai.onnx (7-8, 9-10, 11-12, 13+) | gemm | ✓ | ✓ | Only supports 1-D 'C' input |
+| GlobalAveragePool | ai.onnx (7+) | averagePool2d | ✓ | ✓ | Only supports 4-D input |
+| GlobalMaxPool | ai.onnx (7+) | maxPool2d | ✓ | ✓ | Only supports 4-D input |
+| GlobalLpPool| ai.onnx (7+) | l2Pool2d | ✗ | ✓ | Only supports 4-D input, 'p' value is 2 |
+| Greater | ai.onnx (7-8, 9-12, 13+) | greater | ✓ | ✓ | |
+| GreaterOrEqual | ai.onnx (12-15, 16+) | greaterOrEqual | ✓ | ✓ | |
+| GRU | ai.onnx (7-13, 14-21, 22+) | gru | ✓ | ✓ | Only supports 'layout' == 0. 'clip' is not supported. The activation functions in 'activations' must be one of 'Relu', 'Tanh', 'Sigmoid'. Forward and backward activations must be the same if bidirectional. 'sequence_lens' if present should be constant with values equal to the first dimension length of input 'X' |
+| HardSigmoid | ai.onnx (7+) | hardSigmoid | ✓ | ✓ | |
+| HardSwish | ai.onnx (14+) | hardSwish | ✓ | ✓ | |
+| Identity | ai.onnx (7-13, 14-15, 16-18, 19-20, 21+) | identity | ✓ | ✓ | |
+| InstanceNormalization | ai.onnx (7+) | instanceNormalization | ✓ | ✓ | |
+| LayerNormalization | ai.onnx (7-16, 17+) | layerNormalization | ✓ | ✓ | |
+| LeakyRelu | ai.onnx (7-15, 16+) | leakyRelu | ✓ | ✓ | |
+| Less | ai.onnx (7-8, 9-12, 13+) | lesser | ✓ | ✓ | |
+| LessOrEqual | ai.onnx (12-15, 16+) | lesserOrEqual | ✓ | ✓ | |
+| Log | ai.onnx (7-12, 13+) | log | ✓ | ✓ | |
+| LpPool | ai.onnx (7-10, 11-17, 18+) | l2Pool2d | ✗ | ✓ | Only supports 4-D input, 2-D 'kernel_shape', 'p' value is 2 |
+| LRN | ai.onnx (7-12, 13+) | pad, averagePool2d, transpose, add, mul, pow, div | ✓ | ✓ | |
+| LSTM | ai.onnx (7-13, 14-21, 22+) | lstm | ✓ | ✓ | Only supports 'layout' == 0, 'input_forget' == 0. 'clip' is not supported. The activation functions in 'activations' must be one of 'Relu', 'Tanh', 'Sigmoid'. Forward and backward activations must be the same if bidirectional. 'sequence_lens' if present should be constant with values equal to the first dimension length of input 'X' |
+| MatMul | ai.onnx (7-8, 9-12, 13+) | matmul | ✓ | ✓ | |
+| Max | ai.onnx (7, 8-11, 12, 13+) | max | ✓ | ✓ | |
+| MaxPool | ai.onnx (7, 8-9, 10, 11, 12+) | maxPool2d | ✓ | ✓ | Only supports 4-D input, 2-D 'kernel_shape', 'storage_order' != 1, one output |
+| Min | ai.onnx (7, 8-11, 12, 13+) | min | ✓ | ✓ | |
+| Mul | ai.onnx (7-12, 13, 14+) | mul | ✓ | ✓ | |
+| Neg | ai.onnx (7-12, 13+) | neg | ✓ | ✓ | |
+| Not | ai.onnx (7+) | logicalNot | ✓ | ✓ | |
+| Or | ai.onnx (7+) | logicalOr | ✗ | ✓ | |
+| Pad | ai.onnx (7-10, 11-12, 13-17, 18, 19-20, 21+) | pad | ✓ | ✓ | modes == 'wrap' is not supported |
+| Pow | ai.onnx (7-11, 12, 13-14, 15+) | pow | ✓ | ✓ | |
+| PRelu | ai.onnx (7-8, 9-15, 16+) | prelu | ✓ | ✓ | WebNN CPU backend restricts the last dimension of input and slope to be same (Chromium issue: https://issues.chromium.org/issues/335517470) |
+| QuantizeLinear | ai.onnx (10-12, 13-18, 19-20, 21-22, 23+) | quantizeLinear | ✓ | ✓ | The shape of x_scale should be a subsample of the shape of input |
+| Reciprocal | ai.onnx (7-12, 13+) | reciprocal | ✓ | ✓ | |
+| ReduceL1 | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceL1 | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceL2 | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceL2 | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceLogSum| ai.onnx (7-10, 11-12, 13-17, 18+) | reduceLogSum| ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceLogSumExp | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceLogSumExp | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceMax | ai.onnx (7-10, 11, 12, 13-17, 18-19, 20+) | reduceMax | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceMean | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceMean | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceMin | ai.onnx (7-10, 11, 12, 13-17, 18-19, 20+) | reduceMin | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceProd | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceProduct | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceSum | ai.onnx (7-10, 11-12, 13+) | reduceSum | ✓ | ✓ | Input 'axes' if present should be a constant |
+| ReduceSumSquare | ai.onnx (7-10, 11-12, 13-17, 18+) | reduceSumSquare | ✓ | ✓ | Input 'axes' if present should be a constant |
+| Relu | ai.onnx (7-12, 13, 14+) | relu | ✓ | ✓ | |
+| Reshape | ai.onnx (7-12, 13, 14-18, 19-20, 21+) | reshape | ✓ | ✓ | Input 'shape' should be a constant, 0 dimension value in 'shape' is not supported |
+| Resize | ai.onnx (11-12, 13-17, 18, 19+) | resample2d | ✓ | ✓ | Only supports 4-D input, antialias == 0, exclude_outside == 0, keep_aspect_ratio_policy == 'stretch', 'linear' and 'nearest' modes, input 'scales' and 'sizes' if present must be a constant |
+| RotaryEmbedding | com.microsoft(1+) | add, concat, gather, mul, reshape, split | ✓ | ✓ | |
+| ScatterElements | ai.onnx (11-12, 13-15, 16-17, 18+) | scatterElements | ✗ | ✓ | Only supports 'reduction' == 'none' |
+| ScatterND | ai.onnx (11-12, 13-15, 16-17, 18+) | scatterND | ✗ | ✓ | Only supports 'reduction' == 'none' |
+| Shape | ai.onnx (7-12, 13-14, 15-18, 19-20, 21+) | slice | ✓ | ✓ | |
+| SimplifiedLayerNormalization | ai.onnx (1+) | pow, reduceMean, add, sqrt, div, mul | ✓ | ✓ | |
+| Sigmoid | ai.onnx (7-12, 13+) | sigmoid | ✓ | ✓ | |
+| Sign | ai.onnx (9-12, 13+) | sign | ✓ | ✓ | |
+| SkipSimplifiedLayerNormalization | com.microsoft(1+) | pow, reduceMean, add, sqrt, div, mul | ✓ | ✓ | |
+| Softplus | ai.onnx (7+) | softplus | ✓ | ✓ | |
+| Softsign | ai.onnx (7+) | softsign | ✓ | ✓ | |
+| Sin | ai.onnx (7+) | sin | ✓ | ✓ | |
+| Slice | ai.onnx (7-9, 10, 11-12, 13+) | slice, reverse | ✓ | ✓ | Input 'starts', 'ends', 'axes', and 'steps' if present must be a constant |
+| Softmax | ai.onnx (7-10, 11-12, 13+) | softmax | ✓ | ✓ | |
+| Split | ai.onnx (7-10, 11-12, 13-17, 18+) | split | ✓ | ✓ | Input 'split' if present should be a constant |
+| Sqrt | ai.onnx (7-12, 13+) | sqrt | ✓ | ✓ | |
+| Squeeze | ai.onnx (7-10, 11-12, 13-20, 21+) | reshape | ✓ | ✓ | Input 'axes' if present should be a constant |
+| Sub | ai.onnx (7-12, 13, 14+) | sub | ✓ | ✓ | |
+| Tan | ai.onnx (7+) | tan | ✓ | ✓ | |
+| Tanh | ai.onnx (7-12, 13+) | tanh | ✓ | ✓ | |
+| Tile | ai.onnx (7-12, 13+) | tile | ✗ | ✓ | Input 'repeats' should be a constant |
+| Transpose | ai.onnx (7-12, 13-20, 21+) | transpose | ✓ | ✓ | |
+| Trilu | ai.onnx (14+) | triangular | ✓ | ✓ | Input 'k' (option 'diagonal' for WebNN) if present should be a constant |
+| Unsqueeze | ai.onnx (7-10, 11-12, 13-20, 21+) | reshape | ✓ | ✓ | |
+| Where | ai.onnx (7-8, 9-15, 16+) | where | ✓ | ✓ | |
+| Xor | ai.onnx (7+) | logicalXor | ✗ | ✓ | |
 
 </div>
 

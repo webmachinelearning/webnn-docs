@@ -3,18 +3,18 @@ export default {
     title: "WebNN API"
   },
   litert: {
-    title: "Lite RT 后端"
+    title: "Lite RT Backend"
   },
   windowsml: {
-    title: "Windows ML 后端"
+    title: "Windows ML Backend"
   },
   coreml: {
-    title: "Core ML 后端"
+    title: "Core ML Backend"
   },
   "chrome-flags": {
     title: "Chrome Flags"
   },
     deviceselection: {
-    title: "设备选择"
+    title: "Device Selection"
   },
 };

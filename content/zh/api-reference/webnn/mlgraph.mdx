@@ -2,7 +2,7 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLGraph
 
-`MLGraph` 接口代表一个已编译的计算图。一旦构建完成，已编译的计算图是不可变的，之后无法修改。
+The `MLGraph` interface represents a compiled computational graph. Once constructed, a compiled graph is immutable and cannot be subsequently modified.
 
 ## Web IDL
 
@@ -13,61 +13,62 @@ interface MLGraph {
 };
 ```
 
-## 构造函数
+## Constructor
 
-`MLGraph` 接口没有构造函数。实例是通过其他 API 创建的。
+The `MLGraph` interface does not have a constructor. Instances are created through other APIs.
 
-## 属性
+## Properties
 
-该接口不包含任何属性。
+This interface does not contain any properties.
 
-## 方法
+## Methods
 
 ### destroy()
 
-释放与该图关联的所有资源。一旦调用该方法，该计算图将被标记为已销毁，并且不能再用于后续操作。
+Releases all resources associated with the graph. Once called, the graph is marked as destroyed and cannot be used for further operations.
 
-#### 语法
+
+#### Syntax
 
 ```js showLineNumbers filename="example-1.js"
 graph.destroy()
 ```
 
-#### 返回值
+#### Return Value
 
 - `undefined`
 
-## 注意事项
+## Notes
 
-- 在构建之后，按规定计算图是不可变的，来保证计算的完整性。
-- 所有输入和输出操作数必须通过它们各自的描述符进行正确描述。
-- 实现细节由用户代理（User Agent）管理，不可直接访问。
-- 销毁之后，不能再使用该图排队任何后续的工作负载。
-- 一旦先前使用该计算图提交的所有工作负载都已完成，其底层的实现就可以释放与该图相关的任何额外的资源分配。
+- The graph is immutable after construction to ensure computational integrity
+- All input and output operands must be properly described through their respective descriptors
+- The implementation details are managed by the User Agent and are not directly accessible
+- After destruction, no further workloads can be enqueued using this graph
+- Implementations can free any additional resource allocations associated with this graph once all previously submitted workloads using it are complete
 
-## 最佳实践
+## Best Practices
 
-- 当不再需要图时，请始终调用 `destroy()` 以防止内存泄漏。
-- 在调用 `destroy()` 之前，请确保对该计算图的所有操作已完成。
-- 调用 `destroy()` 之后不要尝试使用计算图。
+- Always call `destroy()` when the graph is no longer needed to prevent memory leaks
+- Ensure all operations on the graph are complete before calling `destroy()`
+- Do not attempt to use the graph after calling `destroy()`
 
-## 规范
+## Specifications
 
-| WebNN API | 状态 |
+| WebNN API | Status |
 |--------------|---------|
-| [`MLGraph` 接口](https://webmachinelearning.github.io/webnn/#mlgraph) | 候选推荐标准草案 |
+| [`MLGraph` Interface](https://webmachinelearning.github.io/webnn/#mlgraph) | Candidate Recommendation Draft |
 
-## 安全要求
+## Security Requirements
 
-`MLGraph` 接口：
+The `MLGraph` interface:
 
-1. 需要一个安全上下文 (`SecureContext`)
-2. 仅暴露于 `Window` 和 `DedicatedWorker` 上下文
-3. 构建后不可修改，以防止篡改计算图
-4. 资源清理是异步执行的，以确保适当的内存管理
+1. Requires a secure context (`SecureContext`)
+2. Is exposed only to `Window` and `DedicatedWorker` contexts
+3. Cannot be modified after construction to prevent tampering with computational graphs
+4. Resource cleanup is performed asynchronously to ensure proper memory management
 
-## 浏览器兼容性
+## Browser Compatibility
 
-> <InfoIcon /> `MLGraph` 接口正处于活跃开发中，浏览器支持可能会有所不同。
+> <InfoIcon /> The `Graph` interface is under active development and browser support may vary.
 
-参见 [浏览器兼容性：WebNN API](browser-compatibility#webnn-apis)
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

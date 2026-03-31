@@ -5,12 +5,12 @@ import HardwareIcon from '../../../app/_components/icons/hardware.jsx'
 import ModelIcon from '../../../app/_components/icons/model.jsx'
 import JsIcon from '../../../app/_components/icons/js.jsx'
 
-# 常见问题
+# Frequently Asked Questions
 
 <Cards>
   <Cards.Card
     icon={<ArchitectureIcon />}
-    title="架构"
+    title="Architecture"
     href="./architecture"
   />
   <Cards.Card
@@ -20,43 +20,43 @@ import JsIcon from '../../../app/_components/icons/js.jsx'
   />
   <Cards.Card
     icon={<JsIcon />}
-    title="框架和工具"
+    title="Framework and Tool"
     href="./framework"
   />
   <Cards.Card
     icon={<ModelIcon />}
-    title="模型"
+    title="Model"
     href="./model"
   />
     <Cards.Card
     icon={<HardwareIcon />}
-    title="硬件和 NPU"
+    title="Hardware and NPU"
     href="./hardware"
   />
 </Cards>
 
-## 如何向 WebNN 提交问题（Issue）？
+## How do I file an issue with WebNN?
 
-将问题提交到以下 WebNN 问题跟踪器：
+File issues to following WebNN issue trackers:
 
-- [设计或规范](https://github.com/webmachinelearning/webnn/issues)
-- [Chromium 实现 (组件: Chromium > Blink > WebML)](https://issues.chromium.org/issues?q=status:open%20componentid:1456206&s=created_time:desc)
-- [ONNX Runtime Web 或 WebNN Execution Provider](https://github.com/microsoft/onnxruntime/issues)
-- [WebNN 示例](https://github.com/webmachinelearning/webnn-samples/issues)
-- [WebNN 开发者预览演示](https://github.com/microsoft/webnn-developer-preview/issues)
+- [Design or Specification](https://github.com/webmachinelearning/webnn/issues)
+- [Chromium Implementation (Component: Chromium > Blink > WebML)](https://issues.chromium.org/issues?q=status:open%20componentid:1456206&s=created_time:desc)
+- [ONNX Runtime Web or WebNN Execution Provider](https://github.com/microsoft/onnxruntime/issues)
+- [WebNN Samples](https://github.com/webmachinelearning/webnn-samples/issues)
+- [WebNN Developer Preview Demo](https://github.com/microsoft/webnn-developer-preview/issues)
 
-如果您不确定选择哪种问题类型，请随时在[这里](https://github.com/webmachinelearning/webnn-samples/issues)提交您的问题，我们将帮助分类和解决。
+If you're unsure about which issue type to select, feel free to submit your issue [here](https://github.com/webmachinelearning/webnn-samples/issues) and we will help categorize and resolve it.
 
-## 如何调试 WebNN 问题？
+## How do I debug issues with WebNN?
 
-WebNN API 使用标准的 DOM 异常来传播错误。当发生错误时，API 会抛出特定的异常，您可以在代码中捕获并处理这些异常。
+The WebNN API uses standard DOM exceptions for error propagation. When an error occurs, the API throws specific exceptions that can be caught and handled in your code.
 
-查看 GPU 信息日志，这些页面包含有关 GPU 相关错误、直方图和性能的详细诊断信息。
+Check the GPU information log, these pages contain detailed diagnostic information about GPU-related errors, histograms and performance.
 
 ```javascript
 about://gpu
 about://histograms/webnn
 ```
 
-- 请查阅 [W3C WebNN 规范](https://www.w3.org/TR/webnn/) 获取完整的错误处理文档。
-- 欢迎在[这里](https://github.com/webmachinelearning/webnn-samples/issues)提出您的问题，我们将帮助分析并尝试解决。
+- Review the [W3C WebNN Specification](https://www.w3.org/TR/webnn/) for complete error handling documentation.
+- Feel free to raise your questions [here](https://github.com/webmachinelearning/webnn-samples/issues) and we will help analyze and try to resolve them.
