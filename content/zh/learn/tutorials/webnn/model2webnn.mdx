@@ -1,0 +1,139 @@
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+# Model2WebNN
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) 是一款基于浏览器的工具，它可以将 `.onnx` 和 `.tflite` 模型文件解析并生成使用 [WebNN MLGraphBuilder](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) API 的独立 JavaScript 代码。所有处理都在客户端完成——模型永远不会离开浏览器。
+
+## 隐私与安全
+
+**🔒 仅客户端处理**
+
+所有模型转换和代码生成操作都在您的浏览器中运行。没有模型数据、权重或知识产权被传输到或存储在任何外部服务器上。这使得该工具对于以下方面来说是安全的：
+
+- 专有模型
+- 敏感硬件
+- 具有严格数据治理的企业环境
+- 任何需要完全数据隐私的场景
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) 连同 [WebNN Netron](https://ibelem.github.io/netron/) 可确保您的模型在转换过程中永远不会离开您的本地环境。
+
+## 概览
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) 提供了一个Web UI、CLI和Library API，用于生成兼容WebNN的JavaScript和TypeScript代码。它支持ONNX和TFLite模型，算子实现与[ORT WebNN Execution Provider](https://github.com/microsoft/onnxruntime/tree/main/onnxruntime/core/providers/webnn) 1:1对应。
+
+**输出文件：**
+| 文件 | 描述 |
+|------|-------------|
+| `model.js` | `async buildGraph(context, weights)` — 纯MLGraphBuilder调用，无需框架 |
+| `model.weights` | WGWT v1 二进制文件 — 带有 8 字节头的原始张量数据 |
+| `model.manifest.json` | 张量索引：名称、形状、数据类型、字节偏移 |
+| `model.html` | 带设备选择器和结果查看器的可运行测试网页 |
+
+## 步骤指南
+
+### Web UI
+
+1. 打开 [Model2WebNN](https://ibelem.github.io/model2webnn/) 
+2. 通过拖放、浏览文件或从 URL 提取（支持 HuggingFace 链接）上传模型文件（`.onnx` 或 `.tflite`）
+3. 代码在 Monaco 编辑器中即时生成
+4. 如果您的模型有符号尺寸，可设置自由尺寸覆盖并以固定形状重新生成
+5. 从顶栏下载单独文件或完整 `.zip` 包
+
+> <InfoIcon /> 您还可以通过在 URL 后附加 `?url=` 自动加载模型，例如：`https://ibelem.github.io/model2webnn/?url=https://huggingface.co/webnn/mobilenet-v2/resolve/main/onnx/model_fp16.onnx`
+
+### CLI
+
+```bash
+npx tsx src/cli.ts model.onnx -o dist/
+npx tsx src/cli.ts model.onnx -o dist/ -f ts
+npx tsx src/cli.ts model.onnx -o dist/ -d batch_size=1 -d seq_len=128
+npx tsx src/cli.ts --list-ops
+```
+
+| 选项 | 描述 |
+|--------|-------------|
+| `-o, --output <dir>` | 输出目录（默认：`.`） |
+| `-f, --format <fmt>` | `js`、`ts` 或 `html`（默认：`js`） |
+| `-d, --free-dim <n=v>` | 覆盖符号尺寸；可重复 |
+| `--list-ops` | 打印所有支持的算子并退出 |
+
+### Library API
+
+```javascript
+import { convert } from 'model2webnn';
+
+const buffer = new Uint8Array(await file.arrayBuffer());
+const result = await convert(buffer, {
+  format: 'javascript',
+  freeDimensionOverrides: { batch_size: 1 },
+});
+
+result.code;               // .js source — buildGraph(context, weights)
+result.weights;            // Uint8Array — WGWT binary
+result.manifest;           // tensor name → { dataType, shape, byteOffset, byteLength }
+result.html;               // self-contained test page
+result.coverage;           // { totalOps, supportedOps, unsupportedOpTypes, … }
+result.unresolvedFreeDims; // symbolic dimension names not yet overridden
+```
+
+### 自由维度覆盖
+
+具有符号维度（如 `batch_size`，`sequence_length`）的模型在转换时会保留这些名称。覆盖它们以生成具有具体形状的代码：
+
+```bash
+# CLI
+npx tsx src/cli.ts model.onnx -d batch_size=1 -d sequence_length=128
+```
+
+在 Web UI 中，将出现每个符号维度的输入字段。输入数值自动重新生成代码。留空可保留符号名称。
+
+有关详细信息，请参阅[符号尺寸文档](../onnx-runtime/free-dimension-overrides)。
+
+## 测试生成的代码
+
+### 权限要求
+
+WebNN 需要 [安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts) 以起到作用。其环境包括：
+
+- `https://` 的 URL
+- `http://localhost` 或者是 `http://127.0.0.1`
+- 当地的开发服务器
+
+### 本地测试
+
+开始启动一个当地的 HTTP 服务器来测试你的生成代码：
+
+```bash
+# 如果有需要安装http-server 
+npm install -g http-server
+
+# 在你的项目目录之下开始启动服务器
+http-server
+
+# 在你的浏览器里打开 http://localhost:8080
+```
+
+打开浏览器中生成的 `model.html` 文件来验证模型转换的代码。
+
+## 具体使用案例
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) 适合：
+
+- **快速制作使用原型**：通过基于用于 Web 上的快速转化模型
+- **教育相关的目标**：理解 WebNN API 的一些使用
+- **IP 相关的项目**：转化知识模型不带有云的曝光
+- **跨平台使用开发**：写好并在运行支持 WebNN 的浏览器中使用
+
+## 最好的实践方式
+
+1. **用于准备的模型**：确定优化的模型并且固定的输入尺度
+2. **Dimension 相关的 Overrides**：需要小心使用预期的维度通过输入的数据
+3. **用于相关的测试**：在进行实际产品投入使用之前必须先进行输入验证 
+4. **相关的性能表现**：在进行转化时先进行推理的速度，或者是其相关的性能转化
+
+
+## 相关资源
+- [Model2WebNN GitHub](https://github.com/ibelem/model2webnn) - 源代码和文档
+- [GitHub Issues - Model2WebNN](https://github.com/ibelem/model2webnn/issues) - 报告 Bug 并请求功能
+- [WebNN Netron](https://ibelem.github.io/netron/) - 具有适用于 WebNN API 增强功能的模型可视化工具
+- [WebNN API Specification](https://www.w3.org/TR/webnn/) - 通用的标准 API文档

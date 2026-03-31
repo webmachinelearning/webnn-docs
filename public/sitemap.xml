@@ -46,7 +46,7 @@
 <url><loc>https://webnn.io/en/learn/tutorials/transformers-js/transformers-js</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/en/learn/tutorials/webnn/onnx2webnn</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/en/learn/tutorials/webnn/vanillajs</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-<url><loc>https://webnn.io/en/learn/tutorials/webnn/webnn-code-generator</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+<url><loc>https://webnn.io/en/learn/tutorials/webnn/model2webnn</loc><lastmod>2026-03-31T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/en/learn/tutorials/webnn/webnnutils-onnxconverter</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/zh</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>1</priority></url>
 <url><loc>https://webnn.io/zh/api-reference/browser-compatibility/api</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
@@ -94,7 +94,7 @@
 <url><loc>https://webnn.io/zh/learn/tutorials/transformers-js/transformers-js</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/zh/learn/tutorials/webnn/onnx2webnn</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/zh/learn/tutorials/webnn/vanillajs</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-<url><loc>https://webnn.io/zh/learn/tutorials/webnn/webnn-code-generator</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+<url><loc>https://webnn.io/zh/learn/tutorials/webnn/model2webnn</loc><lastmod>2026-03-31T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io/zh/learn/tutorials/webnn/webnnutils-onnxconverter</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 <url><loc>https://webnn.io</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>1</priority></url>
 <url><loc>https://webnn.io/en</loc><lastmod>2026-03-12T00:32:00.285Z</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>

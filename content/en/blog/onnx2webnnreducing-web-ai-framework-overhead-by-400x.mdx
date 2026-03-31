@@ -179,23 +179,19 @@ For NHWC model, use
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq_nhwc/mobilenet_qdq_nhwc.js -nhwc
 ```
 
-### WebNN Code Generator: Easy-to-Use Interactive Tool
+### Model2WebNN: Easy-to-Use Interactive Tool
 
-The [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator) takes a completely different approach - it runs entirely in your browser. All model conversion and code generation occur client-side, which means your models never leave your machine.
+[Model2WebNN](https://ibelem.github.io/model2webnn) takes a completely different approach - it runs entirely in your browser. All model conversion and code generation occur client-side, which means your models never leave your machine.
 
 This browser-based approach is invaluable when you're working with proprietary or sensitive models where even uploading to a "secure" conversion service isn't acceptable.
 
-**The workflow involves two complementary tools**:
+**The workflow allows you to**:
 
-1. [WebNN Netron](https://ibelem.github.io/netron/): Extracts model structure and weights from your model file
-2. [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator): Converts these into WebNN JavaScript code
+1. Open [Model2WebNN](https://ibelem.github.io/model2webnn) and upload a model.
+2. It parses `.onnx` and `.tflite` model files and generates self-contained JavaScript code.
+3. The generated code uses the WebNN MLGraphBuilder API.
 
-![Bundle Size Comparison](/blog/onnx2webnn/webnn-code-generator.png)
-_Figure 2: WebNN Code Generator screenshot_
-
-You start by loading your model (ONNX, TensorFlow Lite, or other formats) into [WebNN Netron](https://ibelem.github.io/netron/). Once loaded, you download the extracted components: `graph.json` containing the model architecture, and `weights_nchw.bin` and `weights_nhwc.bin` containing the parameters.
-
-Then you feed these files into the Code Generator, which produces ready-to-use WebNN JavaScript files optimized for both `NCHW` and `NHWC` layouts.
+You start by loading your model (ONNX, TensorFlow Lite, or other formats) into the tool. It generates ready-to-use WebNN JavaScript files with pure MLGraphBuilder calls.
 
 What's particularly nice about this tool is how it handles dynamic dimensions. Many models have `symbolic dimensions` (like variable batch sizes), and the generator provides a clean interface to override these with concrete values that WebNN can work with efficiently.
 
