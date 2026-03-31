@@ -6,13 +6,13 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 
 <div className="mt-6 grid grid-cols-2 gap-4 items-center justify-items-center tutorials-title">
-  <TransformersJs className="transformersjs-logo" />
-  <WebNn className="webnn-logo" />
+<TransformersJs className="transformersjs-logo" />
+<WebNn className="webnn-logo" />
 </div>
 
-[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) provides browser-based machine learning capabilities that mirror the Hugging Face Transformers Python library. It supports a wide range of pretrained models across multiple domains. 
+[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) 提供基于浏览器的机器学习功能，镜像 Hugging Face Transformers Python 库。它支持跨多个领域的各种预训练模型。
 
-Under the hood, [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) uses ONNX Runtime for model execution in the browser. You can convert existing PyTorch, TensorFlow, or JAX models to ONNX format using the Optimum library.
+在底层，[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) 使用 ONNX Runtime 在浏览器中执行模型。您可以使用 Optimum 库将现有 PyTorch、TensorFlow 或 JAX 模型转换为 ONNX 格式。
 
 ```js showLineNumbers filename="example.js"
 import * as transformers from from '@huggingface/transformers';
@@ -36,7 +36,7 @@ const classifier = await transformers.pipeline('image-classification', path, opt
 let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
 ```
 
-> <InfoIcon /> WebNN does not currently support dynamic shapes and requires [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) to be set.
+> <InfoIcon /> WebNN 目前不支持动态形状，需要设置 [`free_dimension_overrides`](../transformers-js/free-dimension-overrides)。
 
-> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) can be set in sample code above or just in config.json of your models as a field within "transformers.js_config". 
-> When `free_dimension_overrides` is not set, you may experience significant performance degradation.
+> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) 可以在上面的示例代码中设置，也可以在模型的 config.json 中设置为“transformers.js_config”中的字段。
+> 如果未设置 `free_dimension_overrides`，您可能会遇到性能显着下降的情况。

@@ -1,8 +1,8 @@
 export default {
   introduction: {
-    title: "Introduction"
+    title: "介绍"
   },
-  'get-started': { title: 'Get Started', },
-  tutorials: { title: 'Tutorials', },
-  troubleshooting: { title: 'Troubleshooting', },
+  'get-started': { title: '入门', },
+  tutorials: { title: '教程', },
+  troubleshooting: { title: '故障排除', },
 };

@@ -1,12 +1,12 @@
 # MLTensor
 
-The `MLTensor` interface represents a tensor that can be used as input or output to an `MLGraph`.
+`MLTensor`接口表示可用于`MLGraph`的输入或输出的张量。
 
 ## MLTensorDescriptor
 
-Before diving into `MLTensor`, let's understand the `MLTensorDescriptor` dictionary that describes its characteristics.
+在深入研究`MLTensor`之前，让我们先了解一下描述其特性的`MLTensorDescriptor`字典。
 
-### Web IDL
+### 网络IDL
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLTensorDescriptor : MLOperandDescriptor {
@@ -15,19 +15,19 @@ dictionary MLTensorDescriptor : MLOperandDescriptor {
 };
 ```
 
-### Properties
+＃＃＃特性
 
-- `readable` (boolean)
-  - Determines if the tensor's contents can be read using `readTensor(tensor)` or `readTensor(tensor, outputData)`
-  - Default value: `false`
+- `readable` （布尔值）
+- 确定是否可以使用 `readTensor(tensor)` 或 `readTensor(tensor, outputData)` 读取张量的内容
+- 默认值： `false`
 
-- `writable` (boolean)
-  - Determines if the tensor's contents can be written using `writeTensor()`
-  - Default value: `false`
+- `writable` （布尔值）
+- 确定是否可以使用 `writeTensor()` 写入张量的内容
+- 默认值： `false`
 
-## MLTensor Interface
+## MLTensor 接口
 
-### Web IDL
+### 网络IDL
 
 ```webidl showLineNumbers filename="web-idl"
 [SecureContext, Exposed=(Window, DedicatedWorker)]
@@ -40,55 +40,55 @@ interface MLTensor {
 }
 ```
 
-### Properties
+＃＃＃特性
 
-- `dataType` (readonly)
-  - Returns the tensor's data type as specified in its descriptor
-  - Type: `MLOperandDataType`
+- `dataType` （论）
+- 返回其转发中指定的张量的数据类型
+- 类型： `MLOperandDataType`
 
-- `shape` (readonly)
-  - Returns the tensor's dimensions as specified in its descriptor
-  - Type: `FrozenArray<unsigned long>`
+- `shape` （论）
+- 返回其请求中指定的张量维度
+- 类型： `FrozenArray<unsigned long>`
 
-- `readable` (readonly)
-  - Returns whether the tensor's contents can be read
-  - Type: `boolean`
+- `readable` （论）
+- 返回张量的内容是否可以读取
+- 类型： `boolean`
 
-- `writable` (readonly)
-  - Returns whether the tensor's contents can be written
-  - Type: `boolean`
+- `writable` （论）
+- 返回张量的内容是否可写
+- 类型： `boolean`
 
-### Methods
+＃＃＃方法
 
-#### destroy()
+＃＃＃＃破坏（）
 
-Releases the resources associated with the MLTensor.
+释放与 MLTensor 关联的资源。
 
-##### Syntax
+##### 语法
 
 ```javascript
 tensor.destroy()
 ```
 
-##### Return value
+#####返回值
 
 - `undefined`
 
-##### Description
+＃＃＃＃＃描述
 
-The `destroy()` method is idempotent, meaning multiple calls to this method on the same tensor will have the same effect as a single call.
+`destroy()`方法是幂等的，这意味着在同一个上多次调用此方法将与单次调用具有相同的效果。
 
-### Memory Allocation
+### 内存分配
 
-The memory backing an `MLTensor` is allocated according to implementation-defined requirements of the associated `MLContext` and `MLTensorDescriptor`. These requirements may include:
+支持 `MLTensor` 的内存根据相关 `MLContext` 和 `MLTensorDescriptor` 的实现定义要求进行分配。这些要求可能包括：
 
-- Specific byte alignment constraints
-- Allocation in particular memory pools
-- Other implementation-specific requirements
+- 十个特定项目合同
+- 内存特定池的分配
+- 其他具体实施要求
 
-## Examples
+## 示例
 
-### Creating and Using an MLTensor
+###创建和使用MLTensor
 
 ```js showLineNumbers filename="example-1.js"
  async function mlTensor() {
@@ -119,7 +119,7 @@ The memory backing an `MLTensor` is allocated according to implementation-define
 }
 ```
 
-### Reading MLTensor Data
+### 读取MLTensor数据
 
 ```js showLineNumbers filename="example-2.js"
 async function readTensorData(tensor) {
@@ -134,19 +134,19 @@ async function readTensorData(tensor) {
 }
 ```
 
-## Specifications
+＃＃规格
 
 | WebNN API | Status |
 |--------------|---------|
 | [`MLTensor` interface](https://webmachinelearning.github.io/webnn/#api-mltensor) | Candidate Recommendation Draft |
 
-## Security Requirements
+## 安全要求
 
-- This API requires a secure context (`HTTPS` or `localhost`)
-- Available in:
-  - Window context
-  - Dedicated Web Workers
+- 此 API 需要安全上下文（ `HTTPS` 或 `localhost` ）
+- 适用于：
+- 窗口上下文
+- 专门的网络工作者
 
-## Browser Compatibility
+## 浏览器兼容性
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

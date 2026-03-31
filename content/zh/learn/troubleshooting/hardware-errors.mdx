@@ -1,28 +1,28 @@
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# Hardware Errors
+# 硬件错误
  
-## NPU Errors
+## 神经网络处理单元错误
 
-### NPU utilization not visible in Windows Task Manager when running on WebNN NPU
+### 在 WebNN NPU 上运行时，NPU 利用率在 Windows 任务管理器中不可见
 
-#### Problem
+#### 问题
 
-NPU (Neural Processing Unit) utilization does not appear in Windows Task Manager when running WebNN applications on NPU, e.g. [Whisper Base on NPU](https://microsoft.github.io/webnn-developer-preview/demos/whisper-base/?devicetype=npu), even after installing the latest NPU driver.
+在 NPU 上运行 WebNN 应用程序时，NPU（神经处理单元）利用率不会出现在 Windows 任务管理器中，例如 [Whisper Base on NPU](https://microsoft.github.io/webnn-developer-preview/demos/whisper-base/?devicetype=npu) ，即使安装了最新的 NPU 驱动程序后也是如此。
 
-#### Cause
+#### 原因
 
-Windows Update may automatically replace Intel.com drivers with older OEM-distributed versions on devices from manufacturers like Lenovo, ASUS, Dell, and HP. This behavior affects both Neural Processor (NPU, Intel AI Boost) and Graphics drivers.
+Windows 更新可能会在 Lenovo、ASUS、Dell 和 HP 等制造商的设备上自动将 Intel.com 驱动程序替换为 OEM 分发的旧版本。此行为会影响神经处理器（NPU、Intel AI Boost）和显卡驱动程序。
 
-#### Current status and improvements
+#### 目的地及改进
 
-A new NPU driver release in early 2026 is expected to be the solution to resolve this issue.
+预计2026年初发布的新NPU驱动程序将成为解决此问题的解决方案。
 
-#### Alternative: Using WebNN with default drivers and launch browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu)
+####替代方案：使用带有默认驱动程序的WebNN并通过开关[`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu)启动浏览器
 
-In many cases, WebNN NPU functionality works with the default OEM-provided drivers that come with Windows Update. 
+在许多情况下，WebNN NPU 功能可与 Windows 更新附带的默认 OEM 提供的驱动程序配合使用。
 
-If stability is more important than having the absolute latest driver version, launch browser with switch [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu) to enable WebNN NPU functionality in Chrome or Edge.
+如果稳定性比拥有绝对最新的驱动程序版本更重要，请使用开关 [`--disable_webnn_for_npu=0`](../../api-reference/browser-compatibility/chrome-flags#--disable_webnn_for_npu) 启动浏览器，以在 Chrome 或 Edge 中启用 WebNN NPU 功能。
 
 <div className="ort-ep">
 ```shell
@@ -36,19 +36,19 @@ If stability is more important than having the absolute latest driver version, l
 ```
 </div>
 
-#### See also
+####参见
 
 - [Intel NPU driver support documentation](https://www.intel.com/content/www/us/en/support.html)
 - [Windows driver management documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/)
 
-## GPU Errors
+## GPU 错误
 
-### Graphics driver rollbacks affecting WebNN GPU performance
+###显卡驱动程序回滚影响WebNN GPU性能
 
-#### Problem
+#### 问题
 
-Windows Update automatically reverts graphics drivers to previous versions, preventing WebNN from achieving optimal GPU performance.
+Windows 更新会自动将图形驱动程序恢复到之前的版本，从而阻止 WebNN 实现最佳 GPU 性能。
 
-#### Solution
+#### 解决方案
 
-Refer to [NPU solution](hardware-errors#cause)
+参见[NPU solution](hardware-errors#cause)

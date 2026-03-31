@@ -1,8 +1,8 @@
-## Free Dimensions Overrides
+## 自由覆盖面积
 
-ONNX models support dynamic input shapes through free dimensions. A free dimension allows the model to accept inputs of varying sizes along that dimension. For instance, a model with input shape `[batch, 3, height, width]` can process any number of RGB images (3 channels) of any size.
+ONNX模型支持通过自由维度动态输入形状。自由维度允许模型接受沿该维度的不同大小的输入。例如，输入形状为`[batch, 3, height, width]`的模型处理任何数量、任何尺寸的RGB图像（3个可以）。
 
-While flexible, you can optimize performance by fixing these dimensions when your application uses consistent input sizes. For example, if your WebNN app always processes single `224×224` images, you can override the free dimensions from `[batch, 3, height, width]` to `[1, 3, 224, 224]` using the `freeDimensionOverrides` option:
+虽然很灵活，但当您的应用程序使用一致的输入大小时，您可以通过固定这些尺寸来优化性能。例如，如果您的 WebNN 应用程序始终处理单个 `224×224` 图像，您使用 `freeDimensionOverrides` 可以选项覆盖从 `[batch, 3, height, width]` 到 `[1, 3, 224, 224]` 的自由尺寸：
 
 ```js showLineNumbers filename="free-dimension-overrides.js"
 const sessionOptions = {
@@ -14,24 +14,24 @@ const sessionOptions = {
 };
 ```
 
-This configuration locks the input dimensions to specific values, potentially improving model performance.
+此配置将输入维度锁定为特定值，从而可能提高模型性能。
 
-### Symbolic Dimension
+###象征意义
 
 <div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 text-center gap-2 my-8">
-  <div>
-    <div>![No symbolic dimensions](/learn/tutorials/free-dimension-overrides-1.png)</div>
-    <div className="mt-4">Example model without symbolic dimensions</div>
-  </div>
-  <div>
-    <div>![Symbolic dimensions](/learn/tutorials/free-dimension-overrides-2.png)</div>
-    <div className="mt-4">Example model with three symbolic dimensions called `batch_size`, `height` and `width`</div>
-  </div>
+<div>
+<div>！[No symbolic dimensions](/learn/tutorials/free-dimension-overrides-1.png) </div>
+<div className="mt-4"> 不带符号尺寸的示例模型 </div>
+</div>
+<div>
+<div>！[Symbolic dimensions](/learn/tutorials/free-dimension-overrides-2.png) </div>
+<div className="mt-4"> 具有三个符号尺寸的示例模型，称为 `batch_size`、`height` 和 `width` </div>
+</div>
 </div>
 
-WebNN Execution Provider needs specify fixed integer values via `freeDimensionOverrides` for all the symbolic dimensions.
+WebNN执行提供者需要通过`freeDimensionOverrides`为所有符号指定固定整数值。
 
-### Additional Resources
+### 其他资源
 
 - [ONNX Runtime - Free dimension overrides](https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html#freedimensionoverrides)
 - [ONNX Runtime - Make a symbolic dimension fixed](https://onnxruntime.ai/docs/tutorials/mobile/helpers/make-dynamic-shape-fixed.html#making-a-symbolic-dimension-fixed)

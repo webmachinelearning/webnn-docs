@@ -6,27 +6,27 @@ import OnnxRuntime from '../../../../app/_components/icons/onnxruntime.jsx'
 import LiteRt from '../../../../app/_components/icons/litert.jsx'
 import WebNn from '../../../../app/_components/icons/webnn.jsx'
 
-# Quickstart
+# 快速开始
 
-The WebNN (Web Neural Network) API enables neural network operations in web applications by implementing computational graphs. A computational graph is a directed graph where nodes represent operations or input variables, with each node’s output serving as input for subsequent nodes.
+WebNN（Web 神经网络）API 通过实现计算图来实现 Web 应用程序中的神经网络操作。计算图是有向图，其中节点表示操作或输入变量，每个节点的输出用作后续节点的输入。
 
-## Working with Operations and Tensors
+## 使用运算和张量
 
-The API uses two primary abstractions:
-- `Operand` objects represent tensors (multi-dimensional arrays) that can be inputs, outputs, or constants
-- `MLContext` provides operations for building and executing computational graphs
+API 使用两个主要抽象：
+- `Operand` 对象表示张量（多维数组），可以是输入、输出或常量
+- `MLContext` 提供构建和执行计算图的操作
 
-## Graph Lifecycle
+## 图生命周期
 
-The WebNN API supports four main phases:
-1. Building the computational graph
-2. Compiling the graph
-3. Executing the graph
-4. Integrating with other Web APIs for input data (e.g., media APIs for images/video frames or sensor APIs for sensory data)
+WebNN API 支持四个主要阶段：
+1. 构建计算图
+2. 编译图表
+3. 执行图表
+4. 与其他 Web API 集成以获取输入数据（例如，用于图像/视频帧的媒体 API 或用于传感数据的传感器 API）
 
-Here's a basic example that demonstrates building, compiling, and executing a graph with operations, inputs, and output. For comprehensive model construction patterns, refer to the [detailed tutorials](../tutorials).
+这是一个基本示例，演示了如何使用操作、输入和输出构建、编译和执行图形。对于综合模型构建模式，请参阅[detailed tutorials](../tutorials)。
 
-## Build Your First Graph with WebNN API
+## 使用 WebNN API 构建您的第一个图表
 
 ```math
 C = 0.2 \cdot A + B
@@ -79,6 +79,6 @@ const result = await context.readTensor(outputTensorC);
 console.log('Output value:', new Float32Array(result));  // [1, 1, 1, 1]
 ```
 
-## Additional Resources
+## 其他资源
 
 - [Framework vs Vanilla](../tutorials)

@@ -5,42 +5,42 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 import { Cards } from 'nextra/components'
 
 <div className="mt-6 grid grid-cols-1 items-center justify-items-center tutorials-title">
-  <WebNn className="webnn-logo"/>
+<WebNn className="webnn-logo"/>
 </div>
 
-# Generating WebNN Vanilla JavaScript
+# 生成 WebNN Vanilla JavaScript
 
-Vanilla JavaScript offers the smallest bundle size for WebNN applications, making it ideal for package-size sensitive deployments. However, manually writing WebNN code requires significant development effort compared to higher-level frameworks like [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) or [ONNX Runtime Web](https://onnxruntime.ai/).
+Vanilla JavaScript 为 WebNN 应用程序提供最小的打包大小，使其成为对包大小敏感的部署的理想选择。然而，与 [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) 或 [ONNX Runtime Web](https://onnxruntime.ai/) 等更高级别的框架相比，手动编写 WebNN 代码需要大量的开发工作。
 
-The WebNN community addresses this challenge by providing code generation tools that automatically convert existing machine learning models into optimized WebNN JavaScript, delivering both performance and minimal bundle overhead.
+WebNN 社区通过提供代码生成工具来解决这一挑战，这些工具可以自动将现有的机器学习模型转换为 WebNN JavaScript 的优化，从而提供性能和最大的吞吐量。
 
-## Bundle Size vs Development Efficiency
+## 打包大小与开发效率
 
-When building web-based ML applications, developers face a key trade-off:
+在构建基于 Web 的 ML 应用程序时，开发人员面临一个关键的权衡：
 
-- **High-level libraries** ([Transformers.js](https://huggingface.co/docs/transformers.js/en/index), [ONNX Runtime Web](https://onnxruntime.ai/)) offer rapid development but larger bundle sizes
-- **Vanilla WebNN JavaScript** provides minimal footprint but requires extensive manual coding
-- **Generated WebNN code** combines the best of both: automated development with optimized bundle size
+- **高级库**（ [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) 、 [ONNX Runtime Web](https://onnxruntime.ai/) ）提供快速开发，但包大小更大
+- **Vanilla WebNN JavaScript** 提供最小的占用空间，但需要大量的手动编码
+- **生成的WebNN代码**结合了两者的优点：自动化开发和优化的包大小
 
-## Model-to-Code Conversion
+## 模型到代码的转换
 
-Currently, the WebNN ecosystem provides three primary code generation approaches, these tools convert trained ML models directly into WebNN lean vanilla JavaScript:
+目前，WebNN生态系统提供了清晰的主要的代码生成方法，这些工具将经过训练的ML模型直接转换为WebNN精益的普通JavaScript：
 
 <Cards className="quick-start-card">
-  <Cards.Card
-    icon={<VIcon />}
-    title="ONNX2WebNN"
-    href="./onnx2webnn"
+<Cards.Card
+icon={ <VIcon /> }
+title="ONNX2WebNN"
+href="./onnx2webnn"
   />
-  <Cards.Card
-    icon={<VIcon />}
-    title="Model2WebNN"  
-    href="./model2webnn"
+<Cards.Card
+icon={ <VIcon /> }
+title="Model2WebNN"
+href="./model2webnn"
   />
-  <Cards.Card
-    icon={<VIcon />}
-    title="WebNNUtils Onnx Converter"
-    href="./webnnutils-onnxconverter"
+<Cards.Card
+icon={ <VIcon /> }
+title="WebNNUtils Onnx 改良器"
+href="./webnnutils-onnxconverter"
   />
 </Cards>
 
@@ -54,42 +54,42 @@ Currently, the WebNN ecosystem provides three primary code generation approaches
 | **Privacy** | Client-side only | Client-side only | Client-side only |
 
 ### [ONNX2WebNN](https://github.com/huningxin/onnx2webnn)
-- **Best for**: Automated workflows, CI/CD pipelines, batch processing
-- **Strengths**: Mature Python ecosystem, command-line automation
-- **Use case**: Converting both individual and multiple models in development pipelines
+- **最适合**：自动化工作流程、CI/CD管道、批处理
+- **优势**：成熟的Python生态系统、命令行自动化
+- **示例**：在开发管道中转换单个模型和多个模型
 
-### [Model2WebNN](https://ibelem.github.io/model2webnn/) 
-- **Best for**: Interactive development, quick prototyping, TS/JS integration
-- **Strengths**: Web UI, CLI, and Library API support, TFLite support, browser-based privacy
-- **Use case**: Converting individual models with complete data privacy directly in the browser or via CLI
+### [Model2WebNN](https://ibelem.github.io/model2webnn/)
+- **最适合**：饮料开发、快速原型设计、TS/JS集成
+- **优势**：Web UI、CLI和库API支持、TFLite支持、基于浏览器的隐私
+- **示例**：直接在浏览器中或通过 CLI 转换具有完整数据隐私的单个模型
 
 ### [WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/tree/main/OnnxConverter)
-- **Best for**: Production deployments, complex model optimization
-- **Strengths**: Advanced graph partitioning, model reordering, Microsoft Edge team support
-- **Use case**: Enterprise applications requiring optimized WebNN deployment with CPU/NPU acceleration
+- **最适合**：部署生产、复杂模型优化
+- **优势**：高级图形分区、模型重新排序、Microsoft Edge团队支持
+- **示例**：需要通过CPU/NPU加速优化WebNN部署的企业应用程序
 
-## Code-to-Code Translation
+## 代码到代码的翻译
 
-Converting existing ML code from other frameworks to WebNN lean vanilla JavaScript:
+将现有的 ML 代码从其他框架转换为 WebNN 专业的普通 JavaScript：
 
-### Python to WebNN vanilla JavaScript
+### Python 到 WebNN 普通 JavaScript
 
-**Current Status**: 🚧 **To do**
+**当前状态**：🚧 **待办事项**
 
-Translate Python-based ML code (particularly PyTorch/TorchScript) directly to WebNN JavaScript is also required for WebNN developers. This approach would enable:
+WebNN 开发人员还需要将基于 Python 的 ML 代码（特别是 PyTorch/TorchScript）直接翻译为 WebNN JavaScript。这种方法将能够：
 
-- TorchScript → WebNN JavaScript conversion
-- Custom operator mapping, translate complex Python ML logic to WebNN
-- Automatic optimization for web deployment
+- TorchScript → WebNN JavaScript 转换
+- 自定义映射，将复杂的 Python ML 逻辑转换为 WebNN
+- 自动优化Web部署
 
-> <InfoIcon /> This functionality represents a significant development effort and is not yet available. The gap between Python ML frameworks and WebNN JavaScript remains an active area of community development.
+> <InfoIcon /> 此功能需要大量的开发工作，但尚未可用。Python ML 框架和 WebNN JavaScript 之间的差距仍然是社区开发的一个活跃领域。
 
-## Getting Started
+## 入门
 
-1. **Evaluate your requirements**: Bundle size constraints, privacy needs, development workflow, performance requirements
-2. **Choose your tool**: CLI automation (ONNX2WebNN), advanced optimization (WebNNUtils/OnnxConverter), or browser interface (Model2WebNN)
-3. **Prepare your model**: Ensure ONNX compatibility and optimization for web deployment
-4. **Generate and test**: Convert your model and validate performance in target environments
-5. **Deploy and monitor**: Integrate generated code and monitor real-world performance
+1. **评估您的要求**：打包大小、隐私需求、开发工作流程、性能要求
+2. **选择您的工具**：CLI自动化(ONNX2WebNN)、高级优化(WebNNUtils/OnnxConverter)或浏览器界面(Model2WebNN)
+3. **准备模型**：确保Web部署的ONNX兼容性和优化
+4. **生成和测试**：转换模型并验证目标环境中的性能
+5. **部署和监控**：集成生成的代码和监控实际性能
 
-The WebNN code generation ecosystem provides flexible options for deploying optimized ML inference in web applications while maintaining the performance benefits of vanilla JavaScript.
+WebNN 代码生成生态系统提供了灵活的选项，用于在 Web 应用程序中部署优化的 ML 推理，同时保持普通 JavaScript 的性能优势。

@@ -21,6 +21,6 @@ export default {
     title: "MLGraphBuilder"
   },
   "mlgraphbuilder-ops": {
-    title: "MLGraphBuilder (Operations)"
+    title: "MLGraphBuilder (算子)"
   },
 };

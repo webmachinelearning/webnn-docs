@@ -1,28 +1,27 @@
+# 模型
 
-# Model
+## WebNN 应用的推荐模型尺寸是多少？
 
-## What is the recommended model size for WebNN applications?
+WebNN 应用程序的最佳模型大小取决于用户的网络条件和设备功能。虽然 WebNN 没有严格的大小限制，但较大的模型会影响下载时间和初始加载性能。
+考虑实施 Web 应用程序功能来优化性能：
 
-The optimal model size for WebNN applications depends on your users' network conditions and device capabilities. While WebNN has no strict size limits, larger models impact download times and initial load performance.
-Consider implementing Web application features to optimize performance:
+- 使用 service workers 启用离线功能和缓存模型
+- 利用 Cache API 或 [Origin Private File System (OPFS)](https://web.dev/articles/origin-private-file-system) 在本地存储模型，减少后续加载时间
 
-- Use service workers to enable offline functionality and cache models
-- Leverage the Cache API or [Origin Private File System (OPFS)](https://web.dev/articles/origin-private-file-system) to store models locally, reducing subsequent load times
+### ONNX Runtime Web 模型大小限制
 
-### ONNX Runtime Web model size limitations
+ONNX Runtime Web 模型的大小范围很大，从几千字节到几 GB，但 ONNX 模型本身以 protobuf 格式序列化，最大大小为 2GB，而 ONNX Runtime Web 可以运行大小高达 4GB 的模型。
 
-ONNX Runtime Web models can range significantly in size, from a few kilobytes to several gigabytes, but the ONNX model itself, serialized in protobuf format, has a maximum size of 2GB, and ONNX Runtime Web can run models up to 4GB in size. 
+#### 其他资源
 
-#### Additional Resources
+- [处理大型模型](https://onnxruntime.ai/docs/tutorials/web/large-models.html)
 
-- [Working with Large Models](https://onnxruntime.ai/docs/tutorials/web/large-models.html)
+## 为什么不定义一个涵盖拓扑和权重的模型格式？
 
-##  Why not define a model format that covers both topology and weights?
+WebNN API 不直接支持模型格式，因为格式处理有意委托给框架和应用程序。这种设计决策保持了灵活性，同时允许框架实现自己的模型加载方法。
 
-The WebNN API does not directly support model formats, as format handling is intentionally delegated to frameworks and applications. This design decision maintains flexibility while allowing frameworks to implement their own model loading approaches.
+## 某些模型是否仅限于特定后端或硬件？
 
-## Are some models restricted to specific backend or hardware?
+查找 [LiteRT](../api-reference/browser-compatibility/litert)、[Windows ML](../api-reference/browser-compatibility/windowsml) 和 [Core ML](../api-reference/browser-compatibility/coreml) 后端的操作和硬件支持详细信息。
 
-Find operations and hardware support details of [LiteRT](../api-reference/browser-compatibility/litert), [Windows ML](../api-reference/browser-compatibility/windowsml) and [Core ML](../api-reference/browser-compatibility/coreml) backends.
-
-## How to maximize the optimization of the model for better inference in WebNN?
+## 如何最大限度地优化模型以在 WebNN 中获得更好的推理？
