@@ -2,21 +2,21 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # 性能问题
 
-## ONNX  Runtime 
+## ONNX 运行时
 
-### 如何分析我的超慢 WebNN 实施？
+###如何分析我的超慢WebNN实施？
 
 ONNX Runtime Web 的 WebNN EP 需要通过 [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) 为所有 [symbolic dimensions](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension) 指定固定整数值，否则优化将不会应用。
 
-> <InfoIcon /> 哇哦！修复参数名称使其速度提高 100 倍！
+> <InfoIcon /> 哇噢！修复参数名称设置速度提高100倍！
 
 #### 其他资源
 
 - [SD-Turbo image-to-image super slow issue](https://github.com/microsoft/webnn-developer-preview/issues/40)
 
-### 为什么我没有看到 Intel GPU 的性能优势？
+###为什么我没有看到Intel GPU的性能优势？
 
-默认情况下，在驱动程序版本 `31.0.101.5518` 和 `32.0.101.6083` 之间的 Intel GPU 上禁用 DirectML 元命令执行。要启用元命令并评估受影响的 GPU 驱动程序的性能，请添加以下标志：
+默认情况下，在驱动程序版本 `31.0.101.5518` 和 `32.0.101.6083` 之间的 Intel GPU 上禁用 DirectML 元命令执行。要启用元命令并评估驱动程序的 GPU 驱动程序的性能，请添加以下标志：
 
 ```bash copy showLineNumbers filename="gpu-flag"
 --disable_dml_meta_commands_for_gpu=0
