@@ -1,6 +1,6 @@
 # MLTensor
 
-`MLTensor` 接口表示可用于 `MLGraph` 的输入或输出的张量。
+`MLTensor`接口表示可用于`MLGraph`的输入或输出的张量。
 
 ## MLTensorDescriptor
 
@@ -42,19 +42,19 @@ interface MLTensor {
 
 ＃＃＃特性
 
-- `dataType` （讽刺）
+- `dataType` （论）
 - 返回其转发中指定的张量的数据类型
 - 类型： `MLOperandDataType`
 
-- `shape` （讽刺）
+- `shape` （论）
 - 返回其请求中指定的张量维度
 - 类型： `FrozenArray<unsigned long>`
 
-- `readable` （讽刺）
+- `readable` （论）
 - 返回张量的内容是否可以读取
 - 类型： `boolean`
 
-- `writable` （讽刺）
+- `writable` （论）
 - 返回张量的内容是否可写
 - 类型： `boolean`
 
@@ -76,7 +76,7 @@ tensor.destroy()
 
 ＃＃＃＃＃描述
 
-`destroy()`方法是幂等的，这意味着在同一份上多次调用此方法将与单次调用具有相同的效果。
+`destroy()`方法是幂等的，这意味着在同一个上多次调用此方法将与单次调用具有相同的效果。
 
 ### 内存分配
 
