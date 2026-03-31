@@ -56,13 +56,13 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 |层归一化 |ai.onnx（7-16、17+）|层归一化 |✓ |✓ ||
 | LeakyRelu| ai.onnx（7-15、16+）|漏水Relu | ✓ | ✓ | |
 |少 |ai.onnx（7-8、9-12、13+）|较小 |✓ |✓ ||
-|LessOrEqual |ai.onnx (12-15, 16+) |lesserOrEqual |✓ |✓ ||
+|小于或等于 |ai.onnx (12-15, 16+) |小于或等于 |✓ |✓ ||
 |日志|ai.onnx（7-12、13+）|日志|✓ |✓ ||
 |LP池|ai.onnx（7-10、11-17、18+）|l2Pool2d |✗ |✓ |仅支持4维输入，2维'kernel_shape'，'p'值为2 |
 |LRN |ai.onnx（7-12、13+）|pad、averagePool2d、转置、添加、mul、pow、div |✓ |✓ ||
 |LSTM |ai.onnx（7-13、14-21、22+）|LSTM|✓ |✓ |仅支持 'layout' == 0、'input_forget' == 0。不支持 'clip'。“activations”中的激活函数必须是“Relu”、“Tanh”、“Sigmoid”之一。如果是双向的，前向和后向激活必须相同。“sequence_lens”（如果存在）应为常量，其值等于输入“X”的第一维长度 |
 |矩阵乘法 |ai.onnx（7-8、9-12、13+）|矩阵相乘 |✓ |✓ ||
-|最大|ai.onnx (7, 8-11, 12, 13+) |max |✓ |✓ ||
+|最大|ai.onnx (7, 8-11, 12, 13+) |最大|✓ |✓ ||
 |最大池 |ai.onnx (7, 8-9, 10, 11, 12+) |最大池2d |✓ |✓ |只支持4维输入，2维'kernel_shape', 'storage_order' != 1, 1个输出 |
 |最小| ai.onnx (7, 8-11, 12, 13+) |分钟| ✓ | ✓ | |
 |穆尔 | ai.onnx（7-12、13、14+）|穆尔 | ✓ | ✓ | |
