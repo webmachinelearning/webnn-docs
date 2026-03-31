@@ -1,10 +1,10 @@
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# navigator.ml
+# 导航器.ml
 
-The `navigator.ml` property provides access to the WebNN API, allowing web applications to interact with machine learning capabilities in the browser.
+`navigator.ml` 属性提供对 WebNN API 的访问，允许 Web 应用程序与浏览器中的机器学习功能进行交互。
 
-## Web IDL
+## 网络IDL
 
 ```idl showLineNumbers filename="web-idl"
 interface mixin NavigatorML {
@@ -14,26 +14,26 @@ Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 ```
 
-## Syntax
+## 语法
 
 ```js showLineNumbers filename="navigator.ml.js"
 const ml = navigator.ml
 ```
 
-### Value
+＃＃＃价值
 
-An [`ML`](https://www.w3.org/TR/webnn/#api-navigator-ml) object that provides access to WebNN functionality.
+提供对 WebNN 功能的访问 [`ML`](https://www.w3.org/TR/webnn/#api-navigator-ml) 对象。
 
-## Description
+＃＃描述
 
-The `navigator.ml` property returns a read-only reference to an `ML` object, which serves as the entry point for browser-based machine learning operations. This interface is:
+`navigator.ml` 属性返回对 `ML` 对象的注释，该对象充当基于浏览器的机器学习操作的入口点。接口是：
 
-- Available in both window and dedicated worker contexts
-- Accessible through the `Navigator` interface in window contexts
-- Accessible through the `WorkerNavigator` interface in dedicated worker contexts
-- Protected by a secure context requirement (HTTPS or localhost)
+- 窗口和专用工作环境均可用
+- 可通过窗口上下文中的`Navigator`界面进行访问
+- 可通过专用工作环境中的 `WorkerNavigator` 界面进行访问
+- 受安全上下文要求（HTTPS 或本地主机）保护
 
-## Example
+＃＃例子
 
 ```js showLineNumbers filename="example.js"
 if ('ml' in navigator) {
@@ -44,18 +44,18 @@ if ('ml' in navigator) {
   console.log('ML API is not supported in this browser');
 }
 ```
-## Specifications
+＃＃规格
 
 | WebNN API | Status |
 |--------------|---------|
 | [`navigator.ml` interface](https://www.w3.org/TR/webnn/#api-navigator-ml) | Candidate Recommendation Draft |
 
-## Security Requirements
+## 安全要求
 
-Access to `navigator.ml` requires a secure context (HTTPS or localhost). Attempting to access this API in a non-secure context will result in an error.
+访问 `navigator.ml` 需要安全上下文（HTTPS 或本地主机）。尝试在非安全上下文中访问此 API 将导致错误。
 
-## Browser Compatibility
+## 浏览器兼容性
 
-> <InfoIcon /> The `navigator.ml` interface is experimental and support may vary across browsers.
+> <InfoIcon /> `navigator.ml`界面是实验性的，不同浏览器的支持可能会有所不同。
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

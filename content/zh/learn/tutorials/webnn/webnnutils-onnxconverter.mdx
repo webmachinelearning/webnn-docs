@@ -125,7 +125,7 @@ const model_output = loadModelGraph(input_operand, [weights_buffer], builder);
 
 ### 形状推断处理
 
-OnnxConverter 不执行传统的形状推断。相反，它生成在运行时处理动态形状的 WebNN 图形节点。WebNN 图形生成器通过可以使用 JavaScript 数字（不仅仅是张量）的 polyfilled 方法进行了增强。
+OnnxConverter 不执行传统的形状推断。相反，它生成在 Runtime 处理动态形状的 WebNN 图形节点。WebNN 图形生成器通过可以使用 JavaScript 数字（不仅仅是张量）的 polyfilled 方法进行了增强。
 
 例如，具有形状运算的 ONNX 图：
 ```javascript
@@ -233,7 +233,7 @@ python CPUGraphPartitioner.py model.js
 
 ## 局限性
 
-- 没有动态形状推断（形状在运行时解析）
+- 没有动态形状推断（形状在 Runtime 解析）
 - 复杂模型需要后处理管道
 - 对某些 ONNX 操作的支持有限
 - 某些操作类型需要 CPU 回退

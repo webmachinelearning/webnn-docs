@@ -1,6 +1,6 @@
 export default {
   index: {
-    title: "Framework vs Vanilla"
+    title: "框架 vs 原生 JavaScript"
   },
   'transformers-js': {
     title: "Transformers.js"
@@ -12,6 +12,6 @@ export default {
     title: "Lite RT"
   },
   'webnn': {
-    title: "Vanilla JavaScript"
+    title: "原生 JavaScript"
   },
 };

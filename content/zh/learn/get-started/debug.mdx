@@ -6,13 +6,13 @@ import IntelIcon from '../../../../app/_components/icons/ihv/intel.jsx'
 import QualcommIcon from '../../../../app/_components/icons/ihv/qualcomm.jsx'
 import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
-# Debugging
+# 调试
 
-## Use Custom Build of ONNX Runtime
+## 使用 ONNX  Runtime 的自定义构建
 
-1. Follow the [WebNN Installation Guide](installation) to enable WebNN API and switch to Windows ML / ONNX Runtime backend
-2. Put the ONNX Runtime dynamic link librares into a folder under `C:\Program Files\`, e.g. `C:\Program Files\ONNXRuntime`
-3. Launch your Chrome or Edge browser with switch [`--webnn-ort-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-library-path-for-testing)
+1. 按照[WebNN Installation Guide](installation)启用WebNNAPI并切换到Windows ML / ONNX Runtime 后端
+2. 将 ONNX  Runtime 动态链接库放入 `C:\Program Files\` 下的文件夹中，例如`C:\Program Files\ONNXRuntime`
+3. 使用开关 [`--webnn-ort-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-library-path-for-testing) 启动 Chrome 或 Edge 浏览器
 
 <div className="ort-ep">
 ```shell
@@ -26,15 +26,15 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 ```
 </div>
 
-## Use Custom Build of Execution Providers
+## 使用 Execution Provider 的自定义构建
 
-If you are running WebNN on AMD, Intel, Nvidia, or Qualcomm devices and need to debug WebNN using specific Execution Provider of ONNX Runtime:
+如果您在 AMD、Intel、Nvidia 或 Qualcomm 设备上运行 WebNN，并且需要使用 ONNX  Runtime 的特定 Execution Provider 来调试 WebNN：
 
-1. Follow the [WebNN Installation Guide](installation) to enable WebNN API and switch to Windows ML / ONNX Runtime backend
-2. Put the ONNX Runtime and Execution Provider dynamic link librares into a folder under `C:\Program Files\`, e.g. `C:\Program Files\ONNXRuntime-EP`
-3. Launch your Chrome or Edge browser with switch [`--webnn-ort-ep-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-library-path-for-testing)
+1. 按照[WebNN Installation Guide](installation)启用WebNNAPI并切换到Windows ML / ONNX Runtime 后端
+2. 将 ONNX Runtime and Execution Provider 动态链接库放入 `C:\Program Files\` 下的文件夹中，例如`C:\Program Files\ONNXRuntime-EP`
+3. 使用开关 [`--webnn-ort-ep-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-library-path-for-testing) 启动 Chrome 或 Edge 浏览器
 
-### Execution Provider Mapping Table for Independent Hardware Vendors
+### 独立硬件供应商的执行提供商映射表
 
 <div className="table-center">
 | IHVs | Execution Provider | DLL |
@@ -45,9 +45,9 @@ If you are running WebNN on AMD, Intel, Nvidia, or Qualcomm devices and need to 
 | <QualcommIcon /> | QNNExecutionProvider | onnxruntime_providers_qnn.dll |
 </div>
 
-### Intel OpenVINO Execution Provider
+### 英特尔 OpenVINO 执行提供商
 
-The following examples show how to specify the locations of `ONNX Runtime` and `Intel OpenVINO Execution Provider` libraries:
+以下示例显示如何指定 `ONNX Runtime` 和 `Intel OpenVINO Execution Provider` 库的位置：
 
 <div className="ort-ep">
 ```shell
@@ -61,13 +61,13 @@ The following examples show how to specify the locations of `ONNX Runtime` and `
 ```
 </div>
 
-### Other IHVs
+### 其他 IHV
 
-#### AMD (TBD)
+#### AMD（待定）
 
-TBD
+待定
 
-#### Nvidia Nv Tensor RT RTX Execution Provider	
+#### Nvidia Nv Tensor RT RTX 执行提供商
 
 <div className="ort-ep">
 ```shell
@@ -81,7 +81,7 @@ TBD
 ```
 </div>
 
-#### Qualcomm QNN Execution Provider
+#### 高通 QNN 执行提供商
 
 <div className="ort-ep">
 ```shell
@@ -95,9 +95,9 @@ TBD
 ```
 </div>
 
-## Use Custom Build of GPU or NPU Drivers
+## 使用 GPU 或 NPU 驱动程序的自定义构建
 
-If you are testing with custom or internal GPU or NPU drivers, add the [`--allow-third-party-modules`](../../api-reference/browser-compatibility/chrome-flags#--allow-third-party-modules) switch when launching the browser.
+如果您正在使用自定义或内部 GPU 或 NPU 驱动程序进行测试，请在启动浏览器时添加 [`--allow-third-party-modules`](../../api-reference/browser-compatibility/chrome-flags#--allow-third-party-modules) 开关。
 
 <div className="ort-ep">
 ```shell
@@ -111,9 +111,9 @@ If you are testing with custom or internal GPU or NPU drivers, add the [`--allow
 ```
 </div>
 
-## Debug Sandbox Issues
+## 调试沙箱问题
 
-In some cases, you may need to debug WebNN by disabling Chromium's security sandbox using the [`--disable-gpu-sandbox`](../../api-reference/browser-compatibility/chrome-flags#--disable-gpu-sandbox) switch.
+在某些情况下，您可能需要通过使用 [`--disable-gpu-sandbox`](../../api-reference/browser-compatibility/chrome-flags#--disable-gpu-sandbox) 开关禁用 Chromium 的安全沙箱来调试 WebNN。
 
 <div className="ort-ep">
 ```shell
@@ -127,9 +127,9 @@ In some cases, you may need to debug WebNN by disabling Chromium's security sand
 ```
 </div>
 
-## Inspect the Verbose Logging
+## 检查详细日志记录
 
-You can configure the logging severity level of ONNX Runtime using the switch [`--webnn-ort-logging-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-logging-level). Other available severity levels include "INFO", "WARNING", "ERROR" (default), and "FATAL".
+您可以使用开关 [`--webnn-ort-logging-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-logging-level) 配置 ONNX  Runtime 的日志记录严重性级别。其他可用的严重级别包括“INFO”、“WARNING”、“ERROR”（默认）和“FATAL”。
 
 <div className="ort-ep">
 ```shell
@@ -143,11 +143,11 @@ You can configure the logging severity level of ONNX Runtime using the switch [`
 ```
 </div>
 
-## Additional Debug Options
+## 附加调试选项
 
-Additional WebNN switches are available:
+还提供其他 WebNN 开关：
 
-Additional WebNN switches are available:
+还提供其他 WebNN 开关：
 
 - [`--webnn-ort-ep-device`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-device)
 - [`--webnn-ort-ignore-ep-blocklist`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ignore-ep-blocklist)
@@ -156,7 +156,7 @@ Additional WebNN switches are available:
 - [`--webnn-ort-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-dump-model)
 - [`--webnn-tflite-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-tflite-dump-model)
 
-## Additional Resources
+## 其他资源
 
 - [WebNN Flags and Switches in Chromium](../../api-reference/browser-compatibility/chrome-flags)
 - [Chromium: services/webnn/webnn_switches.h](https://source.chromium.org/chromium/chromium/src/+/main:services/webnn/webnn_switches.h;l=30)

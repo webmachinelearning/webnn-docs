@@ -2,125 +2,125 @@ import { Steps } from 'nextra/components'
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 import ActionIcon from '../../../../app/_components/icons/action.jsx'
 
-# WebNN Testing
+# WebNN 测试
 
-This guide covers the testing methodologies and tools available for validating WebNN implementations across different browsers and devices.
+本指南涵盖了可用于跨不同浏览器和设备验证 WebNN 实现的测试方法和工具。
 
-## Prerequisites
+## 先决条件
 
-Before testing WebNN functionality, ensure you have properly configured your browser by following the [WebNN Installation](./installation.mdx) guide for your target backend (e.g., WebNN Windows ML / OpenVINO EP GPU).
+在测试 WebNN 功能之前，请确保您已按照目标后端（例如 WebNN Windows ML / OpenVINO EP GPU）的 [WebNN Installation](./installation.mdx) 指南正确配置浏览器。
 
-## Test Plan
+## 测试计划
 
-WebNN testing encompasses multiple validation approaches to cover various [test suites](#webnn-test-suites) to ensure correctness, performance, security and stability.
+WebNN测试包含多种验证方法来覆盖各种[test suites](#webnn-test-suites)，以确保正确性、性能、安全性和稳定性。
 
-### Test Infrastructure
+### 测试基础设施
 
-- **Chromium bots**: Continuous integration testing covers unit tests and WPT conformance tests
-- Microsoft Edge team testing facilities
-  - [WebNN Automation Tests](https://github.com/webgfx/webnn-test), covers WPT, samples and demos
-- W3C WebML community testing facilities
-  - [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework), covers WebNN samples and demos
-- Other hardware vendor testing facilities
+- **Chromium 机器人**：持续集成测试涵盖单元测试和 WPT 一致性测试
+- Microsoft Edge 团队测试设施
+- [WebNN Automation Tests](https://github.com/webgfx/webnn-test) ，涵盖 WPT、示例和演示
+- W3C WebML 社区测试设施
+- [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework) ，涵盖 WebNN 示例和演示
+- 其他硬件供应商测试设施
 
-### Backends
+### 后端
 
-WebNN is validated against multiple versions of backends implementation:
+WebNN 针对后端实现的多个版本进行了验证：
 
-- **Public releases**: Stable Windows ML, Execution Providers, and GPU, NPU drivers
-  - IHV EP certification test suites
-- **Pre-releases**
+- **公开版本**：稳定的 Windows ML、执行提供程序以及 GPU、NPU 驱动程序
+- IHV EP 认证测试套件
+- **预发布**
 
-### Test Devices
+### 测试设备
 
-WebNN ensures testing is conducted across all major hardware configurations and will promptly support the latest devices.
+WebNN 确保在所有主要硬件配置上进行测试，并及时支持最新设备。
 
-### Test Cadence
+### 测试节奏
 
-In addition to continuous integration testing for all code changes, WebNN follows a scheduled testing strategy:
+除了对所有代码更改进行持续集成测试之外，WebNN 还遵循预定的测试策略：
 
-- **Nightly**: WPT and demo automation tests
-- **Daily**: Performance and model tests
-- **Continuous Fuzzing**: Fuzz targets are automatically discovered by buildbots, built with different fuzzing engines, then uploaded to the distributed ClusterFuzz system to run at scale
-- **On-demand**: PageHeap testing before major releases for debugging purposes
+- **每晚**：WPT 和演示自动化测试
+- **每日**：性能和模型测试
+- **连续模糊测试**：模糊目标由构建机器人自动发现，使用不同的模糊引擎构建，然后上传到分布式 ClusterFuzz 系统以大规模运行
+- **按需**：在主要版本之前进行页面堆测试以进行调试
 
-## WebNN Test Suites
+## WebNN 测试套件
 
-### Web Platform Tests (WPT)
+### Web 平台测试 (WPT)
 
-The WebNN API follows W3C standards and includes comprehensive test suites to ensure cross-browser compatibility.
+WebNN API 遵循 W3C 标准并包含全面的测试套件以确保跨浏览器兼容性。
 
 | Resource | Link |
 | --- | --- |
 | W3C WebNN API Specification | [WebNN API](https://www.w3.org/TR/webnn/) |
 | W3C WebNN API Repository | [webmachinelearning/webnn](https://github.com/webmachinelearning/webnn) |
 
-#### WebNN Web Platform Tests / Conformance Test Suite
+#### WebNN Web 平台测试/一致性测试套件
 
-The [WebNN Conformance Test Suite (CTS)](https://github.com/web-platform-tests/wpt/tree/master/webnn) is part of the [web-platform-tests](https://github.com/web-platform-tests/) project, a cross-browser test suite that ensures Web platform compatibility across all major browsers.
+[WebNN Conformance Test Suite (CTS)](https://github.com/web-platform-tests/wpt/tree/master/webnn) 是 [web-platform-tests](https://github.com/web-platform-tests/) 项目的一部分，该项目是一个跨浏览器测试套件，可确保 Web 平台跨所有主要浏览器的兼容性。
 
-These tests provide confidence to:
+这些测试为以下方面提供了信心：
 
-- **Browser implementers** that their WebNN implementation is compatible with other browsers
-- **Web developers** that they can rely on consistent WebNN behavior across browsers and devices
+- **浏览器实现者** 他们的 WebNN 实现与其他浏览器兼容
+- **Web 开发人员** 他们可以依赖跨浏览器和设备的一致 WebNN 行为
 
-##### Web IDL Tests
+##### Web IDL 测试
 
-**File:** `idlharness.https.any.js`
+**文件：** `idlharness.https.any.js`
 
-Validates that the WebNN API correctly implements the interfaces defined in the Web IDL specification. The test uses a daily-updated snapshot of the spec's Web IDL located at `../interfaces/webnn.idl`.
+验证 WebNN API 是否正确实现了 Web IDL 规范中定义的接口。该测试使用位于 `../interfaces/webnn.idl` 的规范 Web IDL 的每日更新快照。
 
-##### Validation Tests
+##### 验证测试
 
-**Location:** `validation_tests/`
+**地点：** `validation_tests/`
 
-These tests verify that WebNN methods properly validate input parameters according to the specification algorithms. They ensure invalid inputs are correctly rejected.
+这些测试验证 WebNN 方法根据规范算法正确验证输入参数。它们确保无效的输入被正确拒绝。
 
-**Example:** `validation_tests/matmul.https.any.js` confirms that:
-- Exceptions are thrown when input tensor ranks are less than 2
-- Input tensor shapes must be broadcastable
-- Other parameter validation requirements are met
+**示例：** `validation_tests/matmul.https.any.js` 确认：
+- 当输入张量秩小于 2 时抛出异常
+- 输入张量形状必须是可广播的
+- 满足其他参数验证要求
 
-##### Conformance Tests
+##### 一致性测试
 
-**Location:** `conformance_tests/`
+**地点：** `conformance_tests/`
 
-These tests verify that WebNN operators produce correct computational results.
+这些测试验证 WebNN 运算符产生正确的计算结果。
 
-**Example:** `conformance_tests/matmul.https.any.js` validates that N-dimensional matrix multiplication produces mathematically accurate outputs.
+**示例：** `conformance_tests/matmul.https.any.js` 验证 N 维矩阵乘法可产生数学上准确的输出。
 
-#### Test Execution Contexts
+#### 测试执行上下文
 
-##### Device Variations
-WebNN supports multiple compute devices (CPU, GPU, NPU). Tests use `META: variant=?...` to run the same test across different device types automatically.
+##### 设备变化
+WebNN 支持多种计算设备（CPU、GPU、NPU）。测试使用 `META: variant=?...` 在不同的设备类型上自动运行相同的测试。
 
-##### Global Contexts
-WebNN interfaces are available in both Window and Worker contexts via `navigator.ml`. Tests use:
-- `.any.js` convention
+##### 全球背景
+WebNN 接口可通过 `navigator.ml` 在 Window 和 Worker 上下文中使用。测试使用：
+- `.any.js` 约定
 - `META: global=window,dedicatedworker`
 
-This allows the same test to run in multiple JavaScript execution contexts.
+这允许相同的测试在多个 JavaScript 执行上下文中运行。
 
-**Note:** Most operator-specific tests only specify `global=window` to reduce compute overhead, as behavior differences between contexts for individual operators are unlikely.
+**注意：** 大多数特定于运算符的测试仅指定 `global=window` 以减少计算开销，因为各个运算符的上下文之间的行为差​​异不太可能。
 
-> <ActionIcon /> **Running WPT Tests**
+> <ActionIcon /> **运行 WPT 测试**
 
 <Steps>
-#### Navigate to the test runner
-Visit [wpt.live/tools/runner](https://wpt.live/tools/runner/index.html)
+#### 导航到测试运行器
+访问[wpt.live/tools/runner](https://wpt.live/tools/runner/index.html)
 
-#### Configure test path
-In the "Run tests under path" field, enter `/webnn`
+#### 配置测试路径
+在“在路径下运行测试”字段中，输入 `/webnn`
 
-#### Start testing
-Click the "Start" button to begin test execution
+#### 开始测试
+单击“开始”按钮开始执行测试
 </Steps>
 
-> <ActionIcon /> **You can also run WPT Automation Tests via [WebNN Automation Tests](https://github.com/webgfx/webnn-test)**
+> <ActionIcon /> **您还可以通过 [WebNN Automation Tests](https://github.com/webgfx/webnn-test) 运行 WPT 自动化测试 **
 
-### Samples & Developer Preview Demos Testing
+### 示例和开发者预览演示测试
 
-Interactive samples and demos help validate real-world WebNN usage patterns.
+交互式示例和演示有助于验证现实世界的 WebNN 使用模式。
 
 | Resource | Repository |
 | --- | --- |
@@ -128,80 +128,80 @@ Interactive samples and demos help validate real-world WebNN usage patterns.
 | WebNN Developer Preview Demos | [microsoft/webnn-developer-preview](https://github.com/microsoft/webnn-developer-preview) |
 | HuggingFace: WebNN Spaces | [huggingface.co/webnn/spaces](https://huggingface.co/webnn/spaces) |
 
-- [W3C WebNN Samples](https://webmachinelearning.github.io/webnn-samples-intro/) demonstrating practical WebNN API usage in web applications
-- [WebNN Developer Preview Demos](https://microsoft.github.io/webnn-developer-preview/) showcases featuring WebNN API integration with ONNX Runtime Web
-- [HuggingFace: WebNN Spaces](https://huggingface.co/webnn/spaces) implements more Transformers.js based WebNN examples
+- [W3C WebNN Samples](https://webmachinelearning.github.io/webnn-samples-intro/) 演示 Web 应用程序中的实际 WebNN API 用法
+- [WebNN Developer Preview Demos](https://microsoft.github.io/webnn-developer-preview/) 展示了 WebNN API 与 ONNX Runtime Web 的集成
+- [HuggingFace: WebNN Spaces](https://huggingface.co/webnn/spaces) 实现了更多基于 Transformers.js 的 WebNN 示例
 
-> <ActionIcon /> **Testing Sample and Demo Applications**
+> <ActionIcon /> **测试示例和演示应用程序**
 
-Automated test frameworks are available for comprehensive sample and demo testing:
-
-<Steps>
-#### Access the test framework
-Visit the [WebNN Automation Tests](https://github.com/webgfx/webnn-test) or [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework) repository
-
-#### Follow setup instructions
-Review the README for configuration details
-
-#### Run tests and generate reports
-Execute the automated tests to validate sample functionality and generate detailed test reports
-</Steps>
-
-### Fuzz Testing in Chromium
-
-Fuzzing is an automated software testing technique that provides invalid, unexpected, or random data as inputs to a program. It is one of the most effective methods for discovering security vulnerabilities and stability issues in code.
-
-In the context of WebNN, fuzz testing helps identify edge cases and potential crashes by generating a wide variety of input combinations that might not be covered by traditional test cases.
-
-### Testing under PageHeap
-
-> <InfoIcon /> Note: Full-page heap verification can cause system memory shortages due to its high memory consumption. It should be used selectively during development and testing, not in production environments.
-
-#### What is PageHeap?
-
-PageHeap is a Windows diagnostic feature that helps detect memory access violations. It reserves memory at the boundary of each allocation to detect attempts to access memory beyond the allocated region. This catches common memory bugs such as:
-
-- Buffer overruns
-- Use-after-free errors
-- Out-of-bounds memory access
-
-#### PageHeap Modes
-
-GFlags provides two PageHeap verification modes:
-
-- **Standard heap verification** Writes fill patterns at the end of each heap allocation and examines these patterns when allocations are freed. This mode has minimal performance impact.
-- **Full-page heap verification** Places an inaccessible guard page at the end of each allocation, causing the program to stop immediately if it accesses memory beyond the allocation. This provides stronger guarantees but uses significantly more memory (one full page per allocation).
-
- #### Why test WebNN under PageHeap?
-
-Testing WebNN under PageHeap provides several benefits:
-
-- **Early detection**: Memory violations are caught immediately at the point of occurrence, making bugs easier to diagnose and fix.
-- **Security assurance**: Helps identify potential security vulnerabilities related to memory handling before they reach production.
-- **Comprehensive coverage**: When combined with fuzzing, PageHeap ensures that automatically-generated test inputs don't trigger hidden memory safety issues.
-
-> <ActionIcon /> **Testing WebNN under PageHeap**
+自动化测试框架可用于全面的示例和演示测试：
 
 <Steps>
-#### Install [Debugging Tools for Windows](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-download-tools)
-#### Run `GFlags.exe` executable
-#### Go to the `Image File` tab
-#### Type `chrome.exe` in the `Image` edit box
-#### Press Tab
-#### Click the `Enable page heap` checkbox
-#### Press `Apply` button
- - Run WebNN Tests, e.g. WPT tests, or WebNN demo tests
-#### Observe crashes
+#### 访问测试框架
+访问 [WebNN Automation Tests](https://github.com/webgfx/webnn-test) 或 [WebNN Samples Test Framework](https://github.com/webmachinelearning/webnn-samples-test-framework) 存储库
+
+#### 按照设置说明进行操作
+查看自述文件以了解配置详细信息
+
+#### 运行测试并生成报告
+执行自动化测试以验证示例功能并生成详细的测试报告
 </Steps>
 
-### Performance Testing
+### Chromium 中的模糊测试
 
-WebNN performance is evaluated across hundreds of AI models to ensure optimal performance across different WebNN backends. Each WebNN backend is tested against an extensive model suite spanning various architectures, sizes, and use cases to provide comprehensive performance insights.
+模糊测试是一种自动化软件测试技术，它提供无效的、意外的或随机的数据作为程序的输入。它是发现代码中的安全漏洞和稳定性问题的最有效方法之一。
 
-For comprehensive WebNN performance testing tools and Web AI benchmarking website, contact the Intel Web Team.
+在 WebNN 的背景下，模糊测试通过生成传统测试用例可能无法覆盖的各种输入组合来帮助识别边缘情况和潜在的崩溃。
 
-## Additional Resources
+### PageHeap 下的测试
 
-- [WebNN API Specification](https://www.w3.org/TR/webnn/) - Complete technical specification
-- [Web Platform Tests](https://web-platform-tests.org/) - Cross-browser testing initiative
+> <InfoIcon /> 注意：全页堆验证由于内存消耗较高，会导致系统内存不足。应在开发和测试期间有选择地使用它，而不是在生产环境中。
+
+####什么是页堆？
+
+PageHeap 是一项 Windows 诊断功能，可帮助检测内存访问违规。它在每次分配的边界处保留内存，以检测访问分配区域之外的内存的尝试。这可以捕获常见的内存错误，例如：
+
+- 缓冲区溢出
+- 释放后使用错误
+- 越界内存访问
+
+#### 页堆模式
+
+GFlags 提供了两种 PageHeap 验证模式：
+
+- **标准堆验证** 在每个堆分配的末尾写入填充模式，并在释放分配时检查这些模式。此模式对性能影响最小。
+- **全页堆验证** 在每次分配的末尾放置一个不可访问的保护页，导致程序在访问超出分配范围的内存时立即停止。这提供了更强的保证，但使用了更多的内存（每次分配一个整页）。
+
+#### 为什么要在 PageHeap 下测试 WebNN？
+
+在 PageHeap 下测试 WebNN 有几个好处：
+
+- **早期检测**：内存违规在发生时立即被捕获，使错误更容易诊断和修复。
+- **安全保证**：帮助在生产之前识别与内存处理相关的潜在安全漏洞。
+- **全面覆盖**：与模糊测试结合使用时，PageHeap 可确保自动生成的测试输入不会触发隐藏的内存安全问题。
+
+> <ActionIcon /> **在 PageHeap 下测试 WebNN**
+
+<Steps>
+#### 安装[Debugging Tools for Windows](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-download-tools)
+#### 运行 `GFlags.exe` 可执行文件
+#### 转到 `Image File` 选项卡
+#### 在 `Image` 编辑框中键入 `chrome.exe`
+#### 按 Tab 键
+#### 单击 `Enable page heap` 复选框
+#### 按`Apply`按钮
+- 运行 WebNN 测试，例如WPT 测试，或 WebNN 演示测试
+#### 观察崩溃
+</Steps>
+
+### 性能测试
+
+WebNN 性能在数百个 AI 模型中进行评估，以确保不同 WebNN 后端的最佳性能。每个 WebNN 后端都针对涵盖各种架构、大小和用例的广泛模型套件进行测试，以提供全面的性能见解。
+
+如需全面的 WebNN 性能测试工具和 Web AI 基准测试网站，请联系英特尔 Web 团队。
+
+## 其他资源
+
+- [WebNN API Specification](https://www.w3.org/TR/webnn/) - 完整的技术规格
+- [Web Platform Tests](https://web-platform-tests.org/) - 跨浏览器测试计划
 - [GFlags and PageHeap](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/gflags-and-pageheap)

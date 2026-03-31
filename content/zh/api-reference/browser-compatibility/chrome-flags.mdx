@@ -18,9 +18,9 @@
 
 ### `#webnn-onnxruntime`
 
-|名称 |Windows ML / ONNX WebNN 的运行时后端 |
+|名称 |Windows ML / ONNX WebNN 的 Runtime 后端 |
 | :--: | :-------- |
-|描述 |允许使用 ONNX 运行时通过 WebNN API 进行 CPU、GPU 和 NPU 推理。禁用此标志可以回退到 DirectML 或 TFLite。– Windows |
+|描述 |允许使用 ONNX  Runtime 通过 WebNN API 进行 CPU、GPU 和 NPU 推理。禁用此标志可以回退到 DirectML 或 TFLite。– Windows |
 |到期里程碑 |146 | 146
 |命令行使用 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime` |
 
@@ -107,9 +107,9 @@
 
 ### `--webnn-ort-logging-level`
 
-|名称 |WebNN ONNX 运行时日志记录级别 |
+|名称 |WebNN ONNX  Runtime 日志记录级别 |
 | :--: | :-------- |
-|描述 |配置 ONNX 运行时 | 的日志记录严重性级别
+|描述 |配置 ONNX  Runtime  | 的日志记录严重性级别
 |注意|“VERBOSE”，其他严重级别可能是“INFO”、“WARNING”、“ERROR”（默认）和“FATAL”|
 |用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-logging-level=VERBOSE` |
 
@@ -122,7 +122,7 @@
 
 ### `--webnn-ort-library-path-for-testing`
 
-|名称 |WebNN ONNX 用于测试的运行时库路径 |
+|名称 |WebNN ONNX 用于测试的 Runtime 库路径 |
 | :--: | :-------- |
 |描述 |强制从开关指定的位置加载 `onnxruntime.dll` 以测试开发 ORT 构建。|
 |注意|此开关不适用于运输场景，默认情况下会被忽略|
@@ -130,7 +130,7 @@
 
 ### `--webnn-ort-ep-library-path-for-testing`
 
-|名称 |WebNN ONNX 用于测试的运行时执行提供程序库路径 |
+|名称 |WebNN ONNX 用于测试的 Runtime  Execution Provider 库路径 |
 | :--: | :-------- |
 |描述 |通过此开关指定 ORT EP 名称和库路径对，以测试开发 EP 版本。EP名称指定的ORT EP的库被强制从指定路径加载。该值的格式应为 `<ep_name>?<ep_library_path>` 。|
 |注意|此开关不应在运输场景中使用，默认情况下会被忽略|
@@ -138,7 +138,7 @@
 
 ### `--webnn-ort-ep-device`
 
-|名称 |强制 ONNX 运行时仅选择特定执行提供程序 (EP) 设备 |
+|名称 |强制 ONNX  Runtime 仅选择特定 Execution Provider  (EP) 设备 |
 | :--: | :-------- |
 |描述 |在 ORT 会话创建阶段匹配 WebNN 的给定 EP 名称、硬件供应商 ID 和硬件设备 ID。该值的格式应为： `ep_name` 、 `hardware_vendor_id` 、 `hardware_device_id` 。|
 |注意|当`webnn-ort-logging-level`设置为`VERBOSE`或`INFO`时，可以在日志中查询可用的EP设备。如果没有找到匹配的设备，ORT 会话创建失败。所有条目必须按顺序提供，并且 hardware_vendor_id 和 hardware_device_id 都是十六进制字符串。|
@@ -146,23 +146,23 @@
 
 ### `--webnn-ort-ignore-ep-blocklist`
 
-|名称 |启用所有执行提供程序，忽略已启用标志阻止列表 |
+|名称 |启用所有 Execution Provider ，忽略已启用标志阻止列表 |
 | :--: | :-------- |
-|描述 |控制是否启用执行提供程序。可以通过 `--webnn-ort-ignore-ep-blocklist` 命令行开关一次性启用禁用的执行提供程序。|
+|描述 |控制是否启用 Execution Provider 。可以通过 `--webnn-ort-ignore-ep-blocklist` 命令行开关一次性启用禁用的 Execution Provider 。|
 |注意|列出的 EP 必须与 `tools/metrics/histograms/metadata/webnn/histograms.xml` 中直方图变体 `WebNNOrtExecutionProvider` 的名称匹配。|
 |用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ignore-ep-blocklist` |
 
 ### `--webnn-ort-graph-optimization-level`
 
-|名称 |WebNN ONNX 运行时图优化级别 |
+|名称 |WebNN ONNX  Runtime 图优化级别 |
 | :--: | :-------- |
-|描述 |配置ONNX运行时的图形优化级别|
+|描述 |配置ONNX Runtime 的图形优化级别|
 |注意|级别可以是“DISABLE_ALL”、“BASIC”、“EXTENDED”和“ALL” |
 |用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-graph-optimization-level=DISABLE_ALL` |
 
 ### `--webnn-ort-enable-profiling`
 
-|名称 |WebNN ONNX 运行时启用分析 |
+|名称 |WebNN ONNX  Runtime 启用分析 |
 | :--: | :-------- |
 |描述 |收集 ORT 配置文件数据以进行性能分析。配置文件数据文件在 Chrome 的文件夹中生成，具有固定的命名格式 `prefix_date_time.json` .|
 |注意|前缀可以由用户提供或使用`WebNNOrtProfile`作为默认|

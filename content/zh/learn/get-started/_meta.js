@@ -1,20 +1,20 @@
 export default {
   'installation': {
-    title: "⚙️ Installation"
+    title: "⚙️ 安装"
   },
   'quickstart': {
-    title: "🚀 Quickstart"
+    title: "🚀 快速开始"
   },
   'using-typescript': {
-    title: "Using TypeScript"
+    title: "使用 TypeScript"
   },
   'testing': {
-    title: "🧪 Testing"
+    title: "🧪 测试"
   },
   'debug': {
-    title: "🧪 Debug"
+    title: "🧪 调试"
   },
   'ot_registration': {
-    title: "💡 Origin Trials Registration"
+    title: "💡 原型试验注册"
   },
 };

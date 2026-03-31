@@ -2,17 +2,17 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLOperand
 
-The `MLOperand` interface represents an intermediary graph node during the construction of machine learning operations. It can represent constants, operation inputs, or results from combining multiple operations in a neural network graph.
+`MLOperand`接口代表机器学习操作构建过程中的中间图节点。它可以表示常量、操作输入或神经网络图中组合多个操作的结果。
 
-## MLOperandDescriptor Dictionary
+## MLPerandDescriptor 字典
 
-The `MLOperandDescriptor` dictionary describes the shape (dimensions) and data type of an operand in a machine learning context. It is used to specify the characteristics of inputs and constants for an `MLGraph`, with every `MLOperand` containing an internal `MLOperandDescriptor`.
+`MLOperandDescriptor` 字典描述机器学习上下文中操作数的形状（维度）和数据类型。它用于指定 `MLGraph` 的输入和常量的特征，每个 `MLOperand` 包含一个内部 `MLOperandDescriptor` 。
 
-It combines two essential pieces of information:
-- The data type of the operand (e.g., float32, int8)
-- The dimensional shape of the operand (e.g., [batch, height, width, channels])
+它结合了两个重要信息：
+- 操作数的数据类型（例如，float32、int8）
+- 操作数的维度形状（例如，[批次、高度、宽度、通道]）
 
-### Web IDL
+### 网络 IDL
 
 ```webidl showLineNumbers filename="web-idl"
 enum MLInputOperandLayout {
@@ -37,32 +37,32 @@ dictionary MLOperandDescriptor {
 };
 ```
 
-#### Properties
+＃＃＃＃ 特性
 
-##### `dataType` (required)
-- Type: `MLOperandDataType`
-- Description: Specifies the data type of the operand
-- Possible values:
-  - `"float32"`: 32-bit floating point
-  - `"float16"`: 16-bit floating point
-  - `"int32"`: 32-bit signed integer
-  - `"uint32"`: 32-bit unsigned integer
-  - `"int64"`: 64-bit signed integer
-  - `"uint64"`: 64-bit unsigned integer
-  - `"int8"`: 8-bit signed integer
-  - `"uint8"`: 8-bit unsigned integer
+##### `dataType`（必填）
+- 类型：`MLOperandDataType`
+- 说明：指定操作数的数据类型
+- 可能的值：
+- `"float32"` : 32 位浮点数
+- `"float16"` : 16 位浮点数
+- `"int32"` : 32 位有符号整数
+- `"uint32"` : 32 位无符号整数
+- `"int64"` : 64 位有符号整数
+- `"uint64"` : 64 位无符号整数
+- `"int8"` : 8 位有符号整数
+- `"uint8"` : 8 位无符号整数
 
-##### `shape` (required)
-- Type: `sequence<[EnforceRange] unsigned long>`
-- Description: An array specifying the dimensions of the operand
-- For scalar operands, this array should be empty
-- Each element represents the size of a dimension
+##### `shape`（必填）
+- 类型：`sequence<[EnforceRange] unsigned long>`
+- 描述：指定操作数维度的数组
+- 对于标量操作数，该数组应该为空
+- 每个元素代表一个维度的大小
 
-#### Input Operand Layout Types
+#### 输入操作数布局类型
 
-The `MLInputOperandLayout` enum defines possible layout configurations: `nchw` and `nhwc`
+`MLInputOperandLayout` 枚举定义了可能的布局配置：`nchw` 和 `nhwc`
 
-#### Examples
+#### 示例
 
 ```js showLineNumbers filename="example-1.js"
 const operandDescriptor = {
@@ -71,11 +71,11 @@ const operandDescriptor = {
 };
 ```
 
-## MLOperand Interface
+## MLOperand 接口
 
-The `MLOperand` interface provides access to the fundamental properties of an operand in a neural network graph. Each `MLOperand` is associated with an `MLGraphBuilder` and contains internal descriptors that define its characteristics.
+`MLOperand` 接口提供对神经网络图中操作数的基本属性的访问。每个 `MLOperand` 都与一个 `MLGraphBuilder` 相关联，并包含定义其特征的内部描述符。
 
-## Web IDL
+## 网络 IDL
 
 ```webidl showLineNumbers filename="web-idl"
 [SecureContext, Exposed=(Window, DedicatedWorker)]
@@ -91,53 +91,53 @@ dictionary MLOperatorOptions {
 typedef (bigint or unrestricted double) MLNumber;
 ```
 
-### Properties
+＃＃＃ 特性
 
-#### `dataType` (readonly)
-- Type: `MLOperandDataType`
-- Description: Returns the data type of the operand
-- Value is derived from the operand's internal descriptor
+#### `dataType`（只读）
+- 类型：`MLOperandDataType`
+- 描述：返回操作数的数据类型
+- 值源自操作数的内部描述符
 
-#### `shape` (readonly)
-- Type: `FrozenArray<unsigned long>`
-- Description: Returns the array of dimensions defining the operand's shape
-- Empty array for scalar operands
+#### `shape`（只读）
+- 类型：`FrozenArray<unsigned long>`
+- 描述：返回定义操作数形状的维度数组
+- 标量操作数的空数组
 
-## MLNumber
+## ML编号
 
-The `MLNumber` type is a type definition used to specify numeric options for `MLOperand` operations. 
-It accommodates both large integer values and floating-point numbers through a union type of `bigint` and `unrestricted double`, to handle numeric precision challenges in WebNN API operations that work with various data types.
+`MLNumber` 类型是用于指定 `MLOperand` 运算的数字选项的类型定义。
+它通过 `bigint` 和 `unrestricted double` 联合类型容纳大整数值和浮点数，以处理处理各种数据类型的 WebNN API 操作中的数字精度挑战。
 
-### Description
+＃＃＃ 描述
 
-`MLNumber` provides a flexible numeric type that can handle all supported `MLOperandDataType` values:
-- 64-bit integers (`"uint64"` and `"int64"`)
-- 32-bit floating point (`"float32"`)
-- Other numeric types (`"uint32"`, `"int32"`, etc.)
+`MLNumber` 提供了一种灵活的数字类型，可以处理所有支持的 `MLOperandDataType` 值：
+- 64 位整数（ `"uint64"` 和 `"int64"` ）
+- 32位浮点（`"float32"`）
+- 其他数字类型（ `"uint32"` 、 `"int32"` 等）
 
-The implementation automatically converts the `MLNumber` value to match the operand's data type during processing.
+该实现在处理期间自动转换 `MLNumber` 值以匹配操作数的数据类型。
 
-### Use Cases
+### 用例
 
-`MLNumber` can be used in these `MLGraphBuilder` methods:
+`MLNumber` 可用于以下 `MLGraphBuilder` 方法：
 
-- `constant()` (scalar overload)
+- `constant()`（标量过载）
 - `clamp()` (min/max options)
-- `pad()` (padding value)
+- `pad()`（填充值）
 - ...
 
-### Type Conversion Rules
+### 类型转换规则
 
-1. For integer data types:
-   - Values are cast to the appropriate integer type
-   - `bigint` values maintain full precision
-   - Floating-point values are truncated
+1. 对于整数数据类型：
+- 值被转换为适当的整数类型
+- `bigint` 值保持完全精度
+- 浮点值被截断
 
-2. For floating-point data types:
-   - Values are converted to the appropriate floating-point precision
-   - `bigint` values are converted to floating-point
+2. 对于浮点数据类型：
+- 值被转换为适当的浮点精度
+- `bigint` 值转换为浮点数
 
-## Examples
+## 示例
 
 ```js showLineNumbers filename="example-2.js"
 const context = await navigator.ml.createContext({
@@ -155,35 +155,35 @@ console.log(descriptor.shape);
 console.log(operand); 
 ```
 
-## Specifications
+＃＃ 规格
 
 | WebNN API | Status |
 |--------------|---------|
 | [`MLOperand` interface](https://webmachinelearning.github.io/webnn/#api-mloperand) | Candidate Recommendation Draft |
 
-## Security Requirements
+## 安全要求
 
-1. Must be used within a secure context (`SecureContext`)
-2. Access is limited to:
-   - Window contexts
-   - Dedicated Workers
-3. Validation requirements:
-   - All operands must be created by the same `MLGraphBuilder`
-   - Shape dimensions must be valid unsigned long values
-   - Data types must match operation requirements
+1. 必须在安全上下文中使用 ( `SecureContext` )
+2. 访问权限仅限于：
+- 窗口上下文
+- 敬业的工人
+3. 验证要求：
+- 所有操作数必须由相同的`MLGraphBuilder`创建
+- 形状尺寸必须是有效的无符号长整型值
+- 数据类型必须符合操作要求
 
-### Security Considerations
+### 安全考虑
 
-- Validate builder associations and numeric ranges before operations, check data type compatibility in operations
-- Ensure proper memory management for large tensors, consider the memory implications of large tensor shapes
-- Validate all shape dimensions to prevent out-of-memory conditions
-- Implement appropriate error handling for invalid operations or invalid descriptors
-- Ensure data types match the expected input format of your model
-- Handle potential loss of precision when converting between types
-- Consider numeric overflow scenarios
+- 在操作前验证构建器关联和数值范围，检查操作中的数据类型兼容性
+- 确保对大张量进行适当的内存管理，考虑大张量形状的内存影响
+- 验证所有形状尺寸以防止内存不足的情况
+- 对无效操作或无效描述符实施适当的错误处理
+- 确保数据类型与模型的预期输入格式匹配
+- 处理类型之间转换时潜在的精度损失
+- 考虑数字溢出场景
 
-## Browser Compatibility
+## 浏览器兼容性
 
-> <InfoIcon /> The `MLOperand` interface is under active development and browser support may vary.
+> <InfoIcon /> `MLOperand` 界面正在积极开发中，浏览器支持可能会有所不同。
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

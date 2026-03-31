@@ -2,49 +2,49 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 # ONNX2WebNN
 
-[ONNX2WebNN](https://github.com/huningxin/onnx2webnn) is a command-line tool that converts ONNX models to WebNN JavaScript files, enabling machine learning inference in web browsers using the WebNN API.
+[ONNX2WebNN](https://github.com/huningxin/onnx2webnn) 是一个命令行工具，可将 ONNX 模型转换为 WebNN JavaScript 文件，从而使用 WebNN API 在网络浏览器中启用机器学习推理。
 
-## Overview
+## 概述
 
-The tool generates two primary outputs:
-- A JavaScript file (`.js`) containing the WebNN model definition
-- A binary file (`.bin`) containing the model weights
+该工具生成两个主要输出：
+- 包含 WebNN 模型定义的 JavaScript 文件 ( `.js` )
+- 包含模型权重的二进制文件 ( `.bin` )
 
-## Privacy and Security
+## 隐私和安全
 
-**🔒 Client-Side Processing Only**
+**🔒 仅客户端处理**
 
-All model conversion and WebNN JavaScript files generation operations run exclusively in your local environment. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+所有模型转换和 WebNN JavaScript 文件生成操作仅在您的本地环境中运行。模型数据、权重或知识产权不会传输到或存储在任何外部服务器上。这使得该工具可以安全地用于：
 
-- Proprietary models
-- Sensitive intellectual property
-- Enterprise environments with strict data governance
-- Any scenario requiring complete data privacy
+- 专有型号
+- 敏感知识产权
+- 具有严格数据治理的企业环境
+- 任何需要完整数据隐私的场景
 
-## Installation
+## 安装
 
-Install the required dependencies using pip:
+使用 pip 安装所需的依赖项：
 
 ```bash
 pip install -U onnx protobuf numpy
 ```
 
-## Command-Line Interface
+## 命令行界面
 
-### Syntax
+### 句法
 
 ```bash
 python onnx2webnn.py -if INPUT_ONNX_FILE_PATH -oj OUTPUT_JS_PATH [OPTIONS]
 ```
 
-### Required Arguments
+### 必需的参数
 
 | Argument | Description |
 |----------|-------------|
 | `-if`, `--input_onnx_file_path` | Path to the input ONNX model file (`.onnx`) |
 | `-oj`, `--output_js_path` | Path for the output WebNN JavaScript file (`.js`) |
 
-### Optional Arguments
+### 可选参数
 
 | Argument | Description |
 |----------|-------------|
@@ -53,61 +53,61 @@ python onnx2webnn.py -if INPUT_ONNX_FILE_PATH -oj OUTPUT_JS_PATH [OPTIONS]
 | `-i`, `--json_indent` | Set indentation level for JSON output (default: 2) |
 | `-h`, `--help` | Display help information |
 
-## Basic Usage
+## 基本用法
 
-### Step 1: Prepare the ONNX Model
+### 第 1 步：准备 ONNX 模型
 
-> <InfoIcon /> Before conversion, override any free dimensions in your ONNX model using the [onnxruntime_perf_test](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/test/perftest/README.md) tool:
+> <InfoIcon /> 转换之前，使用 [onnxruntime_perf_test](https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/test/perftest/README.md) 工具覆盖 ONNX 模型中的任何自由尺寸：
 
 ```bash
 onnxruntime_perf_test -I -r 1 -u mobilenetv2-12-static.onnx -f batch_size:1 -o 1 mobilenetv2-12.onnx
 ```
 
-### Step 2: Create Output Directory
+### 第2步：创建输出目录
 
 ```bash
 mkdir mobilenet
 ```
 
-### Step 3: Convert the Model
+### 第 3 步：转换模型
 
 ```bash
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet/mobilenet.js
 ```
 
-This command generates the following files in the `mobilenet` directory:
-- `mobilenet.js` - WebNN model implementation
-- `mobilenet.bin` - Model weights
-- `mobilenet.json` - Model metadata (optional)
-- `index.html` - Test page for the WebNN model
+该命令在`mobilenet`目录中生成以下文件：
+- `mobilenet.js` - WebNN 模型实现
+- `mobilenet.bin` - 模型权重
+- `mobilenet.json` - 模型元数据（可选）
+- `index.html` - WebNN 型号的测试页
 
-### Step 4: Test the Model
+### 第 4 步：测试模型
 
-Start a local [HTTP server](https://www.npmjs.com/package/http-server) via Node.js and navigate to the test page:
+通过 Node.js 启动本地 [HTTP server](https://www.npmjs.com/package/http-server) 并导航到测试页面：
 
 ```bash
 http-server
 ```
 
-Open `http://localhost:8080/` in your web browser.
+在网络浏览器中打开 `http://localhost:8080/`。
 
-## NHWC Layout Support
+## NHWC 布局支持
 
-### Overview
+### 概述
 
-ONNX models use NCHW (batch, channels, height, width) layout by default. However, some WebNN backends (such as TensorFlow Lite for CPU and GPU) perform better with NHWC (batch, height, width, channels) layout.
+ONNX 模型默认使用 NCHW（批次、通道、高度、宽度）布局。然而，一些 WebNN 后端（例如用于 CPU 和 GPU 的 TensorFlow Lite）在 NHWC（批量、高度、宽度、通道）布局下性能更好。
 
-### Generating NHWC Models
+### 生成 NHWC 模型
 
-Add the `-nhwc` flag to generate a model optimized for NHWC layout:
+添加 `-nhwc` 标志以生成针对 NHWC 布局优化的模型：
 
 ```bash
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet_nhwc/mobilenet_nhwc.js -nhwc
 ```
 
-### Dynamic Layout Selection
+### 动态布局选择
 
-Use the WebNN API to detect the backend's preferred layout and load the appropriate model:
+使用 WebNN API 检测后端的首选布局并加载适当的模型：
 
 ```javascript
 const deviceType = 'gpu'; // or 'cpu', 'npu'
@@ -125,60 +125,60 @@ if (layout === 'nhwc') {
 await webnnModel.build({deviceType});
 ```
 
-## Generate QDQ WebNN Models
+## 生成 QDQ WebNN 模型
 
-This tool converts [QDQ (Quantize-Dequantize)](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html#onnx-quantization-representation-format) ONNX models to WebNN models.
+该工具将 [QDQ (Quantize-Dequantize)](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html#onnx-quantization-representation-format) ONNX 模型转换为 WebNN 模型。
 
-### Prerequisites
+### 先决条件
 
-QDQ model conversion requires proper tensor shape information to handle scale and zero-point tensor reshaping according to the [WebNN quantizeLinear and dequantizeLinear specification](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-dequantizelinear). The WebNN spec may require reshaping these tensors based on the input tensor's rank and axis parameters.
+QDQ 模型转换需要适当的张量形状信息来根据 [WebNN quantizeLinear and dequantizeLinear specification](https://www.w3.org/TR/webnn/#api-mlgraphbuilder-dequantizelinear) 处理尺度和零点张量重塑。WebNN 规范可能需要根据输入张量的秩和轴参数重塑这些张量。
 
-#### Prepare Your ONNX Model
+#### 准备您的 ONNX 模型
 
-Before conversion, ensure your ONNX model contains shape information for each output tensor by using [onnx-simplifier](https://github.com/daquexian/onnx-simplifier):
+在转换之前，请使用 [onnx-simplifier](https://github.com/daquexian/onnx-simplifier) 确保您的 ONNX 模型包含每个输出张量的形状信息：
 
-1. Install onnx-simplifier:
-   ```shell
-   pip3 install onnxsim
+1. 安装onnx -简化：
+````外壳
+pip3 安装 onnxsim
    ```
 
-2. Simplify your model:
-   ```shell
-   onnxsim input_model.onnx output_model_simplified.onnx
+2. 简化您的模型：
+````外壳
+onnxsim 输入模型。onnx 输出_模型_简化。onnx
    ```
 
-   **Example:**
-   ```shell
-   onnxsim ../sample_models/mobilenetv2-12-qdq-static.onnx ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx
+**例子：**
+````外壳
+onnxsim ../sample_models/mobilenetv2-12-qdq-static。onnx ../sample_models/mobilenetv2-12-qdq-static-简化。onnx
    ```
 
-### Convert to WebNN
+### 转换为 WebNN
 
-#### Basic Conversion (NCHW Layout)
+#### 基本转换（NCHW 布局）
 
 ```shell
 python onnx2webnn.py -if input_model.onnx -oj output_directory/output_model.js
 ```
 
-**Example:**
+**例子：**
 ```shell
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq/mobilenet_qdq.js
 ```
 
-#### NHWC Layout Conversion
+#### NHWC 布局转换
 
-For models requiring NHWC data layout, add the `-nhwc` flag:
+对于需要 NHWC 数据布局的模型，添加 `-nhwc` 标志：
 
 ```shell
 python onnx2webnn.py -if input_model.onnx -oj output_directory/output_model.js -nhwc
 ```
 
-**Example:**
+**例子：**
 ```shell
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq_nhwc/mobilenet_qdq_nhwc.js -nhwc
 ```
 
-### Parameters
+### 参数
 
 | Parameter | Description |
 |-----------|-------------|
@@ -186,27 +186,27 @@ python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.o
 | `-oj` | Output JavaScript file path for the WebNN model |
 | `-nhwc` | (Optional) Use NHWC data layout instead of default NCHW |
 
-## Debugging with JSON Export
+## 使用 JSON 导出进行调试
 
-Export the model structure as JSON for debugging and analysis:
+将模型结构导出为 JSON 以便调试和分析：
 
 ```bash
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilenet/mobilenet.js -json
 ```
 
-This creates an additional JSON file containing the complete model structure, useful for:
-- Debugging conversion issues
-- Understanding model architecture
-- Verifying operator mappings
+这将创建一个包含完整模型结构的附加 JSON 文件，可用于：
+- 调试转换问题
+- 了解模型架构
+- 验证运算符映射
 
-## Best Practices
+## 最佳实践
 
-1. **Model Preparation**: Always resolve [free dimensions](../onnx-runtime/free-dimension-overrides) in your ONNX model before conversion
-2. **Layout Selection**: Use dynamic layout detection to optimize performance across different backends
-3. **Testing**: Use the generated `index.html` file to verify model functionality before integration
-4. **Performance**: Consider generating both NCHW and NHWC versions for optimal cross-platform performance
+1. **模型准备**：在转换之前始终解析 ONNX 模型中的 [free dimensions](../onnx-runtime/free-dimension-overrides)
+2. **布局选择**：使用动态布局检测来优化不同后端的性能
+3. **测试**：在集成之前使用生成的 `index.html` 文件验证模型功能
+4. **性能**：考虑生成 NCHW 和 NHWC 版本以获得最佳跨平台性能
 
-## Related APIs
+## 相关API
 
 - [WebNN API Specification](https://www.w3.org/TR/webnn/)
 - [MLInputOperandLayout - MLContext.opSupportLimits()](https://www.w3.org/TR/webnn/#dom-mlopsupportlimits-preferredinputlayout)

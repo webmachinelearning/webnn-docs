@@ -6,13 +6,13 @@ import IntelIcon from '../../../../app/_components/icons/ihv/intel.jsx'
 import QualcommIcon from '../../../../app/_components/icons/ihv/qualcomm.jsx'
 import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
-# Installation
+＃安装
 
-> <InfoIcon /> To use WebNN before the [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) milestone, complete these setup requirements
+> <InfoIcon /> 要在 [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) 里程碑之前使用 WebNN ，请完成以下设置要求
 
-## Install GPU and NPU drivers for optimal compatibility and performance
+## 安装 GPU 和 NPU 驱动程序以获得最佳兼容性和性能
 
-### Windows OS
+### Windows操作系统
 
 <div className="table-center">
 | IHVs | GPU Driver | NPU Driver |
@@ -23,31 +23,31 @@ import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 | <QualcommIcon /> | TBD | TBD |
 </div>
 
-## Enable WebNN
+## 启用 WebNN
 
-> <InfoIcon /> The Windows ML / OpenVINO Execution Provider requires Windows 11, version 24H2 or newer to run
-
-<Steps>
-### Install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
-### Navigate to `about://flags` in browser address bar
-### Search for `Enables WebNN API` and change it to `Enabled`
-### Relaunch browser
-</Steps>
-
-## Run WebNN on LiteRT backend (CPU and GPU)
-
-> <InfoIcon /> Windows 11 versions prior to 24H2, Windows 10 and Linux
+> <InfoIcon /> Windows ML / OpenVINO 执行提供需要 Windows 11 版本 24H2 或更高版本才能运行的程序
 
 <Steps>
-### Navigate to `about://flags` in browser address bar
-### Search for `ONNX Runtime backend for WebNN` and change it to `Disabled`
-### Search for `DirectML backend for WebNN` and change it to `Disabled`
-### Relaunch browser
+### 安装最新的 [Chrome Canary](https://google.com/chrome/canary) 或 [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+### 导航到浏览器地址地址的`about://flags`
+### 搜索 `Enables WebNN API` 将其更改为 `Enabled`
+###重新启动浏览器
 </Steps>
 
-## Debug or Troubleshooting
+## 在 LiteRT 控制台（CPU 和 GPU）上运行 WebNN
 
-* [Why isn't my NPU working with WebNN](../troubleshooting/hardware-errors#npu-utilization-not-visible-in-windows-task-manager-when-running-on-webnn-npu)?
-* Learn [how to determine if you are running on Windows ML / OpenVINO Execution Provider on Windows 11](../../faq/architecture/#how-do-i-determine-if-i-am-running-on-windows-ml--openvino-execution-provider-on-windows-11).
+> <InfoIcon /> 24H2 Windows 11 版本之前、Windows 10 和 Linux
 
-If you are a developer, visit the [debug page](./debug) for information about WebNN debugging options.
+<Steps>
+### 导航到浏览器地址地址的`about://flags`
+### 搜索 `ONNX Runtime backend for WebNN` 将其更改为 `Disabled`
+### 搜索 `DirectML backend for WebNN` 将其更改为 `Disabled`
+###重新启动浏览器
+</Steps>
+
+## 调试或故障排除
+
+* [Why isn't my NPU working with WebNN](../troubleshooting/hardware-errors#npu-utilization-not-visible-in-windows-task-manager-when-running-on-webnn-npu) ？
+* 学习[how to determine if you are running on Windows ML / OpenVINO Execution Provider on Windows 11](../../faq/architecture/#how-do-i-determine-if-i-am-running-on-windows-ml--openvino-execution-provider-on-windows-11)。
+
+如果您是开发人员，请访问[debug page](./debug)以获取有关WebNN调试选项的信息。

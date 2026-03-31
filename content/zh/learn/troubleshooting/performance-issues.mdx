@@ -1,27 +1,27 @@
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# Performance Issues
+# 性能问题
 
-## ONNX Runtime
+## ONNX 运行时
 
-### How to profile my super slow WebNN implementation?
+### 如何分析我的超慢 WebNN 实施？
 
-WebNN EP of ONNX Runtime Web needs specify fixed integer values via [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) for all the [symbolic dimensions](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension), otherwise the optimizations will not be applied.
+ONNX Runtime Web 的 WebNN EP 需要通过 [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) 为所有 [symbolic dimensions](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension) 指定固定整数值，否则优化将不会应用。
 
-> <InfoIcon /> Oh Wow! fixing the argument names makes it 100x time faster! 
+> <InfoIcon /> 哇哦！修复参数名称使其速度提高 100 倍！
 
-#### Additional Resources
+#### 其他资源
 
 - [SD-Turbo image-to-image super slow issue](https://github.com/microsoft/webnn-developer-preview/issues/40)
 
-### Why am I not seeing performance benefits on Intel GPUs?
+### 为什么我没有看到 Intel GPU 的性能优势？
 
-DirectML metacommands execution is disabled by default on Intel GPUs between driver versions `31.0.101.5518` and `32.0.101.6083`. To enable metacommands and evaluate performance on affected GPU drivers, add the following flag:
+默认情况下，在驱动程序版本 `31.0.101.5518` 和 `32.0.101.6083` 之间的 Intel GPU 上禁用 DirectML 元命令执行。要启用元命令并评估受影响的 GPU 驱动程序的性能，请添加以下标志：
 
 ```bash copy showLineNumbers filename="gpu-flag"
 --disable_dml_meta_commands_for_gpu=0
 ```
 
-Note: This flag only affects GPU inference and has no impact on NPU operations.
+注意：该标志仅影响GPU推理，对NPU操作没有影响。
 
 ## LiteRT
