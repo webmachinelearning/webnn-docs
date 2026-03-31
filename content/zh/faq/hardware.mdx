@@ -1,32 +1,32 @@
 
-# 硬件和 NPU
+# Hardware and NPU
 
-## WebNN可以在NPU上运行吗？
+## Can WebNN run on NPU?
 
-是的，WebNN API 旨在支持神经处理单元 (NPU)。API 可以在从台式电脑到移动平台的各种设备上使用 NPU。
+Yes, WebNN API is designed to support Neural Processing Units (NPUs). The API can utilize NPUs across various devices, from desktop computers to mobile platforms.
 
-已验证 WebNN 与以下设备兼容：
+Verified WebNN is compatible with following devices:
 
-- 英特尔酷睿超级处理器
-- 流星湖 (MTL)
+- Intel Core Ultra Processors
+  - Meteor Lake (MTL)
 
-- 英特尔酷睿 Ultra 系列 2 处理器
-- 月湖 (LNL)
-- 箭湖 (ARL)
+- Intel Core Ultra Series 2 Processors
+  - Lunar Lake (LNL)
+  - Arrow Lake (ARL)
 
-- 英特尔酷睿 Ultra 系列 3 处理器
-- 黑豹湖 (PTL)
+- Intel Core Ultra Series 3 Processors
+  - Panther Lake (PTL)
 
-## 如何在浏览器中监控 WebNN 可用的硬件资源？
+## How can I monitor hardware resources available to WebNN in the browser?
 
-您可以使用多种浏览器和系统工具监控系统资源：
+You can monitor system resources using several browser and system tools:
 
-- 有关 GPU 信息：
+- For GPU information:
 
-- 访问 about://gpu 查看详细的 GPU 诊断和错误日志
-- 检查 about://histograms/webnn 的 WebNN - 特定性能指标
+  - Access about://gpu to view detailed GPU diagnostics and error logs
+  - Check about://histograms/webnn for WebNN-specific performance metrics
 
-- 对于一般系统资源：
+- For general system resources:
 
-- 浏览器资源：打开Google Chrome或Microsoft Edge任务管理器（菜单→更多工具→任务管理器）以监控内存使用情况和CPU消耗
-- 系统资源：使用Windows任务管理器监控CPU、GPU和NPU利用率
+  - Browser resources: Open Google Chrome or Microsoft Edge Task Manager (Menu → More Tools → Task Manager) to monitor memory usage and CPU consumption
+  - System resources: Use Windows Task Manager to monitor CPU, GPU, and NPU utilization

@@ -1,12 +1,12 @@
 export default {
   reference: {
-    title: "API 参考"
+    title: "API Reference"
   },
   webnn: {
     title: "WebNN API"
   },
   'browser-compatibility': {
-    title: "浏览器兼容性"
+    title: "Browser Compatibility"
   },
   'onnx-runtime': {
     title: "ONNX Runtime"

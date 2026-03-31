@@ -1,20 +1,20 @@
 export default {
   overview: {
-    title: "概览"
+    title: "Overview"
   },
   architecture: {
-    title: "架构"
+    title: "Architecture"
   },
   api: {
     title: "API"
   },
   framework: {
-    title: "框架和工具"
+    title: "Framework and Tool"
   },
   model: {
-    title: "模型"
+    title: "Model"
   },
   hardware: {
-    title: "硬件和 NPU"
+    title: "Hardware and NPU"
   }
 };

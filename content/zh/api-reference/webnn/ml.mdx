@@ -1,10 +1,10 @@
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# 机器学习
+# ML
 
-`ML` 接口提供了在 Web 应用程序中创建和管理机器学习上下文的方法。
+The `ML` Interface provides methods for creating and managing machine learning contexts in web applications.
 
-## 网络 IDL
+## Web IDL
 
 ```idl showLineNumbers filename="web-idl"
 enum MLDeviceType {
@@ -31,11 +31,11 @@ interface ML {
 };
 ```
 
-＃＃ 方法
+## Methods
 
-### 创建上下文()
+### createContext()
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="create-context.js"
 createContext()
@@ -43,64 +43,64 @@ createContext(options)
 createContext(gpuDevice)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `options` ：提供应用程序首选项的 `MLContextOptions` 对象
-- `gpuDevice` ：与上下文一起使用的特定 `GPUDevice` 对象
+- `options`: A `MLContextOptions` object providing the application’s preferences
+- `gpuDevice`: A specific `GPUDevice` object to use with the context
 
-#### 返回值
+#### Return Value
 
-一个`MLContext`
+A `MLContext`
 
-＃＃ 描述
+## Description
 
-`ML` 接口支持创建具有特定设备和电源首选项的机器学习环境。它提供了两种创建上下文的方法 - 一种接受配置选项，另一种接受特定 GPU 设备。
+The `ML` interface enables creation of machine learning contexts with specific device and power preferences. It provides two methods for creating contexts - one accepting configuration options and another accepting a specific GPU device.
 
-### 设备类型选项
+### Device Type Options
 
-定义 ML 操作支持的设备类型的枚举：
-- `"cpu"`：基于CPU的处理
-- `"gpu"` ：基于 GPU 的处理
-- `"npu"` ：基于神经处理单元的处理
+An enumeration defining supported device types for ML operations:
+- `"cpu"`: CPU-based processing
+- `"gpu"`: GPU-based processing
+- `"npu"`: Neural Processing Unit-based processing
 
 #### `"cpu"`
-- 提供跨设备的最大兼容性
-- 基于硬件功能的可变性能
-- 如果未指定则默认选项
+- Provides maximum compatibility across devices
+- Variable performance based on hardware capabilities
+- Default option if not specified
 
 #### `"gpu"`
-- 提供最高的性能潜力
-- 某些操作可能会退回到其他设备
-- 需要兼容的图形硬件
+- Offers highest performance potential
+- May fall back to other devices for certain operations
+- Requires compatible graphics hardware
 
 #### `"npu"`
-- 针对电源效率进行优化
-- 适合持续的工作负载
-- 可能会退回到其他设备来执行不受支持的操作
+- Optimized for power efficiency
+- Suitable for sustained workloads
+- May fall back to other devices for unsupported operations
 
-### 电源偏好选项
+### Power Preference Options
 
-指定功耗首选项的枚举：
-- `"default"` ：系统决定的行为
-- `"high-performance"` ：速度优先于电源效率
-- `"low-power"`：优先考虑电源效率而不是性能
+An enumeration specifying power consumption preferences:
+- `"default"`: System-determined behavior
+- `"high-performance"`: Prioritizes speed over power efficiency
+- `"low-power"`: Prioritizes power efficiency over performance
 
 #### `"default"`
-- 让用户代理确定最佳行为
-- 性能和功耗的平衡方法
+- Lets the user agent determine optimal behavior
+- Balanced approach to performance and power consumption
 
 #### `"high-performance"`
-- 最大化执行速度
-- 可能会增加功耗
-- 适用于计算密集型任务
+- Maximizes execution speed
+- May increase power consumption
+- Suitable for compute-intensive tasks
 
 #### `"low-power"`
-- 最大限度地减少功耗
-- 可能会降低性能
-- 非常适合电池供电的设备
+- Minimizes power consumption
+- May reduce performance
+- Ideal for battery-powered devices
 
-### ML 上下文选项
-ML 上下文的配置选项字典：
+### ML Context Options
+A dictionary of configuration options for ML contexts:
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLContextOptions {
@@ -109,9 +109,9 @@ dictionary MLContextOptions {
 }
 ```
 
-## 示例
+## Examples
 
-### 使用默认选项创建上下文
+### Creating a Context with Default Options
 
 ```js showLineNumbers filename="example-1.js"
 try {
@@ -122,7 +122,7 @@ try {
 }
 ```
 
-### 创建具有特定选项的上下文
+### Creating a Context with Specific Options
 
 ```js showLineNumbers filename="example-2.js"
 const options = {
@@ -138,7 +138,7 @@ try {
 }
 ```
 
-### 与特定 GPU 设备一起使用
+### Using with a Specific GPU Device
 
 ```js showLineNumbers filename="example-3.js"
 // Assuming we have a GPUDevice instance
@@ -152,32 +152,32 @@ try {
   console.error('Failed to create context with GPU device:', error);
 }
 ```
-＃＃ 规格
+## Specifications
 
 | WebNN API | Status |
 |--------------|---------|
 | [`ML` interface](https://www.w3.org/TR/webnn/#api-ml) | Candidate Recommendation Draft |
 
-## 安全要求
-- 需要安全的上下文
-- 在 Window 和 DedicatedWorker 上下文中可用
+## Security Requirements
+- Requires a secure context
+- Available in Window and DedicatedWorker contexts
 
-## 浏览器兼容性
+## Browser Compatibility
 
-> <InfoIcon /> `ML` 界面正在积极开发中，浏览器支持可能会有所不同。
+> <InfoIcon /> The `ML` interface is under active development and browser support may vary.
 
-参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
 
-## 发展现状
+## Development Status
 
-ML 接口和 MLContextOptions 正在积极开发中。目前的考虑因素包括：
+The ML interface and MLContextOptions are actively being developed. Current considerations include:
 
-- 实施回退设备机制
-- 支持按首选顺序排列多个设备
-- 设备排除功能
-- 增强的错误处理
-- 量化算子支持
+- Implementation of fallback device mechanisms
+- Support for multiple devices in preferred order
+- Device exclusion capabilities
+- Enhanced error handling
+- Quantized operator support
 
-## 其他资源
+## Additional Resources
 
 - [GPUDevice Interface](https://www.w3.org/TR/webgpu/#gpudevice)

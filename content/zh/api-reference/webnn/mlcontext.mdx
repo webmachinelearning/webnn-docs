@@ -2,9 +2,9 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLContext
 
-`MLContext` 接口表示神经网络计算工作负载和执行过程的全局状态。每个 `MLContext` 对象都有关联的 `context type` 、 `MLDeviceType` 和 `MLPowerPreference` 。
+The `MLContext` interface represents a global state of neural network compute workload and execution processes. Each `MLContext` object has associated `context type`, `MLDeviceType` and `MLPowerPreference`.
 
-## 网络 IDL
+## Web IDL
 
 ```webidl showLineNumbers filename="web-idl"
 typedef record<USVString, MLTensor> MLNamedTensors;
@@ -31,143 +31,143 @@ interface MLContext {
   readonly attribute Promise<MLContextLostInfo> lost;
 };
 ```
-## 上下文类型
+## Context Types
 
-上下文类型决定了执行上下文如何管理资源并促进神经网络图的编译和执行：
+The context type determines how the execution context manages resources and facilitates neural network graph compilation and execution:
 
-- `"default"`：根据用户首选项选项创建的上下文
-- `"webgpu"` ：从 WebGPU 设备创建的上下文
+- `"default"`: Context created per user preference options
+- `"webgpu"`: Context created from WebGPU device
 
-当 `contextType` 设置为 `default` 且 `MLContextOptions.deviceType` 设置为 `"gpu"` 时，用户代理将创建一个在上下文中运行的内部 GPU 设备，并可以代表调用应用程序提交 ML 工作负载。
+When the `contextType` is set to `default` with the `MLContextOptions.deviceType` set to `"gpu"`, the user agent creates an internal GPU device that operates within the context and can submit ML workloads on behalf of the calling application.
 
-＃＃ 特性
+## Properties
 
-### 丢失（只读）
+### lost (readonly)
 
-返回一个在上下文丢失时解析的 `Promise`。当上下文的 `lost` `Promise` 被解决时，上下文被认为丢失。
+Returns a `Promise` that resolves when the context is lost. A context is considered lost when its `lost` `Promise` is settled.
 
-- 类型：`Promise<undefined>`
-- 投掷：无
+- Type: `Promise<undefined>`
+- Throws: None
 
-＃＃ 方法
+## Methods
 
-＃＃＃ 派遣（）
+### dispatch()
 
-将已编译的 `MLGraph` 的计算工作量安排在 `MLContext` 的时间线上。
+Schedules the computational workload of a compiled `MLGraph` on the `MLContext`'s timeline.
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="dispatch.js"
 context.dispatch(graph, inputs, outputs)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `graph` ：表示要执行的计算图的 `MLGraph` 对象
-- `inputs` ：包含计算图输入的 `MLNamedTensors` 对象
-- `outputs` ：包含计算图输出的 `MLNamedTensors` 对象
+- `graph`: An `MLGraph` object representing the computational graph to be executed
+- `inputs`: An `MLNamedTensors` object containing the inputs to the computational graph
+- `outputs`: An `MLNamedTensors` object that will contain the outputs of the computational graph
 
-#### 返回值
+#### Return Value
 
 `undefined`
 
-#### 注释
+#### Notes
 
-`dispatch()` 方法本身不提供图形执行已完成的信号。调用者应该 `await` 读回输出张量的结果。
+The `dispatch()` method itself provides no signal that graph execution has completed. Callers should `await` the results of reading back the output tensors.
 
-### 创建张量()
+### createTensor()
 
-创建与此 `MLContext` 关联的 `MLTensor` 。
+Creates an `MLTensor` associated with this `MLContext`.
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="create-tensor.js"
 context.createTensor(descriptor)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `descriptor` : `MLTensorDescriptor` 对象
+- `descriptor`: An `MLTensorDescriptor` object
 
-#### 返回值
+#### Return Value
 
-返回解析为 `MLTensor` 的 `Promise`
+Returns a `Promise` that resolves to an `MLTensor`
 
-### 读取张量()
+### readTensor()
 
-此方法有两种变体：
+There are two variations of this method:
 
-#### 语法 1：（张量）
+#### Syntax 1: (tensor)
 
 ```js showLineNumbers filename="read-tensor-1.js"
 context.readTensor(tensor)
 ```
 
-将 `MLTensor` 的 `data` 从 `MLContext` 时间线读回脚本。
+Reads back the `data` of an `MLTensor` from the `MLContext` timeline to script.
 
-＃＃＃＃＃ 参数
+##### Parameters
 
-- `tensor` : 要读取的 `MLTensor` 对象
+- `tensor`: An `MLTensor` object to be read
 
-##### 返回值
+##### Return Value
 
-返回一个 `Promise`，该 `Promise` 解析为包含读取结果的 `ArrayBuffer`
+Returns a `Promise` that resolves to an `ArrayBuffer` containing the result of the read
 
-#### 语法 2：（张量，输出数据）
+#### Syntax 2: (tensor, outputData)
 
 ```js showLineNumbers filename="read-tensor-2.js"
 context.readTensor(tensor, outputData)
 ```
 
-自带缓冲区变体，将 `MLTensor` 的 `data` 读回到提供的缓冲区中。
+Bring-your-own-buffer variant that reads back the `data` of an `MLTensor` into the provided buffer.
 
-＃＃＃＃＃ 参数
+##### Parameters
 
-- `tensor` : 要读取的 `MLTensor` 对象
-- `outputData` ：将结果读入的 `AllowSharedBufferSource` 缓冲区
+- `tensor`: An `MLTensor` object to be read
+- `outputData`: An `AllowSharedBufferSource` buffer to read the result into
 
-##### 返回值
+##### Return Value
 
-返回解析为 `undefined` 的 `Promise`
+Returns a `Promise` that resolves to `undefined`
 
 ### writeTensor()
 
-将数据写入 `MLContext` 时间线上的 [​​[P1]] 的 `data`。 `MLTensor`
+Writes data to the `data` of an `MLTensor` on the `MLContext`'s timeline.
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="write-tensor.js"
 context.writeTensor(tensor, inputData)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `tensor` ：要写入的 `MLTensor` 对象
-- `inputData` ：`AllowSharedBufferSource` 缓冲区，其字节将被写入张量
+- `tensor`: An `MLTensor` object to be written to
+- `inputData`: An `AllowSharedBufferSource` buffer whose bytes will be written into the tensor
 
-#### 返回值
+#### Return Value
 
 `undefined`
 
-#### 注释
+#### Notes
 
-`writeTensor()` 方法本身不提供写入已完成的信号。调用者应该 `await` 读回张量的结果。
+The `writeTensor()` method itself provides no signal that the write has completed. Callers should `await` the results of reading back the tensor.
 
 ### opSupportLimits()
 
-返回有关操作员级别的不同实现的支持级别的信息。
+Returns information about the level of support that differs across implementations at the operator level.
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="op-support-limits.js"
 context.opSupportLimits()
 ```
 
-#### 返回值
+#### Return Value
 
-返回包含支持信息的 `MLOpSupportLimits` 对象。
+Returns an `MLOpSupportLimits` object containing support information.
 
-#### MLOpSupportLimits 字典
+#### MLOpSupportLimits Dictionary
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLOpSupportLimits {
@@ -178,14 +178,14 @@ dictionary MLOpSupportLimits {
 };
 ```
 
-##### 会员
+##### Members
 
-- `preferredInputLayout` ：布局相关运算符的首选输入布局，例如 `conv2d()`
-- `input` ：支持 `MLGraph` 输入 `MLOperand` 的限制
-- `constant` ：支持 `MLGraph` 的常数 `MLOperand` s 的限制
-- `output` ：支持 `MLGraph` 的输出 `MLOperand` 限制
+- `preferredInputLayout`: Preferred input layout for layout dependent operators like `conv2d()`
+- `input`: Support limits for input `MLOperand`s for an `MLGraph`
+- `constant`: Support limits for constant `MLOperand`s for an `MLGraph`
+- `output`: Support limits for output `MLOperand`s for an `MLGraph`
 
-#### MLSupportLimits 字典
+#### MLSupportLimits Dictionary
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLSupportLimits {
@@ -193,11 +193,11 @@ dictionary MLSupportLimits {
 };
 ```
 
-##### 会员
+##### Members
 
-- `dataTypes` : 支持的数据类型
+- `dataTypes`: Supported data types
 
-#### MLBinarySupportLimits 字典
+#### MLBinarySupportLimits Dictionary
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLBinarySupportLimits {
@@ -207,13 +207,13 @@ dictionary MLBinarySupportLimits {
 };
 ```
 
-##### 会员
+##### Members
 
-- `a` : `MLSupportLimits` 为操作数
-- `b` : `MLSupportLimits` 用于 b 操作数
-- `output` : `MLSupportLimits` 用于输出操作数
+- `a`: `MLSupportLimits` for a operand
+- `b`: `MLSupportLimits` for b operand
+- `output`: `MLSupportLimits` for output operand
 
-#### MLSingleInputSupportLimits 字典
+#### MLSingleInputSupportLimits Dictionary
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLSingleInputSupportLimits {
@@ -222,28 +222,28 @@ dictionary MLSingleInputSupportLimits {
 };
 ```
 
-##### 会员
+##### Members
 
-- `input` : `MLSupportLimits` 用于输入操作数
-- `output` : `MLSupportLimits` 用于输出操作数
+- `input`: `MLSupportLimits` for input operand
+- `output`: `MLSupportLimits` for output operand
 
-＃＃＃ 破坏（）
+### destroy()
 
-释放与上下文关联的所有资源。调用此方法后，任何挂起的计算请求和 MLTensor 操作（创建、读取或写入）都将失败。
+Releases all resources associated with the context. Any pending compute requests and MLTensor operations (creation, read, or write) will fail after this method is called.
 
-#### 语法
+#### Syntax
 
 ```js showLineNumbers filename="destory.js"
 context.destroy()
 ```
 
-#### 返回值
+#### Return Value
 
-- 类型：`undefined`
+- Type: `undefined`
 
-## 示例
+## Examples
 
-### 使用 MLtensor 执行 MLGraph
+### Executing an MLGraph using MLTensors
 
 ```js showLineNumbers filename="example-1.js"
   const mlGraphExecution = async () => {
@@ -309,7 +309,7 @@ context.destroy()
   mlGraphExecution();
 ```
 
-### 检查操作员支持限制
+### Checking Operator Support Limits
 
 ```js showLineNumbers filename="example-2.js"
   const context = await navigator.ml.createContext();
@@ -317,20 +317,20 @@ context.destroy()
   console.log('opSupportLimits: ', limits);
 ```
 
-＃＃ 规格
+## Specifications
 
 | WebNN API | Status |
 |--------------|---------|
 | [`MLContext` interface](https://www.w3.org/TR/webnn/#mlgraph) | Candidate Recommendation Draft |
 
-## 安全要求
+## Security Requirements
 
-- 必须在安全环境中使用
-- 访问仅限于 Window 和 DedicatedWorker 上下文
-- 需要正确处理共享缓冲区和张量数据，以防止内存泄漏和未经授权的访问
+- Must be used in a secure context
+- Access is restricted to Window and DedicatedWorker contexts
+- Proper handling of shared buffers and tensor data is required to prevent memory leaks and unauthorized access
 
-## 浏览器兼容性
+## Browser Compatibility
 
-> <InfoIcon /> `MLContext` 界面正在积极开发中，浏览器支持可能会有所不同。
+> <InfoIcon /> The `MLContext` interface is under active development and browser support may vary.
 
-参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)

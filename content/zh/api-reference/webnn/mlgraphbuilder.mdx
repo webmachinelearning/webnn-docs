@@ -2,9 +2,9 @@
 
 # MLGraphBuilder
 
-`MLGraphBuilder` 接口可以通过一组操作构建计算图。它管理图形构建会话期间的中间状态。
+The `MLGraphBuilder` interface enables the construction of computational graphs through a set of operations. It manages the intermediate state during graph building sessions.
 
-## 网络 IDL
+## Web IDL
 
 ```webidl showLineNumbers filename="web-idl"
 typedef record<USVString, MLOperand> MLNamedOperands;
@@ -29,7 +29,7 @@ interface MLGraphBuilder {
 };
 ```
 
-## 语法
+## Syntax
 
 ```javascript
 const builder = new MLGraphBuilder(context);
@@ -43,107 +43,107 @@ const constant2 = builder.constant(type, value);
 const graph = await builder.build(outputs);
 ```
 
-## 构造函数
+## Constructor
 
-### MLGraphBuilder ()
+### MLGraphBuilder()
 
-创建一个新的 `MLGraphBuilder` 实例。
+Creates a new `MLGraphBuilder` instance.
 
 ```js showLineNumbers filename="constructor.js"
 constructor(context)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `context` ：与图形生成器关联的 `MLContext` 对象。
+- `context`: An `MLContext` object to associate with the graph builder.
 
-＃＃ 特性
+## Properties
 
-该接口不包含任何属性。
+This interface doesn't contain any properties.
 
-＃＃ 方法
+## Methods
 
-＃＃＃ 输入（）
+### input()
 
-创建一个名为 `MLOperand` 的可用作图形的输入。
+Creates a named `MLOperand` that can be used as an input to the graph.
 
 ```js showLineNumbers filename="input.js"
 builder.input(name, descriptor)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `name` ：表示输入名称的字符串。
-- `descriptor` ：定义输入特征的 `MLOperandDescriptor` 对象。
+- `name`: A string representing the name of the input.
+- `descriptor`: An `MLOperandDescriptor` object defining the input's characteristics.
 
-#### 返回值
+#### Return Value
 
-返回一个 `MLOperand` 对象。
+Returns an `MLOperand` object.
 
-＃＃＃ 持续的（）
+### constant()
 
-创建常量 `MLOperand` 。该方法有两个重载：
+Creates a constant `MLOperand`. This method has two overloads:
 
-#### 语法 1：创建图形常量
+#### Syntax 1: Creating a graph constant
 
 ```js showLineNumbers filename="constant-1.js"
 builder.constant(descriptor, buffer)
 ```
 
-＃＃＃＃＃ 参数
+##### Parameters
 
-- `descriptor` ：描述输出张量的 `MLOperandDescriptor`。
-- `buffer` ：包含初始化数据的`AllowSharedBufferSource`。
+- `descriptor`: An `MLOperandDescriptor` describing the output tensor.
+- `buffer`: An `AllowSharedBufferSource` containing the initializing data.
 
-##### 返回值
+##### Return Value
 
-返回表示常量张量的 `MLOperand`。
+Returns an `MLOperand` representing the constant tensor.
 
-#### 语法 2：创建标量操作数
+#### Syntax 2: Creating a scalar operand
 
 ```js showLineNumbers filename="constant-2.js"
 builder.constant(type, value)
 ```
 
-＃＃＃＃＃ 参数
+##### Parameters
 
-- `type` ：指定数据类型的`MLOperandDataType`。
-- `value` ：代表常数值的`MLNumber`。
+- `type`: An `MLOperandDataType` specifying the data type.
+- `value`: An `MLNumber` representing the constant value.
 
-##### 返回值
+##### Return Value
 
-返回表示标量常数的 `MLOperand`。
+Returns an `MLOperand` representing the scalar constant.
 
-＃＃＃ 建造（）
+### build()
 
-异步编译图形直至指定的输出操作数。
+Compiles the graph asynchronously up to the specified output operands.
 
 ```js showLineNumbers filename="build.js"
 builder.build(outputs)
 ```
 
-＃＃＃＃ 参数
+#### Parameters
 
-- `outputs` ：标识图形的输出操作数的 `MLNamedOperands` 记录。
+- `outputs`: An `MLNamedOperands` record identifying the output operands of the graph.
 
-#### 返回值
+#### Return Value
 
-返回解析为 `MLGraph` 对象的 `Promise`。
+Returns a `Promise` that resolves to an `MLGraph` object.
 
-## 实施注意事项
+## Implementation Notes
 
-当构建 `MLContext` 类型设置为“默认”的图表时，会发生以下情况：
+When building a graph with `MLContext` type set to "default", the following occurs:
 
-1.根据指定的输出操作数编译图
-2. 图形初始化发生在 `MLGraph` 返回之前
-3. 进行权重预处理，其中：
-- 常量输入经过预处理
-- 数据在操作系统级别缓存
-- 此优化提高了后续图执行性能
+1. The graph is compiled based on the specified output operands
+2. Graph initialization occurs just before the `MLGraph` is returned
+3. Weight preprocessing is performed where:
+   - Constant inputs are preprocessed
+   - Data is cached at the OS level
+   - This optimization improves subsequent graph execution performance
 
-## 示例
+## Examples
 
-### 创建和构建一个简单的图表
+### Creating and Building a Simple Graph
 
 ```js showLineNumbers filename="example-1.js"
 async function simpleGraph() {
@@ -169,26 +169,26 @@ async function simpleGraph() {
 }
 ```
 
-### 创建标量常量
+### Creating a Scalar Constant
 
 ```js showLineNumbers filename="example-2.js"
 const builder = new MLGraphBuilder(context);
 const scalarConstant = builder.constant("float32", 42.0);
 ```
 
-＃＃ 规格
+## Specifications
 
 | WebNN API | Status |
 |--------------|---------|
 | [`MLGraphBuilder` interface](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
 
 
-## 安全要求
+## Security Requirements
 
-1. 必须在安全上下文中使用（HTTPS 或 localhost）
-2. 访问仅限于 Window 和 DedicatedWorker 上下文
-3.图形构建器只有在其关联的`context`不丢失的情况下才能构建
+1. Must be used in a secure context (HTTPS or localhost)
+2. Access is restricted to Window and DedicatedWorker contexts
+3. The graph builder can only build if its associated `context` is not lost
 
-## 浏览器兼容性
+## Browser Compatibility
 
-参见[Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
