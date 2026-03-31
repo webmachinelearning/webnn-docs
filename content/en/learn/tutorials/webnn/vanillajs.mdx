@@ -34,8 +34,8 @@ Currently, the WebNN ecosystem provides three primary code generation approaches
   />
   <Cards.Card
     icon={<VIcon />}
-    title="WebNN Code Generator"  
-    href="./webnn-code-generator"
+    title="Model2WebNN"  
+    href="./model2webnn"
   />
   <Cards.Card
     icon={<VIcon />}
@@ -44,13 +44,13 @@ Currently, the WebNN ecosystem provides three primary code generation approaches
   />
 </Cards>
 
-| Feature | ONNX2WebNN | WebNN Code Generator | WebNNUtils/OnnxConverter |
+| Feature | ONNX2WebNN | Model2WebNN | WebNNUtils/OnnxConverter |
 |---------|:----------:|:-------------------:|:------------------------:|
-| **Interface** | Command-line (CLI) | Web application | Python toolkit |
+| **Interface** | Command-line (CLI) | Web application, CLI, API | Python toolkit |
 | **Language** | Python | TypeScript | Python |
 | **ONNX Support** | ✅ Yes | ✅ Preferred | ✅ Yes |
-| **TensorFlow Lite Support** | ❌ Not supported | 🔧 Yes with compatibility issues | ❌ Not supported |
-| **Other Formats Support** | ❌ Not supported | 🔧 Yes with compatibility issues | ❌ Not supported |
+| **TensorFlow Lite Support** | ❌ Not supported | ✅ Yes | ❌ Not supported |
+| **Other Formats Support** | ❌ Not supported | ❌ Not supported | ❌ Not supported |
 | **Privacy** | Client-side only | Client-side only | Client-side only |
 
 ### [ONNX2WebNN](https://github.com/huningxin/onnx2webnn)
@@ -58,10 +58,10 @@ Currently, the WebNN ecosystem provides three primary code generation approaches
 - **Strengths**: Mature Python ecosystem, command-line automation
 - **Use case**: Converting both individual and multiple models in development pipelines
 
-### [WebNN Code Generator](https://ibelem.github.io/webnn-code-generator/) 
-- **Best for**: Interactive development, quick prototyping
-- **Strengths**: No installation required, browser-based privacy protection
-- **Use case**: Converting individual models with complete data privacy
+### [Model2WebNN](https://ibelem.github.io/model2webnn/) 
+- **Best for**: Interactive development, quick prototyping, TS/JS integration
+- **Strengths**: Web UI, CLI, and Library API support, TFLite support, browser-based privacy
+- **Use case**: Converting individual models with complete data privacy directly in the browser or via CLI
 
 ### [WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/tree/main/OnnxConverter)
 - **Best for**: Production deployments, complex model optimization
@@ -87,7 +87,7 @@ Translate Python-based ML code (particularly PyTorch/TorchScript) directly to We
 ## Getting Started
 
 1. **Evaluate your requirements**: Bundle size constraints, privacy needs, development workflow, performance requirements
-2. **Choose your tool**: CLI automation (ONNX2WebNN), advanced optimization (WebNNUtils/OnnxConverter), or browser interface (Code Generator)
+2. **Choose your tool**: CLI automation (ONNX2WebNN), advanced optimization (WebNNUtils/OnnxConverter), or browser interface (Model2WebNN)
 3. **Prepare your model**: Ensure ONNX compatibility and optimization for web deployment
 4. **Generate and test**: Convert your model and validate performance in target environments
 5. **Deploy and monitor**: Integrate generated code and monitor real-world performance

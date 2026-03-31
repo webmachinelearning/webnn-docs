@@ -178,23 +178,19 @@ python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.o
 python onnx2webnn.py -if ../sample_models/mobilenetv2-12-qdq-static-simplified.onnx -oj mobilenet_qdq_nhwc/mobilenet_qdq_nhwc.js -nhwc
 ```
 
-### WebNN 代码生成器：易于使用的交互式工具
+### Model2WebNN: 易于使用的交互式工具
 
-[WebNN 代码生成器](https://ibelem.github.io/webnn-code-generator) 采用了完全不同的方法 - 它完全在您的浏览器中运行。所有模型转换和代码生成都在客户端进行，这意味着您的模型永远不会离开您的机器。
+[Model2WebNN](https://ibelem.github.io/model2webnn) 采用了完全不同的方法 - 它完全在您的浏览器中运行。所有模型转换和代码生成都在客户端进行，这意味着您的模型永远不会离开您的机器。
 
 当您使用专有或敏感模型时，这种基于浏览器的方法是无价的，即使上传到"安全"转换服务也不可接受。
 
-**工作流程涉及两个互补工具**：
+**工作流程允许您**：
 
-1. [WebNN Netron](https://ibelem.github.io/netron/)：从您的模型文件中提取模型结构和权重
-2. [WebNN 代码生成器](https://ibelem.github.io/webnn-code-generator)：将模型结构和权重转换为 WebNN JavaScript 代码
+1. 打开 [Model2WebNN](https://ibelem.github.io/model2webnn) 并上传您的模型。
+2. 它解析 `.onnx` 和 `.tflite` 模型文件以生成自包含的 JavaScript。
+3. 生成的代码使用 WebNN MLGraphBuilder API。
 
-![包大小比较](/blog/onnx2webnn/webnn-code-generator.png)
-_图 2：WebNN 代码生成器截图_
-
-您首先将模型（ONNX、TensorFlow Lite 或其他格式）加载到 [WebNN Netron](https://ibelem.github.io/netron/) 中。加载后，您下载提取的组件：包含模型架构的 `graph.json`，以及包含参数的 `weights_nchw.bin` 和 `weights_nhwc.bin`。
-
-然后您将这些文件输入代码生成器，它会产生为 `NCHW` 和 `NHWC` 布局优化的即用型 WebNN JavaScript 文件。
+您首先将模型（ONNX、TensorFlow Lite 或其他格式）加载到工具中。它生成准备直接调用的带纯 MLGraphBuilder 代码。
 
 这个工具特别好的地方是它如何处理动态维度。许多模型都有`符号维度 (symbolic dimensions)`（如可变 `batch_size`），生成器提供了一个清洁的界面来用 WebNN 可以高效处理的具体值覆盖这些值。
 

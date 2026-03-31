@@ -5,8 +5,8 @@ export default {
   'onnx2webnn': {
     title: "ONNX2WebNN"
   },
-  'webnn-code-generator': {
-    title: "WebNN Code Generator"
+  'model2webnn': {
+    title: "Model2WebNN"
   },
   'webnnutils-onnxconverter': {
     title: "WebNNUtils ONNX Converter"

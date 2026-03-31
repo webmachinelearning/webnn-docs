@@ -1,0 +1,147 @@
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
+
+# Model2WebNN
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) is a browser-based tool that parses `.onnx` and `.tflite` model files and generates self-contained JavaScript code using the [WebNN MLGraphBuilder](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) API. All processing is client-side — models never leave the browser.
+
+## Privacy and Security
+
+**🔒 Client-Side Processing Only**
+
+All model conversion and code generation operations run exclusively in your browser. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+
+- Proprietary models
+- Sensitive intellectual property
+- Enterprise environments with strict data governance
+- Any scenario requiring complete data privacy
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/), along with [WebNN Netron](https://ibelem.github.io/netron/), ensures your models never leave your local environment during the conversion process.
+
+## Overview
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) provides a web UI, CLI, and library API for generating WebNN-compatible JavaScript and TypeScript code. It supports ONNX (`.onnx`) and TFLite (`.tflite`) model formats, with operator implementations that follow the [ORT WebNN Execution Provider](https://github.com/microsoft/onnxruntime/tree/main/onnxruntime/core/providers/webnn) 1:1.
+
+**Output files:**
+| File | Description |
+|------|-------------|
+| `model.js` | `async buildGraph(context, weights)` — pure MLGraphBuilder calls, no framework |
+| `model.weights` | WGWT v1 binary — raw tensor data with 8-byte header |
+| `model.manifest.json` | Tensor index: names, shapes, data types, byte offsets |
+| `model.html` | Runnable test harness with device selector and result viewer |
+
+## Step-by-Step Guide
+
+### Web UI
+
+1. Open [Model2WebNN](https://ibelem.github.io/model2webnn/)
+2. Upload a model file (`.onnx` or `.tflite`) by dropping it, browsing files, or fetching from a URL (HuggingFace links supported)
+3. Code generates instantly in the Monaco editor
+4. Set free dimension overrides if your model has symbolic dimensions to regenerate with fixed shapes
+5. Download individual files or the full `.zip` bundle from the header
+
+> <InfoIcon /> You can also auto-load a model by appending `?url=` to the URL, e.g. `https://ibelem.github.io/model2webnn/?url=https://huggingface.co/webnn/mobilenet-v2/resolve/main/onnx/model_fp16.onnx`
+
+### CLI
+
+```bash
+npx tsx src/cli.ts model.onnx -o dist/
+npx tsx src/cli.ts model.onnx -o dist/ -f ts
+npx tsx src/cli.ts model.onnx -o dist/ -d batch_size=1 -d seq_len=128
+npx tsx src/cli.ts --list-ops
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <dir>` | Output directory (default: `.`) |
+| `-f, --format <fmt>` | `js`, `ts`, or `html` (default: `js`) |
+| `-d, --free-dim <n=v>` | Override a symbolic dimension; repeatable |
+| `--list-ops` | Print all supported operations and exit |
+
+### Library API
+
+```javascript
+import { convert } from 'model2webnn';
+
+const buffer = new Uint8Array(await file.arrayBuffer());
+const result = await convert(buffer, {
+  format: 'javascript',
+  freeDimensionOverrides: { batch_size: 1 },
+});
+
+result.code;               // .js source — buildGraph(context, weights)
+result.weights;            // Uint8Array — WGWT binary
+result.manifest;           // tensor name → { dataType, shape, byteOffset, byteLength }
+result.html;               // self-contained test page
+result.coverage;           // { totalOps, supportedOps, unsupportedOpTypes, … }
+result.unresolvedFreeDims; // symbolic dimension names not yet overridden
+```
+
+### Free Dimension Overrides
+
+Models with symbolic dimensions (e.g. `batch_size`, `sequence_length`) are converted immediately with those names preserved. Override them to generate code with concrete shapes:
+
+```bash
+# CLI
+npx tsx src/cli.ts model.onnx -d batch_size=1 -d sequence_length=128
+```
+
+In the web UI, input fields appear for each symbolic dimension. Entering a value auto-regenerates the code. Leaving a field empty keeps the symbolic name.
+
+See [symbolic dimensions documentation](../onnx-runtime/free-dimension-overrides) for details.
+
+## Testing Your Generated Code
+
+### Security Requirements
+
+WebNN requires a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) to function. Valid environments include:
+
+- `https://` URLs
+- `http://localhost` or `http://127.0.0.1`
+- Local development servers
+
+### Local Testing
+
+Start a local HTTP server to test your generated code:
+
+```bash
+# Install http-server if needed
+npm install -g http-server
+
+# Start server in your project directory
+http-server
+
+# Navigate to http://localhost:8080 in your browser
+```
+
+Open the generated `.html` file in your browser to validate the conversion.
+
+## Operator Coverage
+
+Operator implementations follow the [ORT WebNN Execution Provider](https://github.com/microsoft/onnxruntime/tree/main/onnxruntime/core/providers/webnn) 1:1 — same attribute defaults and edge-case handling.
+
+- **ONNX** — 114 ops (simple ops with direct WebNN mapping + composite ops decomposed into WebNN primitives)
+- **TFLite** — 96 ops
+
+When a model contains ops with no WebNN equivalent (e.g. `TopK`, `Range`, `Mod`), the codegen marks those op outputs as dead, propagates the dead state through all downstream ops automatically, and exports the last live frontier tensors before the dead zone instead of the original outputs. The generated graph always builds successfully.
+
+## Use Cases
+
+[Model2WebNN](https://ibelem.github.io/model2webnn/) is ideal for:
+
+- **Rapid Prototyping**: Quickly convert models for web-based testing
+- **Educational Purposes**: Understanding WebNN API structure and usage
+- **IP-Sensitive Projects**: Converting proprietary models without cloud exposure
+- **Cross-Platform Development**: Generating code that runs across WebNN-supported browsers
+
+## Best Practices
+
+1. **Model Preparation**: Ensure your model is optimized and has fixed input dimensions when possible
+2. **Dimension Overrides**: Carefully set symbolic dimensions based on your expected input data
+3. **Testing**: Always validate the generated code with sample inputs before production use
+4. **Performance**: Consider model quantization or optimization before conversion for better inference speed
+
+## Related Resources
+- [Model2WebNN GitHub](https://github.com/ibelem/model2webnn) - Source code and documentation
+- [GitHub Issues - Model2WebNN](https://github.com/ibelem/model2webnn/issues) - Report bugs and request features
+- [WebNN Netron](https://ibelem.github.io/netron/) - Model visualization tool with enhanced features for WebNN API
+- [WebNN API Specification](https://www.w3.org/TR/webnn/) - Official API documentation
