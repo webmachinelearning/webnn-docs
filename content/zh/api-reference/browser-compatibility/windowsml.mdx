@@ -3,14 +3,14 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 <div className="mdx-table">
 
-# Browser Compatibility
+# 浏览器兼容性
 
-## Windows ML Backend / Windows
+## Windows ML 后端 / Windows
 
 <div className="table">
 | WebNN | CPU | GPU | NPU |
 | --- | --- | --- | --- |
-|<WindowsIcon /> Windows 11 24H2 and newer | ✅ LiteRT / XNNPACK<br />| ✅ Windows ML | ✅ Windows ML | 
+|<WindowsIcon /> Windows 11 24H2 及更新版本 |✅ LiteRT / XNNPACK <br /> |✅ Windows 机器学习 |✅ Windows 机器学习 |
 </div>
 
 ### Windows ML / ONNX Runtime / OpenVINO Execution Provider
@@ -116,23 +116,23 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 </div>
 
 
-### Additional Resources
+### 其他资源
 
 [ONNX Layers supported using OpenVINO](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#support-coverage)
 
 
-## DirectML Backend / Windows (Deprecated)
+## DirectML 后端/Windows（已弃用）
 
-> <InfoIcon /> May 20, 2025: DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.
+> <InfoIcon /> 2025 年 5 月 20 日：DirectML 在 Microsoft Build 2025 期间被正式弃用。WebNN 将利用 Windows ML 访问 OpenVINO 和其他 EP 以获得硬件加速。
 
 <div className="table">
 | WebNN | CPU | GPU | NPU |
 | --- | --- | --- | --- |
-|<WindowsIcon /> Windows | ✅ LiteRT / XNNPACK | ✅ DirectML (deprecated) | ✅ DirectML (deprecated) | 
+|<WindowsIcon /> Windows |✅ LiteRT / XNNPACK |✅ DirectML（已弃用）|✅ DirectML（已弃用）|
 
 </div>
 
-The WebNN DirectML backend mainly supported on Windows.
+WebNN DirectML 后端主要在 Windows 上支持。
 
 <div className="table">
 | [WebNN Spec](https://www.w3.org/TR/webnn/) | Operations | Chromium Version |

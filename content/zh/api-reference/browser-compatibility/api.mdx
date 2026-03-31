@@ -7,39 +7,39 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 ## WebNN API
 
-> <InfoIcon /> 2025 年 5 月 20 日：DirectML 在 Microsoft Build 2025 期间被正式弃用。WebNN 将利用 Windows ML 访问 OpenVINO 和其他 EP 以获得硬件加速。
+> <InfoIcon />  2025 年 5 月 20 日：DirectML 在 Microsoft Build 2025 期间被正式弃用。WebNN  将利用 Windows ML 访问 OpenVINO 和其他 EP 以获得硬件加速。
 
 <div className="table">
-| Platform / Build Conditions | CPU (`device: "cpu"`) | GPU (`device: "gpu"`) | NPU (`device: "npu"`) |
+|平台/建设条件|CPU（`device: "cpu"`）|GPU（`device: "gpu"`）|NPU（`device: "npu"`）|
 | --- | --- | --- | --- |
-| ChromeOS (`webnn_use_tflite` default true) | TFLite (LiteRT) with XNNPACK delegate (`tflite/graph_impl_tflite.cc` → `SetUpXNNPackDelegate`) | TFLite delegate: Chrome ML GPU if `WEBNN_USE_CHROME_ML_API` (controlled by `features.gni`), otherwise OpenCL delegate when `BUILD_TFLITE_WITH_OPENCL`; without either, runs on XNNPACK/CPU (`tflite/graph_impl_tflite.cc`) | No dedicated delegate; request falls back to CPU/XNNPACK (`tflite/graph_impl_tflite.cc`) |
-| Linux (`webnn_use_tflite` default true) | Same TFLite + XNNPACK path | No native GPU backend today; execution remains on CPU via XNNPACK (`webnn_context_provider_impl.cc` falls through to TFLite) | Not supported; falls back to CPU |
-| macOS ≥14.4 on Apple Silicon with feature `kWebNNCoreML` enabled (default) | Core ML backend (`webnn_context_provider_impl.cc`; `coreml/context_impl_coreml.mm`) selecting `MLComputeUnitsCPUOnly` (`coreml/graph_impl_coreml.mm`) | Core ML using `MLComputeUnitsCPUAndGPU` or `MLComputeUnitsAll` (gated by `kWebNNCoreMLExplicitGPUOrNPU`) | Core ML using `MLComputeUnitsCPUAndNeuralEngine` or `MLComputeUnitsAll` (`coreml/graph_impl_coreml.mm`) |
-| macOS Intel, macOS &lt;14.4, or Core ML feature disabled | Falls through to TFLite + XNNPACK (`webnn_context_provider_impl.cc`) | TFLite delegates as available (no Core ML) | TFLite fallback only |
-| Windows 11 24H2+ with feature `kWebNNOnnxRuntime` enabled | ONNX Runtime (Windows ML) (`ort/context_provider_ort.cc`; `webnn_context_provider_impl.cc`) selecting CPU EP (`ort/environment.cc`) | ONNX Runtime selecting GPU EP with CPU fallback (`ort/environment.cc`) | ONNX Runtime selecting NPU EP with CPU fallback (`ort/environment.cc`) |
-| Windows (default build: ONNX Runtime feature off) | TFLite + XNNPACK fallback (`webnn_context_provider_impl.cc`) | DirectML backend when `kWebNNDirectML` feature is on and GPU feature is enabled (`dml/context_provider_dml.cc`); otherwise TFLite | DirectML NPU path when hardware is available (`dml/context_provider_dml.cc`); otherwise TFLite |
-| Android | TFLite + XNNPACK (`tflite/graph_impl_tflite.cc`) | TFLite GPU delegate via OpenCL when `BUILD_TFLITE_WITH_OPENCL` (or Chrome ML if bundled); otherwise CPU fallback | TFLite NNAPI delegate when `BUILD_TFLITE_WITH_NNAPI` (typical Android build); otherwise CPU fallback |
-| iOS (current shipping defaults) | Core ML feature disabled by default (`public/mojom/features.mojom`), so TFLite + XNNPACK | Same as CPU (no Core ML delegate by default) | Same as CPU |
+|ChromeOS（`webnn_use_tflite` 默认 true）|TFLite ( LiteRT ) 与 XNNPACK delegate ( `tflite/graph_impl_tflite.cc` → `SetUpXNNPackDelegate` ) |TFLite 委托：如果 `WEBNN_USE_CHROME_ML_API` 则为 Chrome ML GPU（由 `features.gni` 控制），否则当 `BUILD_TFLITE_WITH_OPENCL` 时为 OpenCL 委托；没有任何一个，在 XNNPACK/CPU 上运行 ( `tflite/graph_impl_tflite.cc` ) |没有专职代表；请求回退到 CPU/XNNPACK ( `tflite/graph_impl_tflite.cc` ) |
+|Linux ( `webnn_use_tflite` 默认 true) |相同的 TFLite + XNNPACK 路径 |目前还没有原生 GPU 后端；通过 XNNPACK 保留在 CPU 上执行（`webnn_context_provider_impl.cc` 落入 TFLite）|不支持；回到CPU |
+|Apple Silicon 上的 macOS ≥14.4，启用 `kWebNNCoreML` 功能（默认）|Core ML 后端 ( `webnn_context_provider_impl.cc` ; `coreml/context_impl_coreml.mm` ) 选择 `MLComputeUnitsCPUOnly` ( `coreml/graph_impl_coreml.mm` ) |使用 `MLComputeUnitsCPUAndGPU` 或 `MLComputeUnitsAll` 的 Core ML（由 `kWebNNCoreMLExplicitGPUOrNPU` 门控） |使用 `MLComputeUnitsCPUAndNeuralEngine` 或 `MLComputeUnitsAll` ( `coreml/graph_impl_coreml.mm` ) 的 Core ML |
+|macOS Intel、macOS <14.4 或 Core ML 功能已禁用 |落入 TFLite + XNNPACK ( `webnn_context_provider_impl.cc` ) |TFLite 代表可用（无 Core ML）|仅 TFLite 后备 |
+|Windows 11 24H2+ 启用功能 `kWebNNOnnxRuntime` |ONNX Runtime (Windows ML) ( `ort/context_provider_ort.cc` ; `webnn_context_provider_impl.cc` ) 选择 CPU EP ( `ort/environment.cc` ) |ONNX Runtime 选择带有 CPU 回退的 GPU EP (`ort/environment.cc`) |ONNX Runtime 选择带 CPU 回退的 NPU EP (`ort/environment.cc`) |
+|Windows（默认版本：ONNX Runtime 功能关闭）|TFLite + XNNPACK 后备 ( `webnn_context_provider_impl.cc` ) |当 `kWebNNDirectML` 功能开启且 GPU 功能启用时 ( `dml/context_provider_dml.cc` ) 时的 DirectML 后端；否则 TFLite |硬件可用时的 DirectML NPU 路径 ( `dml/context_provider_dml.cc` );否则 TFLite |
+|安卓 |TFLite + XNNPACK ( `tflite/graph_impl_tflite.cc` ) |`BUILD_TFLITE_WITH_OPENCL` 时通过 OpenCL 进行 TFLite GPU 委托（或 Chrome ML，如果捆绑）；否则CPU回退|`BUILD_TFLITE_WITH_NNAPI` 时的 TFLite NNAPI 委托（典型的 Android 构建）；否则CPU回退|
+|iOS（当前默认发货）|默认情况下禁用 Core ML 功能 ( `public/mojom/features.mojom` )，因此 TFLite + XNNPACK |与 CPU 相同（默认情况下没有 Core ML 委托）|与CPU相同|
 </div>
 
-- 后端选择顺序在 `webnn_context_provider_impl.cc` 中定义：Windows 首先尝试 ONNX 运行时，然后是 DirectML，然后是 TFLite 回退；Apple 在 TFLite 之前构建了 Core ML 尝试；所有其他平台均直接转至 TFLite。
-- `features.gni` 在 Linux、ChromeOS、Android、Windows 和 Apple 上启用 TFLite (`webnn_use_tflite`)；`webnn_use_chrome_ml_api` 控制对 Chrome ML GPU 委托的访问。
-- TFLite 委托是可选的：如果请求的委托 (GPU/NPU) 丢失或失败，执行会透明地回退到 XNNPACK CPU 路径 ( `graph_impl_tflite.cc` )。
-- ONNX 运行时支持当前需要 Windows 11 24H2+、`kWebNNOnnxRuntime` 标志，并使用 `environment.cc` 中的 `execution-provider` 选择逻辑将适当的硬件 (GPU/NPU) 与 CPU 后备绑定。
-- Core ML 通过调整 `MLModelConfiguration.computeUnits` 来尊重所请求的设备；如果没有 `kWebNNCoreMLExplicitGPUOrNPU` ，GPU/NPU 请求默认为 `MLComputeUnitsAll` ( `graph_impl_coreml.mm` )。
+- 后端选择顺序在  `webnn_context_provider_impl.cc`  中定义：Windows 首先尝试  ONNX Runtime，然后是 DirectML，然后是 TFLite 回退；Apple 在 TFLite 之前构建了 Core ML 尝试；所有其他平台均直接转至 TFLite。
+- `features.gni`  在 Linux、ChromeOS、Android、Windows 和 Apple 上启用 TFLite ( `webnn_use_tflite` )； `webnn_use_chrome_ml_api`  控制对 Chrome ML GPU 委托的访问。
+- TFLite 委托是可选的：如果请求的委托 (GPU/NPU) 丢失或失败，执行会透明地回退到 XNNPACK CPU 路径 (  `graph_impl_tflite.cc`  )。
+- ONNX Runtime 支持当前需要 Windows 11 24H2+、 `kWebNNOnnxRuntime`  标志，并使用  `environment.cc`  中的  `execution-provider`  选择逻辑将适当的硬件 (GPU/NPU) 与 CPU 后备绑定。
+- Core ML 通过调整  `MLModelConfiguration.computeUnits`  来尊重所请求的设备；如果没有  `kWebNNCoreMLExplicitGPUOrNPU`  ，GPU/NPU 请求默认为  `MLComputeUnitsAll`  (  `graph_impl_coreml.mm`  )。
 
 ### 笔记
 
-- WebNN API 主要支持 ChromeOS、Linux、macOS、Windows 和 Android 上基于 Chromium 的浏览器。
+- WebNN   API  主要支持 ChromeOS、Linux、macOS、Windows 和 Android 上基于 Chromium 的浏览器。
 - 基于 Chromium 的浏览器包括但不限于 Google Chrome、Microsoft Edge、Opera、Vivaldi、Brave、Samsung Internet 等。
 
 <div className="table">
-| Interface | Method | Chromium Version |
+|接口|方法|铬版 |
 | --- | --- | --- |
 | navigator.ml | | M112 |
-| ML | | M112 |
-| ML | createContext() | M112 |
-| MLContext | | M112 |
+|机器学习 ||M112 |
+|机器学习 |创建上下文（）|M112 |
+|MLContext ||M112 |
 |MLContext |调度()|M128|
 |MLContext |createTensor()|M129|
 |MLContext |读取张量（张量）|M129|
@@ -47,11 +47,11 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 |MLContext |writeTensor()|M129|
 |MLContext |opSupportLimits()|M128|
 |MLGraph||M112|
-| MLOperand ||M112|
+| ML操作数||M112|
 |MLOperand |ML编号 |M132 |
 |MLTensor ||M124|
 |MLTensor |销毁()|M124 |
-| MLGraphBuilder | | M112|
+|MLGraphBuilder ||M112|
 |MLGraphBuilder |MLGraphBuilder () 构造函数 |M112 |
 |MLGraphBuilder |输入（名称，描述符）|M112|
 |MLGraphBuilder |常量（描述符，缓冲区）|M112|

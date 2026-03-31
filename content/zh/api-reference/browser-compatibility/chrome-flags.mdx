@@ -1,200 +1,200 @@
-# WebNN Flags in Chromium based Browsers
+# WebNN  基于 Chromium 的浏览器中的标志
 
 <div className="flags">
 
-## Flags
+## 旗帜
 
-Visit via `about://flags/`
+通过 `about://flags/` 访问
 
 ### `#web-machine-learning-neural-network`
 
-| Name   | Enables WebNN API |
+|名称 |启用 WebNN API |
 | :--: | :-------- |
-| Description    |  Enables the Web Machine Learning Neural Network (WebNN) API. Spec at https://www.w3.org/TR/webnn/ – Mac, Windows, Linux, ChromeOS, Android. |
-| Expiry Milestone | 150 |
-| Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork` |
+|描述 |启用 Web 机器学习神经网络 ( WebNN ) API 。规范位于 https://www.w3.org/TR/webnn/ – Mac、Windows、Linux、ChromeOS、Android。|
+|到期里程碑 |150 | 150
+|命令行使用 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork` |
 
-* `%LOCALAPPDATA%` means `C:\Users\<username>\AppData\Local\`
+* `%LOCALAPPDATA%`  表示  `C:\Users\<username>\AppData\Local\`
 
 ### `#webnn-onnxruntime`
 
-| Name   | Windows ML / ONNX Runtime backend for WebNN |
+|名称 |Windows ML / ONNX WebNN 的运行时后端 |
 | :--: | :-------- |
-| Description | Enables using ONNX Runtime for CPU, GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to DirectML or TFLite. – Windows |
-| Expiry Milestone | 146 |
-| Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime` |
+|描述 |允许使用 ONNX 运行时通过 WebNN API 进行 CPU、GPU 和 NPU 推理。禁用此标志可以回退到 DirectML 或 TFLite。– Windows |
+|到期里程碑 |146 | 146
+|命令行使用 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime` |
 
 
 
 ### `#experimental-web-machine-learning-neural-network`
 
-| Name   | Enables experimental WebNN API features |
+|名称 |启用实验性 WebNN API 功能 |
 | :--: | :-------- |
-| Description    | Enables additional, experimental features in Web Machine Learning Neural Network (WebNN) API. Requires the "WebNN API" flag to be enabled. – Mac, Windows, Linux, ChromeOS, Android. |
-| Expiry Milestone | 150 |
-| Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=EnablesExperimentalWebNNAPIFeatures` |
+|描述 |启用 Web 机器学习神经网络 ( WebNN ) API 中的附加实验性功能。需要启用“WebNNAPI”标志。– Mac、Windows、Linux、ChromeOS、Android。|
+|到期里程碑 |150 | 150
+|命令行使用 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=EnablesExperimentalWebNNAPIFeatures` |
 
 ### `#webnn-coreml`
 
-| Name   | Core ML backend for WebNN |
+|名称 |WebNN 的核心 ML 后端 |
 | :--: | :-------- |
-| Description    | Enables using Core ML for GPU and NPU inference with the WebNN API |
-| Expiry Milestone | 146 |
+|描述 |通过 WebNN API | 启用使用 Core ML 进行 GPU 和 NPU 推理
+|到期里程碑 |146 | 146
 
 ### `#webnn-coreml-explicit-gpu-or-npu`
 
-| Name   | Core ML backend (explicit GPU or NPU) for WebNN |
+|名称 |WebNN 的 Core ML 后端（显式 GPU 或 NPU）|
 | :--: | :-------- |
-| Description    | Enables using Core ML for explicit GPU and NPU inference with the WebNN API |
-| Expiry Milestone | 146 |
+|描述 |允许使用 Core ML 通过 WebNN API | 进行显式 GPU 和 NPU 推理
+|到期里程碑 |146 | 146
 
 ### `#webnn-directml`
 
-| Name   | DirectML backend for WebNN |
+|名称 |WebNN | DirectML 后端
 | :--: | :-------- |
-| Description    | Enables using DirectML for GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. – Windows.| 
-| Expiry Milestone | 146 |
+|描述 |通过 WebNN API 启用 DirectML 进行 GPU 和 NPU 推理。禁用此标志可以回退到 TFLite。– Windows。|
+|到期里程碑 |146 | 146
 
-## Switches (Command Line Flags)
+## 开关（命令行标志）
 
 ### `--use-redist-dml`
 
-| Name | Use redistributable DirectML |
+|名称 |使用可再发行的 DirectML |
 | :--: | :-------- |
-| Description | Try to use a redistributable DirectML.dll. Used for testing WebNN against newer DirectML release before it is integrated into Windows OS. Please see more info about [DirectML releases](https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history).|
-| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml` |
+|描述 |尝试使用可再发行的 DirectML.dll。用于在将较新的 DirectML 版本集成到 Windows 操作系统之前对其进行测试 WebNN。请查看有关 [DirectML releases](https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history) 的更多信息。|
+|注意|DirectML 在 Microsoft Build 2025 期间被正式弃用。WebNN 将利用 Windows ML 访问 OpenVINO 和其他 EP 以获得硬件加速。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml` |
 
 ### `--disable_dml_meta_commands_for_gpu`
 
-| Name | Disable DirectML Metacommands for GPU |
+|名称 |禁用 GPU 的 DirectML 元命令 |
 | :--: | :-------- |
-| Description | Run with DirectML fallback shaders if disabling Metacommands |
-| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.|
-| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=1` |
-| Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=0` |
+|描述 |如果禁用元命令，请使用 DirectML 后备着色器运行 |
+|注意|DirectML 在 Microsoft Build 2025 期间被正式弃用。WebNN 将利用 Windows ML 访问 OpenVINO 和其他 EP 以获得硬件加速。
+|用法（真实）|`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=1` |
+|用法（假）|  `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=0` |
 
 ### `--disable_webnn_for_gpu`
 
-| Name | Disable WebNN for GPU |
+|名称 |禁用 GPU 的 WebNN |
 | :--: | :-------- |
-| Description | If `--disable_webnn_for_gpu` workaround is enabled for the GPU device, we need to check to see if there is a NPU device available before setting the WebNN gpu feature status. | 
-| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_gpu=1` |
+|描述 |如果为 GPU 设备启用了 `--disable_webnn_for_gpu` 解决方法，我们需要在设置 WebNN GPU 功能状态之前检查是否有可用的 NPU 设备。|
+|用法（真实）|`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_gpu=1` |
 
 ### `--disable_webnn_for_npu`
 
-| Name | Disable WebNN for NPU |
+|名称 |禁用 NPU 的 WebNN |
 | :--: | :-------- |
-| Description | If there is a NPU device, check the `--disable_webnn_for_npu` workaround |
-| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=1` |
-| Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0` |
+|描述 |如果有 NPU 设备，请检查 `--disable_webnn_for_npu` 解决方法 |
+|用法（真实）|`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=1` |
+|用法（假）|  `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_webnn_for_npu=0` |
 
 ### `--webnn-coreml-dump-model`
 
-| Name | WebNN Core ML Dump Model |
+|名称 |WebNN 核心 ML 转储模型 |
 | :--: | :-------- |
-| Description | Copy the generated Core ML model |
-| Note | The folder needs to be accessible from the GPU sandbox or use `--no-sandbox` |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-coreml-dump-model=/tmp/CoreMLModels` |
+|描述 |复制生成的 Core ML 模型 |
+|注意|该文件夹需要可从 GPU 沙箱访问或使用 `--no-sandbox` |
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-coreml-dump-model=/tmp/CoreMLModels` |
 
 ### `--webnn-tflite-dump-model`
 
-| Name | WebNN TFLite Dump Model |
+|名称 |WebNN TFLite 转储模型 |
 | :--: | :-------- |
-| Description | Save the generated TFLite model file |
-| Note | The folder needs to be accessible from the GPU process sandbox or `--no-sandbox` must be used |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-tflite-dump-model=/tmp/tflite_models` |
+|描述 |保存生成的TFLite模型文件 |
+|注意|该文件夹需要可从 GPU 进程沙箱访问，或者必须使用 `--no-sandbox` |
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-tflite-dump-model=/tmp/tflite_models` |
 
 ### `--webnn-ort-logging-level`
 
-| Name | WebNN ONNX Runtime Logging Level |
+|名称 |WebNN ONNX 运行时日志记录级别 |
 | :--: | :-------- |
-| Description | Configure the logging severity level of ONNX Runtime |
-| Note | "VERBOSE", other severity levels could be "INFO", "WARNING", "ERROR" (default), and "FATAL"|
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-logging-level=VERBOSE` |
+|描述 |配置 ONNX 运行时 | 的日志记录严重性级别
+|注意|“VERBOSE”，其他严重级别可能是“INFO”、“WARNING”、“ERROR”（默认）和“FATAL”|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-logging-level=VERBOSE` |
 
 ### `--webnn-ort-dump-model`
 
-| Name | WebNN Windows ML Dump Model |
+|名称 |WebNN Windows ML 转储模型 |
 | :--: | :-------- |
-| Description | To save optimized ONNX model after graph level transformations |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-dump-model=/tmp/ort_models` |
+|描述 |在图级转换后保存优化的 ONNX 模型 |
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-dump-model=/tmp/ort_models` |
 
 ### `--webnn-ort-library-path-for-testing`
 
-| Name | WebNN ONNX Runtime Library Path For Testing |
+|名称 |WebNN ONNX 用于测试的运行时库路径 |
 | :--: | :-------- |
-| Description | Force `onnxruntime.dll` to be loaded from a location specified by the switch for testing development ORT build. |
-| Note |This switch is not to be used in shipping scenarios and is ignored by default|
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-library-path-for-testing="C:\Program Files\ONNXRuntime" --allow-third-party-modules` |
+|描述 |强制从开关指定的位置加载 `onnxruntime.dll` 以测试开发 ORT 构建。|
+|注意|此开关不适用于运输场景，默认情况下会被忽略|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-library-path-for-testing="C:\Program Files\ONNXRuntime" --allow-third-party-modules` |
 
 ### `--webnn-ort-ep-library-path-for-testing`
 
-| Name | WebNN ONNX Runtime Execution Provider Library Path For Testing |
+|名称 |WebNN ONNX 用于测试的运行时执行提供程序库路径 |
 | :--: | :-------- |
-| Description | Specify the ORT EP name and library path pair via this switch for testing development EP builds. Libraries of the ORT EP specified by the EP name are forced to be loaded from the specified path. The value should be in the format `<ep_name>?<ep_library_path>`. |
-| Note |This switch is not to be used in shipping scenarios and is ignored by default |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?"C:\Program Files\ONNXRuntime-EP\onnxruntime_providers_openvino_plugin.dll" --allow-third-party-modules` |
+|描述 |通过此开关指定 ORT EP 名称和库路径对，以测试开发 EP 版本。EP名称指定的ORT EP的库被强制从指定路径加载。该值的格式应为 `<ep_name>?<ep_library_path>` 。|
+|注意|此开关不应在运输场景中使用，默认情况下会被忽略|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-library-path-for-testing=OpenVINOExecutionProvider?"C:\Program Files\ONNXRuntime-EP\onnxruntime_providers_openvino_plugin.dll" --allow-third-party-modules` |
 
 ### `--webnn-ort-ep-device`
 
-| Name | Force ONNX Runtime to Only Select Specific Execution Provider (EP) Device |
+|名称 |强制 ONNX 运行时仅选择特定执行提供程序 (EP) 设备 |
 | :--: | :-------- |
-| Description | Matches the given EP name, hardware vendor id and hardware device id for WebNN during the ORT session creation stage. The value should be in the format: `ep_name`,`hardware_vendor_id`,`hardware_device_id`. |
-| Note | Available EP devices can be queried in logs when the `webnn-ort-logging-level` is set to `VERBOSE` or `INFO`. If no matching device is found, the ORT session creation fails. All the entries must be provided in order, and both hardware_vendor_id and hardware_device_id are hexadecimal strings. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-device=OpenVINOExecutionProvider,0x8086,0x4680` |
+|描述 |在 ORT 会话创建阶段匹配 WebNN 的给定 EP 名称、硬件供应商 ID 和硬件设备 ID。该值的格式应为： `ep_name` 、 `hardware_vendor_id` 、 `hardware_device_id` 。|
+|注意|当`webnn-ort-logging-level`设置为`VERBOSE`或`INFO`时，可以在日志中查询可用的EP设备。如果没有找到匹配的设备，ORT 会话创建失败。所有条目必须按顺序提供，并且 hardware_vendor_id 和 hardware_device_id 都是十六进制字符串。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-device=OpenVINOExecutionProvider,0x8086,0x4680` |
 
 ### `--webnn-ort-ignore-ep-blocklist`
 
-| Name | Enable All Execution Providers, Ignoring the Enabled Flag Blocklist |
+|名称 |启用所有执行提供程序，忽略已启用标志阻止列表 |
 | :--: | :-------- |
-| Description | Controls whether the execution provider is enabled or not. Disabled execution providers can be enabled all at once via the `--webnn-ort-ignore-ep-blocklist` command line switch. |
-| Note | The listed EPs must match the names of the histogram variants `WebNNOrtExecutionProvider` in `tools/metrics/histograms/metadata/webnn/histograms.xml`. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ignore-ep-blocklist` |
+|描述 |控制是否启用执行提供程序。可以通过 `--webnn-ort-ignore-ep-blocklist` 命令行开关一次性启用禁用的执行提供程序。|
+|注意|列出的 EP 必须与 `tools/metrics/histograms/metadata/webnn/histograms.xml` 中直方图变体 `WebNNOrtExecutionProvider` 的名称匹配。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ignore-ep-blocklist` |
 
 ### `--webnn-ort-graph-optimization-level`
 
-| Name | WebNN ONNX Runtime Graph Optimization Level |
+|名称 |WebNN ONNX 运行时图优化级别 |
 | :--: | :-------- |
-| Description | Configure the graph optimization level of ONNX Runtime |
-| Note | Levels could be "DISABLE_ALL", "BASIC", "EXTENDED" and "ALL" |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-graph-optimization-level=DISABLE_ALL` |
+|描述 |配置ONNX运行时的图形优化级别|
+|注意|级别可以是“DISABLE_ALL”、“BASIC”、“EXTENDED”和“ALL” |
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-graph-optimization-level=DISABLE_ALL` |
 
 ### `--webnn-ort-enable-profiling`
 
-| Name | WebNN ONNX Runtime Enable Profiling |
+|名称 |WebNN ONNX 运行时启用分析 |
 | :--: | :-------- |
-| Description | Collect ORT profile data for performance analysis. The profile data file is generated in Chrome's folder with a fixed naming format `prefix_date_time.json`.|
-| Note | The prefix can be provided by user or use `WebNNOrtProfile` as default |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-enable-profiling="WebNNOrtOvCpuProfile"` |
+|描述 |收集 ORT 配置文件数据以进行性能分析。配置文件数据文件在 Chrome 的文件夹中生成，具有固定的命名格式 `prefix_date_time.json` .|
+|注意|前缀可以由用户提供或使用`WebNNOrtProfile`作为默认|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-enable-profiling="WebNNOrtOvCpuProfile"` |
 
-## Other Switches
+## 其他开关
 
 ### `--disable-gpu-sandbox`
 
-| Name | Disable GPU Sandbox |
+|名称 |禁用 GPU 沙箱 |
 | :--: | :-------- |
-| Description | Often used to fix crashes related to the GPU process. Should only be used when necessary for development or troubleshooting, as it makes the application vulnerable to exploits. | 
-| Note | This is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable-gpu-sandbox` |
+|描述 |通常用于修复与 GPU 进程相关的崩溃。仅应在开发或故障排除必要时使用，因为它会使应用程序容易受到攻击。|
+|注意|这是一个不安全的配置。执行测试后，您应该退出 Chrome 并重新正常启动。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable-gpu-sandbox` |
 
 ### `--no-sandbox`
 
-| Name | No Sandbox |
+|名称 |没有沙盒|
 | :--: | :-------- |
-| Description | Disables Chromium's security sandbox, which isolates browser processes to prevent malicious code execution. While sometimes used in development/testing environments, using this flag in regular browsing is dangerous as it removes essential security protections. | 
-| Note | This is an insecure configuration. After performing the test, you should quit Chrome and re-launch normally. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox` |
+|描述 |禁用 Chromium 的安全沙箱，该沙箱隔离浏览器进程以防止恶意代码执行。虽然有时在开发/测试环境中使用，但在常规浏览中使用此标志是危险的，因为它消除了基本的安全保护。|
+|注意|这是一个不安全的配置。执行测试后，您应该退出 Chrome 并重新正常启动。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox` |
 
 
 ### `--allow-third-party-modules`
-| Name | Allow Third-party Modules |
+|名称 |允许第三方模块 |
 | :--: | :-------- |
-| Description | Permits third-party software to inject DLLs or modules into Chrome's processes |
-| Note | While useful for legitimate software like antivirus or accessibility tools, it can pose security risks by allowing potentially malicious code injection. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --allow-third-party-modules` |
+|描述 |允许第三方软件将 DLL 或模块注入 Chrome 进程 |
+|注意|虽然对于防病毒或辅助工具等合法软件很有用，但它可能会因允许潜在的恶意代码注入而带来安全风险。|
+|用途 |`"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --allow-third-party-modules` |
 
 </div>
 
-## Additional Resources
+## 其他资源
 - [Chromium: services/webnn/webnn_switches.h](https://source.chromium.org/chromium/chromium/src/+/main:services/webnn/webnn_switches.h;l=30)
