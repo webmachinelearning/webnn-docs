@@ -2,79 +2,79 @@ import { Steps } from 'nextra/components'
 import InfoIcon from '../../../app/_components/icons/info.jsx'
 import ArchitectureDiagramIntro from '../../../app/_components/architecture/architecture-intro.jsx'
 
-# Architecture
+＃ 建筑学
 
-## How is the architecture of WebNN?
+## WebNN 的架构如何？
 
-The WebNN API enables web browsers to leverage native machine learning capabilities provided by the underlying operating system. By implementing a hardware-agnostic abstraction layer, the API allows JavaScript frameworks to access advanced machine learning features without depending on platform-specific implementations. Neural networks in WebNN are represented as computational graphs composed of mathematical operations, which form the foundation for computer vision, natural language processing, and other machine learning applications.
+WebNN API 使网络浏览器能够利用底层操作系统提供的本机机器学习功能。通过实现与硬件无关的抽象层，API 允许 JavaScript 框架访问高级机器学习功能，而不依赖于特定于平台的实现。WebNN 中的神经网络表示为由数学运算组成的计算图，构成计算机视觉、自然语言处理和其他机器学习应用的基础。
 
-### Architecture
+＃＃＃ 建筑学
 
 <ArchitectureDiagramIntro />
 
-## What operating systems does WebNN support?
+## WebNN 支持哪些操作系统？
 
-WebNN currently supports Windows, Android, ChromeOS, and macOS. The availability of WebNN operations may vary depending on the device type (CPU, GPU, NPU) and operating system. Progress is ongoing, so your patience is appreciated.
+WebNN 目前支持 Windows、Android、ChromeOS 和 macOS。WebNN 操作的可用性可能会因设备类型（CPU、GPU、NPU）和操作系统而异。进展正在进行中，感谢您的耐心等待。
 
-See also: [WebNN Browser Compatibility](../api-reference/browser-compatibility/api)
+另请参阅：[WebNN Browser Compatibility](../api-reference/browser-compatibility/api)
 
-## What WebNN backends are currently supported?
+## 目前支持哪些 WebNN 后端？
 
-Find WebNN backends support details: [LiteRT](../api-reference/browser-compatibility/litert), [DirectML](../api-reference/browser-compatibility/directml) and [Core ML](../api-reference/browser-compatibility/coreml)
+查找 WebNN 后端支持详细信息： [LiteRT](../api-reference/browser-compatibility/litert) 、 [DirectML](../api-reference/browser-compatibility/directml) 和 [Core ML](../api-reference/browser-compatibility/coreml)
 
-## Can I use WebNN API on PC desktop? 
+## 我可以在PC桌面上使用WebNN API吗？
 
-The WebNN API runs on common computing devices and operating systems. Performance testing shows effective operation on:
+WebNN API 在常见的计算设备和操作系统上运行。性能测试显示了以下方面的有效操作：
 
-- Current-generation laptops (e.g., devices with Intel Core Ultra mobile processors)
-- Modern smartphones (e.g., Google Pixel 3 class devices)
+- 当前一代笔记本电脑（例如，配备 Intel Core Ultra 移动处理器的设备）
+- 现代智能手机（例如 Google Pixel 3 类设备）
 
-The API is platform-independent and integrates with major ML acceleration frameworks:
+API 独立于平台，并与主要 ML 加速框架集成：
 
-- Windows: Windows ML (ONNX Runtime)
-- ChromeOS: LiteRT
-- Linux: LiteRT
-- Android: LiteRT
-- Apple platforms: Core ML
+- Windows：Windows ML（ONNX运行时）
+- Chrome操作系统：LiteRT
+- Linux：LiteRT
+- 安卓：LiteRT
+- Apple 平台：Core ML
 
-The API automatically leverages available hardware acceleration features, including CPU parallel processing, GPU compute capabilities, and dedicated ML accelerators, while maintaining hardware abstraction. Developers can tune performance parameters without managing specific hardware details.
+API 自动利用可用的硬件加速功能，包括 CPU 并行处理、GPU 计算功能和专用 ML 加速器，同时保持硬件抽象。开发人员可以调整性能参数，而无需管理特定的硬件细节。
 
-See also: [WebNN Browser Compatibility](../api-reference/browser-compatibility/api)
+另请参阅：[WebNN Browser Compatibility](../api-reference/browser-compatibility/api)
 
-## What is the right level of abstraction for neural network operations? 
+## 神经网络操作的正确抽象级别是什么？
 
-Neural network operations are mathematical functions used in machine learning frameworks. Modern frameworks support approximately 100 standard operations (convolution, matrix multiplication, reductions, normalizations) with some frameworks offering additional variants.
+神经网络运算是机器学习框架中使用的数学函数。现代框架支持大约 100 种标准运算（卷积、矩阵乘法、归约、归一化），某些框架还提供其他变体。
 
-When designing WebNN operations, we considered decomposing high-level functions into basic mathematical operations. While this would reduce the number of defined operations, it would make networks more verbose and risk losing hardware-level optimizations. Modern platforms provide built-in optimizations for common operations like convolutions and recurrent networks.
+在设计WebNN运算时，我们考虑将高级函数分解为基本的数学运算。虽然这会减少已定义操作的数量，但会使网络变得更加冗长，并有失去硬件级优化的风险。现代平台为卷积和循环网络等常见操作提供内置优化。
 
-WebNN therefore implements both the standard functions and all the smaller operations making up the functions in the spec. This preserves access to platform-specific optimizations while enabling construction of new functions using decomposed operations.
+因此，WebNN 实现了标准函数和构成规范中函数的所有较小操作。这保留了对特定于平台的优化的访问，同时允许使用分解操作构建新功能。
 
-## What alternatives have been considered?
+## 考虑过哪些替代方案？
 
-WebGPU provides a web API abstraction over graphics hardware that can be used to implement GPU-accelerated neural network operations. Major JavaScript ML frameworks like LiteRT and ONNX Runtime Web currently use WebGPU as a backend. Instead of adopting WebNN, one alternative is to continue using these graphics-based frameworks for ML workloads on the web.
+WebGPU 提供了图形硬件上的网络 API 抽象，可用于实现 GPU 加速的神经网络操作。LiteRT 和 ONNX Runtime Web 等主要 JavaScript ML 框架目前使用 WebGPU 作为后端。一种替代方案是继续使用这些基于图形的框架来处理网络上的 ML 工作负载，而不是采用 WebNN。
 
-However, this approach has two significant limitations:
+然而，这种方法有两个明显的局限性：
 
-1. Limited Hardware Optimization
+1. 硬件优化有限
 
-WebGPU's graphics abstraction layer cannot fully utilize hardware-specific optimizations and special instructions available at the OS level. While GPU manufacturers continue to innovate with ML-specific hardware features, these performance improvements may not be accessible through generic graphics pipeline interfaces.
+WebGPU 的图形抽象层无法充分利用特定于硬件的优化和操作系统级别可用的特殊指令。虽然 GPU 制造商不断创新特定于 ML 的硬件功能，但这些性能改进可能无法通过通用图形管道接口实现。
 
-2. Conformance Challenges
+2. 一致性挑战
 
-The diverse hardware ecosystem and multiple driver versions make it difficult to ensure consistent and accurate results across different devices when implementing neural network operations through graphics frameworks. Operating systems traditionally excel at hardware conformance testing and quality assurance - crucial capabilities for ML frameworks, especially in critical applications like healthcare and industrial processes where result accuracy is paramount.
+多样化的硬件生态系统和多个驱动版本使得在通过图形框架实现神经网络操作时很难确保不同设备上一致且准确的结果。传统上，操作系统擅长硬件一致性测试和质量保证，这是机器学习框架的关键功能，尤其是在医疗保健和工业流程等关键应用中，结果的准确性至关重要。
 
-## When should web developers use WebNN instead of WebGPU + Wasm?
+## Web 开发者什么时候应该使用 WebNN 而不是 WebGPU + Wasm？
 
-## How do I determine if I am running on Windows ML / OpenVINO Execution Provider on Windows 11?
+## 如何确定我是否在 Windows 11 上的 Windows ML / OpenVINO 执行提供程序上运行？
 
-You can verify which backend you are using by following these steps:
+您可以按照以下步骤验证您正在使用哪个后端：
 
-1. Visit https://webnnreport.org/
-2. Navigate to `chrome://histograms/` and search `WebNN`
+1.访问https://webnnreport.org/
+2. 导航至 `chrome://histograms/` 并搜索 `WebNN`
 
-### WebNN.ORT.WinAppRuntimeInstallState
+### WebNN .ORT.WinAppRuntimeInstallState
 
-Find `WebNN.ORT.WinAppRuntimeInstallState` and check the status code:
+找到`WebNN.ORT.WinAppRuntimeInstallState`并查看状态码：
 
 ```
   0: Windows Version Too Old    5: Paused 
@@ -90,9 +90,9 @@ Find `WebNN.ORT.WinAppRuntimeInstallState` and check the status code:
 10 ... 
 ```
 
-### WebNN.ORT.OpenVINOExecutionProvider.Status
+### WebNN .ORT.OpenVINOExecutionProvider.Status
 
-Find `WebNN.ORT.OpenVINOExecutionProvider.Status` and check the status code:
+找到`WebNN.ORT.OpenVINOExecutionProvider.Status`并查看状态码：
 
 ```
   0: Unknown                    3: Ensure ready failed
@@ -108,30 +108,30 @@ Find `WebNN.ORT.OpenVINOExecutionProvider.Status` and check the status code:
   5  O           (0 = 0.0%) {100.0%}
 ```
 
-If the Windows ML Runtime and OpenVINO Execution Provider failed to install properly, you can install them manually instead.
+如果 Windows ML 运行时和 OpenVINO 执行提供程序无法正确安装，您可以手动安装它们。
 
-### Windows App SDK and Execution Providers Manual Installation
+### Windows App SDK 和执行提供程序手动安装
 
-> <InfoIcon /> On Window 11, version 24H2 or newer, the Windows App SDK and Execution Providers will be installed automatically in the background when you install and launch the browser.
-The installation time may vary depending on your network speed. Follow these steps if the Windows App SDK and Execution Providers were not installed successfully.
+> <InfoIcon /> 在 Window 11 版本 24H2 或更高版本上，当您安装并启动浏览器时，Windows App SDK 和执行提供程序将在后台自动安装。
+安装时间可能会根据您的网络速度而有所不同。如果 Windows App SDK 和执行提供程序未成功安装，请按照以下步骤操作。
 
 <Steps>
-#### Install Windows App SDK
+#### 安装 Windows 应用程序 SDK
 
-Download and install the latest stable version of [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads#stable-release).
+下载并安装 [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads#stable-release) 的最新稳定版本。
 
-- Known minimum compatible Windows App SDK version: 1.8.1
+- 已知的最低兼容 Windows App SDK 版本：1.8.1
 
-#### Install Execution Providers via the EP Catalog executable file
+#### 通过 EP Catalog 可执行文件安装执行提供程序
 
-1. Visit [WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
-2. Download the [ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
-3. Run the executable file to install Execution Providers 
+1.访问[WebNN Execution Provider Catalog](https://github.com/ibelem/webnn-execution-provider-catalog/releases/tag/1.8_8wekyb3d8bbwe)
+2.下载[ExecutionProviderCatalog.exe](https://github.com/ibelem/webnn-execution-provider-catalog/releases/download/1.8_8wekyb3d8bbwe/ExecutionProviderCatalog.exe)
+3. 运行可执行文件以安装执行提供程序
 
 ```shell
 C:\Users\webnn\Downloads>ExecutionProviderCatalog.exe
 ```
-The Execution Providers (EPs) to be installed depend on your computer’s hardware configuration. It will display the following similar logs:
+要安装的执行提供程序 (EP) 取决于计算机的硬件配置。它将显示以下类似日志：
 
 <div className="shell-font-small">
 ```shell
