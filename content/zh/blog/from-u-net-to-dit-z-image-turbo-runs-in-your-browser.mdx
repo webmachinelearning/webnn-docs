@@ -1,0 +1,126 @@
+---
+title: '从 U-Net 到 DiT：在浏览器中运行 Z-Image Turbo'
+description:
+  'Z-Image Turbo 是一个 60 亿参数的可扩展单流扩散 Transformer（S3-DiT）模型，完全通过 WebGPU 在浏览器中运行。
+  英特尔 Web 平台工程团队通过 ONNX 转换、INT4/FP16 量化和算子融合对模型进行了适配——实现了 7 倍的模型体积缩减和最高 7 倍的推理加速，
+  在 AI PC 硬件上实现了实时、端侧的文生图生成。'
+date: 2026-04-16
+authors:
+  - name: 戴建辉
+    link: https://github.com/daijh
+  - name: 林万明
+    link: https://github.com/honry
+  - name: 张敏
+    link: https://github.com/ibelem
+---
+
+import { TopContent } from '../../../app/_components/authors'
+
+<TopContent lang={props.params.lang} {...metadata} />
+
+在过去几年中，英特尔 Web 平台工程团队不断突破浏览器中生成式 AI 的能力边界。我们是最早使用 WebGPU 和 WebNN 在浏览器中完整运行 Stable Diffusion Turbo 和 SDXL Turbo 的团队之一——无需服务器、无需云端，仅依赖用户的设备。今天，我们分享新的篇章：Z-Image-Turbo 通过 WebGPU 在 AI PC 硬件上原生运行于浏览器中，这是模型质量、架构和能力的一次代际飞跃。
+
+这需要解决一系列全新的问题。早期模型基于 U-Net 架构；而 Z-Image Turbo 采用了可扩展单流扩散 Transformer（S3-DiT）——一种完全不同的架构，需要全新的模型转换、量化和算子融合方案来适配 Web 运行时。
+
+## Z-Image-Turbo 概览
+
+Z-Image-Turbo 是一个开放权重的文生图模型，专为消费级 AI 硬件上的高质量端侧生成而构建——证明了浏览器原生的图像生成能够在不依赖云端的情况下，实现与现代提示词匹配的保真度和视觉质量。
+
+早期流水线依赖 U-Net，一种针对局部空间特征调优的卷积主干网络；而 Z-Image-Turbo 采用了可扩展单流扩散 Transformer（S3-DiT），在单一统一的注意力流中处理文本和图像 token。完整流水线串联三个组件：用于提示词理解的 **Qwen3-4B 文本编码器**、用于潜空间去噪的 **S3-DiT 主干网络**，以及用于像素重建的 **FLUX VAE 解码器**。由于计算从卷积转移到 Transformer 算子——注意力机制和大规模矩阵乘法——内核级和图级优化成为部署的关键手段。
+
+![Z-Image Turbo 架构概览](/blog/z-image-turbo/pipeline.png)
+
+这一设计并非凭空而来。如下表所示，更广泛的生态系统已经果断转向 DiT 家族架构。Z-Image-Turbo 的 S3-DiT 遵循了这一趋势——以 60 亿参数的规模，代表了面向端侧部署优化的开放模型的当前最先进水平。
+
+| 模型 | 发布时间 | 规模（参数量） | 架构 |
+| --- | --- | --- | --- |
+| Stable Diffusion 1.5 | 2022 | ~8.6 亿 | 潜扩散模型（U-Net） |
+| Stable Diffusion XL (SDXL) | 2023 | 66 亿 | 潜扩散模型（U-Net） |
+| Stable Diffusion 3 (Medium/Large) | 2024 | 20 亿 / 80 亿 | 多模态扩散 Transformer（MMDiT） |
+| FLUX.1 [dev] / [schnell] | 2024 | 120 亿 | 混合 DiT（双流 + 单流） |
+| Qwen-Image | 2025 | 200 亿 | 多模态扩散 Transformer（MMDiT） |
+| Z-Image-Turbo | 2025 年 11 月 | 60 亿 | 单流扩散 Transformer（S3-DiT） |
+
+本文的其余部分将介绍我们为使其在浏览器中可行所做的工作。
+
+## Z‑Image Turbo 浏览器部署与优化
+
+在浏览器中部署 Z‑Image Turbo 需要在模型格式、内存占用和执行效率的严格约束下，将原生扩散 Transformer 适配到 Web 环境。本节描述了实现这一适配的关键部署和优化步骤。
+
+### 模型转换与优化
+
+将原生的基于 Transformer 的模型适配到 Web 端需要一系列模型准备步骤，包括格式转换、内存缩减和面向执行的优化。
+
+#### 步骤 1：ONNX 转换
+
+我们首先将原生的基于 Transformer 的模型转换为 ONNX 格式，以便通过 ONNX Runtime Web 使用 WebGPU 执行提供程序来运行。与 U-Net 架构相比，Transformer 模型在导出过程中需要特殊处理以保留统一的 token 序列和注意力结构。
+
+#### 步骤 2：通过量化缩减模型体积
+
+在浏览器中运行现代扩散 Transformer 需要积极的模型压缩，以满足 Web 运行时的以下关键约束：
+
+- **ONNX Runtime Web (Wasm)：** 限制每个会话的模型大小为 4 GB
+- **Chrome：** 限制 Windows 上 GPU 进程沙箱对物理内存的访问
+
+为了在不牺牲图像质量的前提下满足这些约束，我们采用了分层量化策略，将激进的权重压缩与混合精度执行相结合。
+
+**INT4 量化**
+
+我们将 MatMul 权重量化为 INT4，并使用 `MatMulNBits` 算子执行。对于 token 嵌入（`embed_tokens`），我们应用 `GatherBlockQuantized`，在显著减少权重占用的同时保留查找语义。
+
+**FP16 量化**
+
+模型整体从 float32 转换为 float16。少量运算保留 float32 以防止中间张量超出 float16 的动态范围，这对于维持 S3‑DiT 长注意力序列中的数值稳定性至关重要。
+
+#### 步骤 3：算子融合
+
+为了在 WebGPU 上实现实用的吞吐量，我们应用算子融合来减少 GPU 调度开销并提升内存局部性。通过在单次调度中执行多个 Transformer 运算，WebGPU 能够高效利用硬件级算子支持，并带来显著的端到端性能提升。
+
+我们为 Z-Image Turbo 的 Web 部署融合了以下算子组：
+
+| 融合算子 | 类别 | 性能收益 |
+| --- | --- | --- |
+| MatMulNBits | INT4 线性层 | 减少权重内存和带宽占用 |
+| GroupQueryAttention | 注意力 | 融合 QKV 调度 |
+| MultiHeadAttention | 注意力 | 跨模态融合效率 |
+| RotaryEmbedding | 位置编码 | 消除独立内核开销 |
+| LayerNorm / SimplifiedLayerNorm | 归一化 | 减少内存往返 |
+| GatherBlockQuantized | 嵌入 | INT4 查找效率 |
+
+#### 总结
+
+总而言之，量化显著降低了模型复杂度达 **54%**，并将模型体积缩小了 **7 倍**，同时算子融合带来了最高 **7 倍**的推理加速——使得在 AI PC 硬件上实现实时的、基于浏览器的 Transformer 图像生成成为可能。
+
+### 浏览器中的端到端推理流水线
+
+在优化模型就绪后，剩余的挑战是在浏览器中高效执行完整的扩散工作流。浏览器内推理需要在内存移动和 GPU 调度开销的严格约束下，精心编排多个模型组件。
+
+下图展示了使用 WebGPU 在设备上完整运行 Z‑Image Turbo 的端到端推理流水线。该流水线包含四个主要阶段：文本编码、迭代去噪、图像解码和图像渲染。核心扩散过程在一个紧凑的去噪循环中运行，Transformer 模型和调度器在各个扩散时间步上反复执行。
+
+![Z-Image Turbo 端到端推理流水线](/blog/z-image-turbo/z-image-web-pipe.jpg)
+
+以下几个特性对于在浏览器中实现实用性能至关重要：
+
+- 去噪循环构成了性能关键路径，从前述的模型级优化中获益最大。
+- WebGPU 使完整的扩散流水线能够作为单一的端到端浏览器推理工作流完全在设备上运行。
+- 各阶段之间使用 I/O 绑定，以减少模型执行之间不必要的内存拷贝。
+
+## 目标硬件：Intel 酷睿 Ultra Series 3（猎豹湖 Panther Lake）
+
+我们的优化流水线在 Intel 酷睿 Ultra Series 3（猎豹湖 Panther Lake）AI PC 设备上进行了验证，WebGPU 后端在该平台上展现了最佳性能。这些芯片中的集成 GPU 架构和专用 NPU 与我们流水线的融合算子调度模式高度契合——这意味着当前一代 AI PC 的用户无需离开浏览器，即可获得真正快速、流畅的生成体验。
+
+这代表了我们团队多年来跟踪的两大趋势的交汇：日益强大的客户端 ML 硬件，以及日益完善的 Web ML 技术栈。Z-Image Turbo 在 WebGPU 上的运行，展示了两者交汇之处的无限可能。
+
+## 在线体验
+
+Z-Image Turbo 的 Web 演示和完整开源实现已公开发布：
+
+- **在线演示：** [https://microsoft.github.io/webnn-developer-preview/demos/z-image-turbo/](https://microsoft.github.io/webnn-developer-preview/demos/z-image-turbo/)
+
+![Z-Image Turbo 在浏览器中生成的示例输出](/blog/z-image-turbo/output.png)
+
+上图是使用该演示直接在浏览器中生成的。无需任何设置——在兼容的 AI PC 上使用支持 WebGPU 的浏览器打开演示，即可开始完全在设备端生成图像。
+
+## 结论
+
+通过 Z‑Image Turbo，我们证明了最先进的扩散 Transformer 可以通过完全端侧推理在浏览器中运行，而无需依赖服务器端执行。借助 AI PC 上经过 WebGPU 优化的执行，这项工作弥合了前沿生成式模型与实用、隐私、客户端 Web 部署之间的鸿沟。
