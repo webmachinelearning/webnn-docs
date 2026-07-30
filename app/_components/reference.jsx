@@ -56,9 +56,9 @@ const api2 = [
   ['context.readTensor', 'webnn/mlcontext#readtensor'],
   ['context.writeTensor', 'webnn/mlcontext#writetensor'],
   ['context.opSupportLimits', 'webnn/mlcontext#opsupportlimits'],
-  ['context.destory', 'webnn/mlcontext#destroy'],
-  ['graph.destory', 'webnn/mlgraph#destroy'],
-  ['tensor.destory', 'webnn/mltensor#destroy'],
+  ['context.destroy', 'webnn/mlcontext#destroy'],
+  ['graph.destroy', 'webnn/mlgraph#destroy'],
+  ['tensor.destroy', 'webnn/mltensor#destroy'],
   ['builder.input', 'webnn/mlgraphbuilder#input'],
   ['builder.constant', 'webnn/mlgraphbuilder#constant'],
   ['builder.build', 'webnn/mlgraphbuilder#build']
