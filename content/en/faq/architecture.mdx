@@ -69,7 +69,14 @@ The diverse hardware ecosystem and multiple driver versions make it difficult to
 
 You can verify which backend you are using by following these steps:
 
-1. Visit https://webnnreport.org/
+1. Visit https://webnnreport.org/ or run the WebNN demos in [WebNN Developer Preview](https://microsoft.github.io/webnn-developer-preview/demos/image-classification/?provider=webnn&devicetype=gpu&model=mobilenet-v2&run=5)
+2. Navigate to `chrome://webnn-internals/`
+
+The `Runtime Backend` and `Execution Providers` in use will be displayed here.
+
+## WebNN Histograms
+
+1. Visit https://webnnreport.org/ or run the WebNN demos in [WebNN Developer Preview](https://microsoft.github.io/webnn-developer-preview/demos/image-classification/?provider=webnn&devicetype=gpu&model=mobilenet-v2&run=5)
 2. Navigate to `chrome://histograms/` and search `WebNN`
 
 ### WebNN.ORT.WinAppRuntimeInstallState
@@ -108,9 +115,9 @@ Find `WebNN.ORT.OpenVINOExecutionProvider.Status` and check the status code:
   5  O           (0 = 0.0%) {100.0%}
 ```
 
-If the Windows ML Runtime and OpenVINO Execution Provider failed to install properly, you can install them manually instead.
+## Windows App SDK and Execution Providers Manual Installation
 
-### Windows App SDK and Execution Providers Manual Installation
+If the Windows ML Runtime and OpenVINO Execution Provider failed to install properly, you can install them manually instead.
 
 > <InfoIcon /> On Window 11, version 24H2 or newer, the Windows App SDK and Execution Providers will be installed automatically in the background when you install and launch the browser.
 The installation time may vary depending on your network speed. Follow these steps if the Windows App SDK and Execution Providers were not installed successfully.
