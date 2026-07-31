@@ -20,7 +20,7 @@ Visit via `about://flags/`
 
 | Name   | Windows ML / ONNX Runtime backend for WebNN |
 | :--: | :-------- |
-| Description | Enables using ONNX Runtime for CPU, GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to DirectML or TFLite. – Windows |
+| Description | Enables using ONNX Runtime for CPU, GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. – Windows |
 | Expiry Milestone | 146 |
 | Command Line Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime` |
 
@@ -47,32 +47,6 @@ Visit via `about://flags/`
 | :--: | :-------- |
 | Description    | Enables using Core ML for explicit GPU and NPU inference with the WebNN API |
 | Expiry Milestone | 146 |
-
-### `#webnn-directml`
-
-| Name   | DirectML backend for WebNN |
-| :--: | :-------- |
-| Description    | Enables using DirectML for GPU and NPU inference with the WebNN API. Disabling this flag enables a fallback to TFLite. – Windows.| 
-| Expiry Milestone | 146 |
-
-## Switches (Command Line Flags)
-
-### `--use-redist-dml`
-
-| Name | Use redistributable DirectML |
-| :--: | :-------- |
-| Description | Try to use a redistributable DirectML.dll. Used for testing WebNN against newer DirectML release before it is integrated into Windows OS. Please see more info about [DirectML releases](https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history).|
-| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration. |
-| Usage | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --use-redist-dml` |
-
-### `--disable_dml_meta_commands_for_gpu`
-
-| Name | Disable DirectML Metacommands for GPU |
-| :--: | :-------- |
-| Description | Run with DirectML fallback shaders if disabling Metacommands |
-| Note | DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.|
-| Usage (true) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=1` |
-| Usage (false) | `"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --disable_dml_meta_commands_for_gpu=0` |
 
 ### `--disable_webnn_for_gpu`
 
