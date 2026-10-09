@@ -2,73 +2,98 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLGraph
 
-The `MLGraph` interface represents a compiled computational graph. Once constructed, a compiled graph is immutable and cannot be subsequently modified.
+> <InfoIcon /> **Experimental:** This is an [experimental technology](../browser-compatibility/api#webnn-apis). Check the browser compatibility table carefully before using it in production.
 
-## Web IDL
+The **`MLGraph`** interface of the Web Neural Network (WebNN) API represents a compiled computational graph. Once built, a graph is immutable: its operators, inputs, outputs, and constant weights cannot be changed.
+
+An `MLGraph` is obtained from [`MLGraphBuilder.build()`](mlgraphbuilder#build) and executed with [`MLContext.dispatch()`](mlcontext#dispatch). A graph is bound to the [`MLContext`](mlcontext) of the builder that created it and can only be dispatched on that context.
+
+This feature is available only in [secure contexts](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`), and is available in both the main thread and [Web Workers](https://developer.mozilla.org/docs/Web/API/Web_Workers_API).
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraph {
   undefined destroy();
 };
 ```
 
-## Constructor
+## Constructor [#constructor]
 
-The `MLGraph` interface does not have a constructor. Instances are created through other APIs.
+None. Use [`MLGraphBuilder.build()`](mlgraphbuilder#build) to create an `MLGraph`.
 
-## Properties
+## Instance properties [#instance-properties]
 
-This interface does not contain any properties.
+None. The names and descriptors of a graph's inputs and outputs are those that were used when it was built; `dispatch()` validates the tensors you pass against them.
 
-## Methods
+## Instance methods [#instance-methods]
 
-### destroy()
+### destroy() [#destroy]
 
-Releases all resources associated with the graph. Once called, the graph is marked as destroyed and cannot be used for further operations.
+The **`destroy()`** method releases the resources associated with the graph. After it is called, the graph can no longer be dispatched: [`MLContext.dispatch()`](mlcontext#dispatch) throws an `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException).
 
+Work that was already dispatched with the graph still completes; the implementation frees the graph's resources once that work has finished. Calling `destroy()` more than once has no further effect. Graphs are also destroyed automatically when their context is [lost or destroyed](mlcontext#lost).
 
-#### Syntax
+#### Syntax [#destroy-syntax]
 
-```js showLineNumbers filename="example-1.js"
-graph.destroy()
+```js showLineNumbers filename="syntax.js"
+destroy()
 ```
 
-#### Return Value
+#### Parameters [#destroy-parameters]
 
-- `undefined`
+None.
 
-## Notes
+#### Return value [#destroy-return-value]
 
-- The graph is immutable after construction to ensure computational integrity
-- All input and output operands must be properly described through their respective descriptors
-- The implementation details are managed by the User Agent and are not directly accessible
-- After destruction, no further workloads can be enqueued using this graph
-- Implementations can free any additional resource allocations associated with this graph once all previously submitted workloads using it are complete
+None (`undefined`).
 
-## Best Practices
+## Examples [#examples]
 
-- Always call `destroy()` when the graph is no longer needed to prevent memory leaks
-- Ensure all operations on the graph are complete before calling `destroy()`
-- Do not attempt to use the graph after calling `destroy()`
+### Building, running, and destroying a graph [#building-running-and-destroying-a-graph]
 
-## Specifications
+```js showLineNumbers filename="graph-lifecycle.js"
+const context = await navigator.ml.createContext();
+const builder = new MLGraphBuilder(context);
 
-| WebNN API | Status |
-|--------------|---------|
-| [`MLGraph` Interface](https://webmachinelearning.github.io/webnn/#mlgraph) | Candidate Recommendation Draft |
+const desc = { dataType: 'float32', shape: [2, 3] };
+const x = builder.input('x', desc);
+const graph = await builder.build({ y: builder.relu(x) });
 
-## Security Requirements
+const input = await context.createTensor({ ...desc, writable: true });
+const output = await context.createTensor({ ...desc, readable: true });
 
-The `MLGraph` interface:
+context.writeTensor(input, new Float32Array([-1, 2, -3, 4, -5, 6]));
+context.dispatch(graph, { x: input }, { y: output });
+console.log(new Float32Array(await context.readTensor(output))); // [0, 2, 0, 4, 0, 6]
 
-1. Requires a secure context (`SecureContext`)
-2. Is exposed only to `Window` and `DedicatedWorker` contexts
-3. Cannot be modified after construction to prevent tampering with computational graphs
-4. Resource cleanup is performed asynchronously to ensure proper memory management
+// Free the compiled graph when it is no longer needed.
+graph.destroy();
+```
 
-## Browser Compatibility
+## Notes [#notes]
 
-> <InfoIcon /> The `Graph` interface is under active development and browser support may vary.
+- A graph can be dispatched any number of times, with different input and output tensors each time, as long as their data types and shapes match.
+- Compilation in `build()` may include _weight preprocessing_: constant data is transformed and cached in a device-specific format. Reuse a graph rather than rebuilding it for each inference.
+- Call `destroy()` on graphs you no longer need, especially large models, to release device memory promptly instead of waiting for garbage collection.
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+## Specifications [#specifications]
+
+| Specification | Status |
+| --- | --- |
+| [Web Neural Network API — `MLGraph` interface](https://www.w3.org/TR/webnn/#api-mlgraph) | Candidate Recommendation Draft |
+
+The latest Editor's Draft is available at [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraph).
+
+## Browser compatibility [#browser-compatibility]
+
+> <InfoIcon /> WebNN is under active development and support varies across browsers, operating systems, and hardware.
+
+See [Browser Compatibility: WebNN APIs](../browser-compatibility/api#webnn-apis).
+
+## See also [#see-also]
+
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [`MLContext.dispatch()`](mlcontext#dispatch)
+- [`MLTensor`](mltensor)

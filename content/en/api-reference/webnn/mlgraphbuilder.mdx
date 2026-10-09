@@ -1,15 +1,21 @@
-
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLGraphBuilder
 
-The `MLGraphBuilder` interface enables the construction of computational graphs through a set of operations. It manages the intermediate state during graph building sessions.
+> <InfoIcon /> **Experimental:** This is an [experimental technology](../browser-compatibility/api#webnn-apis). Check the browser compatibility table carefully before using it in production.
 
-## Web IDL
+The **`MLGraphBuilder`** interface of the Web Neural Network (WebNN) API is used to construct a computational graph. It holds the state of a graph-building session: you declare inputs and constants, compose [operations](mlgraphbuilder-ops) on the resulting [`MLOperand`](mloperand) objects, and finally compile the graph into an [`MLGraph`](mlgraph) with [`build()`](#build).
+
+Graph construction is synchronous and validates each operation immediately: shapes and data types are computed as you go, and invalid arguments throw a `TypeError` at the offending call. Only `build()` is asynchronous.
+
+This feature is available only in [secure contexts](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`), and is available in both the main thread and [Web Workers](https://developer.mozilla.org/docs/Web/API/Web_Workers_API).
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
 typedef record<USVString, MLOperand> MLNamedOperands;
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraphBuilder {
   // Construct the graph builder from the context.
   constructor(MLContext context);
@@ -22,173 +28,286 @@ interface MLGraphBuilder {
                      AllowSharedBufferSource buffer);
 
   // Create a scalar operand from the specified number of the specified type.
-  MLOperand constant(MLOperandDataType type, MLNumber value);
+  MLOperand constant(MLOperandDataType dataType, MLNumber value);
+
+  // Create an operand from a specified constant tensor.
+  MLOperand constant(MLTensor tensor);
 
   // Compile the graph up to the specified output operands asynchronously.
   Promise<MLGraph> build(MLNamedOperands outputs);
 };
 ```
 
-## Syntax
+The operations (`add()`, `conv2d()`, `softmax()` and so on) are defined as partial interfaces of `MLGraphBuilder` and documented in [MLGraphBuilder operations](mlgraphbuilder-ops).
 
-```javascript
+## Constructor [#constructor]
+
+### MLGraphBuilder() [#mlgraphbuilder]
+
+Creates a new `MLGraphBuilder` associated with an [`MLContext`](mlcontext).
+
+#### Syntax [#constructor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+new MLGraphBuilder(context)
+```
+
+#### Parameters [#constructor-parameters]
+
+- `context`
+
+  The [`MLContext`](mlcontext) that the graph will be compiled for and executed on.
+
+#### Exceptions [#constructor-exceptions]
+
+- `SecurityError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  Thrown if the document is not allowed to use the `webnn` [Permissions Policy](navigatorml#permissions-policy) feature.
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  Thrown if `context` is lost.
+
+## Instance properties [#instance-properties]
+
+None.
+
+## Instance methods [#instance-methods]
+
+| Method | Description |
+| --- | --- |
+| [`input()`](#input) | Creates a named input operand. |
+| [`constant()`](#constant) | Creates a constant operand from a buffer, a scalar value, or a constant `MLTensor`. |
+| [`build()`](#build) | Compiles the graph up to the given output operands. |
+| [Operations](#operations) | Over 90 methods such as `add()`, `conv2d()`, `matmul()` and `softmax()` that create operations. |
+
+All methods except `build()` throw an `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException) if the builder **cannot build**, that is, if `build()` has already been called on it or its context is lost.
+
+### input() [#input]
+
+The **`input()`** method creates a named [`MLOperand`](mloperand) that represents a graph input. When the graph is executed, a tensor with the same name, data type and shape must be supplied in the `inputs` argument of [`MLContext.dispatch()`](mlcontext#dispatch).
+
+#### Syntax [#input-syntax]
+
+```js showLineNumbers filename="syntax.js"
+input(name, descriptor)
+```
+
+#### Parameters [#input-parameters]
+
+- `name`
+
+  A non-empty string naming the input. Names must be unique within the builder.
+- `descriptor`
+
+  An [`MLOperandDescriptor`](mloperand#mloperanddescriptor) giving the input's `dataType` and `shape`.
+
+#### Return value [#input-return-value]
+
+An [`MLOperand`](mloperand).
+
+#### Exceptions [#input-exceptions]
+
+- `TypeError`
+
+  Thrown if `name` is empty or already used by another input, or if `descriptor` has an invalid shape.
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  Thrown if the builder cannot build.
+
+> <InfoIcon /> A graph may have no inputs at all, for example a graph that only transforms constants.
+
+### constant() [#constant]
+
+The **`constant()`** method creates an [`MLOperand`](mloperand) whose value is fixed when the graph is built, typically model weights. Constants let the implementation pre-process and cache data in a device-friendly format during `build()` (so-called _weight preprocessing_), which speeds up subsequent executions.
+
+#### Syntax [#constant-syntax]
+
+```js showLineNumbers filename="syntax.js"
+constant(descriptor, buffer)
+constant(dataType, value)
+constant(tensor)
+```
+
+#### Parameters [#constant-parameters]
+
+- `descriptor`
+
+  An [`MLOperandDescriptor`](mloperand#mloperanddescriptor) giving the constant's `dataType` and `shape`.
+- `buffer`
+
+  An `ArrayBuffer`, `SharedArrayBuffer`, or `ArrayBufferView` with the initial data. Its byte length must equal the descriptor's byte length, and a typed array must match the data type or be a `Uint8Array` (see [buffer requirements](mlcontext#buffer-requirements)). The data is copied when `constant()` is called, so the buffer can be reused immediately.
+- `dataType`
+
+  An [`MLOperandDataType`](mloperand#mloperanddatatype) for a scalar (0-D) constant.
+- `value`
+
+  An [`MLNumber`](mloperand#mlnumber) (`number` or `bigint`) with the scalar value. It is cast to `dataType`; values outside the range of the type are truncated.
+- `tensor`
+
+  A constant [`MLTensor`](mltensor) created with [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor) on the same context. The operand uses the tensor's data type and shape. The tensor may be destroyed after `build()` completes.
+
+#### Return value [#constant-return-value]
+
+An [`MLOperand`](mloperand).
+
+#### Exceptions [#constant-exceptions]
+
+- `TypeError`
+
+  Thrown if `descriptor` has an invalid shape or `buffer` does not match it; or, for `constant(tensor)`, if the tensor belongs to a different context, has been destroyed, or is not a constant tensor.
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  Thrown if the builder cannot build.
+
+### build() [#build]
+
+The **`build()`** method compiles the graph, from the given output operands back to the inputs and constants they depend on, into an [`MLGraph`](mlgraph). Operands that the outputs do not depend on are ignored.
+
+An `MLGraphBuilder` can build only **once**. After `build()` is called, the builder can no longer create operands or build again; create a new builder for each graph.
+
+#### Syntax [#build-syntax]
+
+```js showLineNumbers filename="syntax.js"
+build(outputs)
+```
+
+#### Parameters [#build-parameters]
+
+- `outputs`
+
+  An object (`MLNamedOperands`) mapping each output name to an [`MLOperand`](mloperand) created by this builder. When executing the graph, a tensor must be supplied for each of these names in the `outputs` argument of [`MLContext.dispatch()`](mlcontext#dispatch).
+
+#### Return value [#build-return-value]
+
+A `Promise` that fulfills with an [`MLGraph`](mlgraph).
+
+#### Exceptions [#build-exceptions]
+
+The returned promise is rejected with:
+
+- `TypeError`
+
+  `outputs` is empty; an output name is empty; an operand was created by a different builder; an operand is an input or constant operand; or a constant operand was created from a tensor that has since been destroyed.
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  The builder cannot build (it has already built, or the context is lost), or the context was lost during compilation.
+- `OperationError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
+
+  The graph could not be compiled by the underlying platform.
+
+> <InfoIcon /> Passing an input or constant operand directly as a graph output is rejected, because it usually indicates a mistake. If you really need it, wrap the operand with [`identity()`](mlgraphbuilder-ops#identity).
+
+## Operations [#operations]
+
+Operations are methods that take one or more `MLOperand` objects (and usually an options dictionary derived from [`MLOperatorOptions`](mloperand#mloperatoroptions)) and return a new `MLOperand`, or a sequence of operands. See [MLGraphBuilder operations](mlgraphbuilder-ops) for full details.
+
+| Category | Operations |
+| --- | --- |
+| [Element-wise binary](mlgraphbuilder-ops#element-wise-binary) | `add()`, `sub()`, `mul()`, `div()`, `max()`, `min()`, `pow()` |
+| [Comparison and logical](mlgraphbuilder-ops#element-wise-logical) | `equal()`, `notEqual()`, `greater()`, `greaterOrEqual()`, `lesser()`, `lesserOrEqual()`, `logicalNot()`, `logicalAnd()`, `logicalOr()`, `logicalXor()`, `isNaN()`, `isInfinite()` |
+| [Element-wise unary](mlgraphbuilder-ops#element-wise-unary) | `abs()`, `ceil()`, `cos()`, `erf()`, `exp()`, `floor()`, `identity()`, `log()`, `neg()`, `reciprocal()`, `roundEven()`, `sign()`, `sin()`, `sqrt()`, `tan()` |
+| [Activations](mlgraphbuilder-ops#activations) | `elu()`, `gelu()`, `hardSigmoid()`, `hardSwish()`, `leakyRelu()`, `linear()`, `prelu()`, `relu()`, `sigmoid()`, `softmax()`, `softplus()`, `softsign()`, `tanh()` |
+| [Convolution](mlgraphbuilder-ops#convolution) | `conv2d()`, `convTranspose2d()` |
+| [Pooling](mlgraphbuilder-ops#pooling) | `averagePool2d()`, `l2Pool2d()`, `maxPool2d()` |
+| [Normalization](mlgraphbuilder-ops#normalization) | `batchNormalization()`, `instanceNormalization()`, `layerNormalization()` |
+| [Matrix](mlgraphbuilder-ops#matrix) | `gemm()`, `matmul()`, `triangular()` |
+| [Reduction](mlgraphbuilder-ops#reduction) | `argMax()`, `argMin()`, `cumulativeSum()`, `reduceL1()`, `reduceL2()`, `reduceLogSum()`, `reduceLogSumExp()`, `reduceMax()`, `reduceMean()`, `reduceMin()`, `reduceProduct()`, `reduceSum()`, `reduceSumSquare()` |
+| [Shape and data movement](mlgraphbuilder-ops#shape-and-data-movement) | `cast()`, `clamp()`, `concat()`, `expand()`, `pad()`, `reshape()`, `reverse()`, `slice()`, `split()`, `tile()`, `transpose()` |
+| [Gather and scatter](mlgraphbuilder-ops#gather-and-scatter) | `gather()`, `gatherElements()`, `gatherND()`, `scatterElements()`, `scatterND()`, `where()` |
+| [Quantization](mlgraphbuilder-ops#quantization) | `dequantizeLinear()`, `quantizeLinear()` |
+| [Recurrent networks](mlgraphbuilder-ops#recurrent-networks) | `gru()`, `gruCell()`, `lstm()`, `lstmCell()` |
+| [Resampling](mlgraphbuilder-ops#resampling) | `resample2d()` |
+
+## Examples [#examples]
+
+### Building a simple graph [#building-a-simple-graph]
+
+```js showLineNumbers filename="simple-graph.js"
+const context = await navigator.ml.createContext();
 const builder = new MLGraphBuilder(context);
 
-// Creating input and constant operands
-const input = builder.input(name, descriptor);
-const constant1 = builder.constant(descriptor, buffer);
-const constant2 = builder.constant(type, value);
+const a = builder.input('a', { dataType: 'float32', shape: [3, 4] });
+const b = builder.input('b', { dataType: 'float32', shape: [4, 3] });
+const c = builder.matmul(a, b);
+console.log(c.shape); // [3, 3]
 
-// Building the graph
-const graph = await builder.build(outputs);
+const graph = await builder.build({ c });
 ```
 
-## Constructor
+### Using the three kinds of constants [#using-the-three-kinds-of-constants]
 
-### MLGraphBuilder()
+```js showLineNumbers filename="constants.js"
+const builder = new MLGraphBuilder(context);
+const x = builder.input('x', { dataType: 'float32', shape: [2, 2] });
 
-Creates a new `MLGraphBuilder` instance.
+// 1. From a buffer.
+const w = builder.constant({ dataType: 'float32', shape: [2, 2] },
+                           new Float32Array([1, 2, 3, 4]));
 
-```js showLineNumbers filename="constructor.js"
-constructor(context)
+// 2. A scalar; broadcast when combined with other operands.
+const half = builder.constant('float32', 0.5);
+
+// 3. From a constant MLTensor, e.g. weights shared by several graphs.
+const biasTensor = await context.createConstantTensor(
+  { dataType: 'float32', shape: [2] }, new Float32Array([0.1, 0.2]));
+const bias = builder.constant(biasTensor);
+
+const y = builder.add(builder.mul(builder.matmul(x, w), half), bias);
+const graph = await builder.build({ y });
 ```
 
-#### Parameters
+### A small convolutional block [#a-small-convolutional-block]
 
-- `context`: An `MLContext` object to associate with the graph builder.
+```js showLineNumbers filename="conv-block.js"
+const builder = new MLGraphBuilder(context);
+const input = builder.input('input', { dataType: 'float32', shape: [1, 3, 32, 32] }); // NCHW
 
-## Properties
+const filter = builder.constant({ dataType: 'float32', shape: [16, 3, 3, 3] }, filterData); // OIHW
+const bias = builder.constant({ dataType: 'float32', shape: [16] }, biasData);
 
-This interface doesn't contain any properties.
+let x = builder.conv2d(input, filter, { padding: [1, 1, 1, 1], bias });
+x = builder.relu(x);
+x = builder.maxPool2d(x, { windowDimensions: [2, 2], strides: [2, 2] });
+console.log(x.shape); // [1, 16, 16, 16]
 
-## Methods
-
-### input()
-
-Creates a named `MLOperand` that can be used as an input to the graph.
-
-```js showLineNumbers filename="input.js"
-builder.input(name, descriptor)
+const graph = await builder.build({ output: x });
 ```
 
-#### Parameters
+### Handling build errors [#handling-build-errors]
 
-- `name`: A string representing the name of the input.
-- `descriptor`: An `MLOperandDescriptor` object defining the input's characteristics.
+```js showLineNumbers filename="build-errors.js"
+const builder = new MLGraphBuilder(context);
+const x = builder.input('x', { dataType: 'float32', shape: [4] });
 
-#### Return Value
-
-Returns an `MLOperand` object.
-
-### constant()
-
-Creates a constant `MLOperand`. This method has two overloads:
-
-#### Syntax 1: Creating a graph constant
-
-```js showLineNumbers filename="constant-1.js"
-builder.constant(descriptor, buffer)
-```
-
-##### Parameters
-
-- `descriptor`: An `MLOperandDescriptor` describing the output tensor.
-- `buffer`: An `AllowSharedBufferSource` containing the initializing data.
-
-##### Return Value
-
-Returns an `MLOperand` representing the constant tensor.
-
-#### Syntax 2: Creating a scalar operand
-
-```js showLineNumbers filename="constant-2.js"
-builder.constant(type, value)
-```
-
-##### Parameters
-
-- `type`: An `MLOperandDataType` specifying the data type.
-- `value`: An `MLNumber` representing the constant value.
-
-##### Return Value
-
-Returns an `MLOperand` representing the scalar constant.
-
-### build()
-
-Compiles the graph asynchronously up to the specified output operands.
-
-```js showLineNumbers filename="build.js"
-builder.build(outputs)
-```
-
-#### Parameters
-
-- `outputs`: An `MLNamedOperands` record identifying the output operands of the graph.
-
-#### Return Value
-
-Returns a `Promise` that resolves to an `MLGraph` object.
-
-## Implementation Notes
-
-When building a graph with `MLContext` type set to "default", the following occurs:
-
-1. The graph is compiled based on the specified output operands
-2. Graph initialization occurs just before the `MLGraph` is returned
-3. Weight preprocessing is performed where:
-   - Constant inputs are preprocessed
-   - Data is cached at the OS level
-   - This optimization improves subsequent graph execution performance
-
-## Examples
-
-### Creating and Building a Simple Graph
-
-```js showLineNumbers filename="example-1.js"
-async function simpleGraph() {
-  const context = await navigator.ml.createContext({
-    deviceType: 'gpu'
-  });
-  // Create a graph builder
-  const builder = new MLGraphBuilder(context);
-  // Create an input
-  const a = builder.input("a", {
-    dataType: "float32",
-    shape: [3, 4]
-  });
-  // Create a input
-  const b = builder.input("b", {
-    dataType: "float32",
-    shape: [4, 3]
-  });
-  const c = builder.matmul(a, b);
-  // Build the graph
-  const graph = await builder.build({c});
-  return graph;
+try {
+  await builder.build({ x }); // Rejected: an input cannot be a graph output.
+} catch (e) {
+  console.log(e.name); // "TypeError"
 }
+
+// Wrap the operand with identity() instead (using a new builder).
+const builder2 = new MLGraphBuilder(context);
+const x2 = builder2.input('x', { dataType: 'float32', shape: [4] });
+const graph = await builder2.build({ y: builder2.identity(x2) });
 ```
 
-### Creating a Scalar Constant
+## Specifications [#specifications]
 
-```js showLineNumbers filename="example-2.js"
-const builder = new MLGraphBuilder(context);
-const scalarConstant = builder.constant("float32", 42.0);
-```
+| Specification | Status |
+| --- | --- |
+| [Web Neural Network API — `MLGraphBuilder` interface](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
 
-## Specifications
+The latest Editor's Draft is available at [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder).
 
-| WebNN API | Status |
-|--------------|---------|
-| [`MLGraphBuilder` interface](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
+## Browser compatibility [#browser-compatibility]
 
+> <InfoIcon /> WebNN is under active development and support varies across browsers, operating systems, and hardware. `constant(tensor)` is a recent addition and may not be implemented yet.
 
-## Security Requirements
+See [Browser Compatibility: WebNN APIs](../browser-compatibility/api#webnn-apis) and the per-backend operator tables for [Windows ML](../browser-compatibility/windowsml), [LiteRT](../browser-compatibility/litert) and [Core ML](../browser-compatibility/coreml).
 
-1. Must be used in a secure context (HTTPS or localhost)
-2. Access is restricted to Window and DedicatedWorker contexts
-3. The graph builder can only build if its associated `context` is not lost
+## See also [#see-also]
 
-## Browser Compatibility
-
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+- [MLGraphBuilder operations](mlgraphbuilder-ops)
+- [`MLOperand`](mloperand)
+- [`MLGraph`](mlgraph)
+- [`MLContext`](mlcontext)

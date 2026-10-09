@@ -2,11 +2,15 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # navigator.ml
 
-The `navigator.ml` property provides access to the WebNN API, allowing web applications to interact with machine learning capabilities in the browser.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## Web IDL
+[`Navigator`](https://developer.mozilla.org/zh-CN/docs/Web/API/Navigator) 和 [`WorkerNavigator`](https://developer.mozilla.org/zh-CN/docs/Web/API/WorkerNavigator) 接口的只读属性 **`ml`** 返回一个 [`ML`](ml) 对象，它是 Web 神经网络（WebNN）API 的入口。
 
-```idl showLineNumbers filename="web-idl"
+此特性仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可使用。
+
+## Web IDL [#web-idl]
+
+```webidl showLineNumbers filename="web-idl"
 interface mixin NavigatorML {
   [SecureContext, SameObject] readonly attribute ML ml;
 };
@@ -14,48 +18,89 @@ Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 ```
 
-## Syntax
+## 值 [#value]
 
-```js showLineNumbers filename="navigator.ml.js"
-const ml = navigator.ml
+一个 [`ML`](ml) 对象。由于该属性被标记为 `[SameObject]`，在给定的全局对象内每次访问该属性都会返回同一个 `ML` 对象。
+
+## 描述 [#description]
+
+`navigator.ml` 提供对 [`ML`](ml) 接口的访问，其 [`createContext()`](ml#createcontext) 方法用于创建 [`MLContext`](mlcontext)。通过该上下文，你可以使用 [`MLGraphBuilder`](mlgraphbuilder) 构建计算图，分配 [`MLTensor`](mltensor) 对象，并在设备的 CPU、GPU 或 NPU 上运行推理。
+
+- **Window：** 可通过 `window.navigator.ml` 使用。
+- **Worker：** 可通过 [`WorkerNavigator`](https://developer.mozilla.org/zh-CN/docs/Web/API/WorkerNavigator) 以 `self.navigator.ml` 的形式使用。在 Worker 中运行推理可使图编译和数据传输不占用主线程。
+- **仅限安全上下文：** 在不安全的上下文中（例如通过纯 HTTP 提供的页面），不会暴露 `ml` 属性，因此 `'ml' in navigator` 为 `false`。
+
+### 权限策略 [#permissions-policy]
+
+WebNN 的使用由标识字符串为 **`webnn`** 的[权限策略](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Permissions_Policy)特性控制。其默认允许列表为 `'self'`，因此同源文档默认可以使用 WebNN。跨源 iframe 必须被明确授予访问权限：
+
+```html showLineNumbers filename="iframe.html"
+<iframe src="https://example.com/inference.html" allow="webnn"></iframe>
 ```
 
-### Value
+当文档不被允许使用该特性时，`ml` 属性仍然存在，但 [`ML.createContext()`](ml#createcontext) 会返回一个以 `SecurityError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException) 拒绝的 Promise，并且 [`MLGraphBuilder()`](mlgraphbuilder#constructor) 构造函数会抛出 `SecurityError`。
 
-An [`ML`](https://www.w3.org/TR/webnn/#api-navigator-ml) object that provides access to WebNN functionality.
+## 示例 [#examples]
 
-## Description
+### 特性检测 [#feature-detection]
 
-The `navigator.ml` property returns a read-only reference to an `ML` object, which serves as the entry point for browser-based machine learning operations. This interface is:
-
-- Available in both window and dedicated worker contexts
-- Accessible through the `Navigator` interface in window contexts
-- Accessible through the `WorkerNavigator` interface in dedicated worker contexts
-- Protected by a secure context requirement (HTTPS or localhost)
-
-## Example
-
-```js showLineNumbers filename="example.js"
+```js showLineNumbers filename="feature-detection.js"
 if ('ml' in navigator) {
-  // ML API is supported
-  const mlInstance = navigator.ml;
-  // Use ML functionality here
+  const context = await navigator.ml.createContext();
+  console.log('WebNN is available.');
 } else {
-  console.log('ML API is not supported in this browser');
+  console.log('WebNN is not supported in this browser.');
 }
 ```
-## Specifications
 
-| WebNN API | Status |
-|--------------|---------|
-| [`navigator.ml` interface](https://www.w3.org/TR/webnn/#api-navigator-ml) | Candidate Recommendation Draft |
+### 在 Worker 中使用 WebNN [#using-webnn-in-a-worker]
 
-## Security Requirements
+```js showLineNumbers filename="main.js"
+const worker = new Worker('worker.js', { type: 'module' });
+worker.postMessage({ a: [1, 2, 3, 4], b: [5, 6, 7, 8] });
+worker.onmessage = (e) => console.log('Result:', e.data); // Float32Array [6, 8, 10, 12]
+```
 
-Access to `navigator.ml` requires a secure context (HTTPS or localhost). Attempting to access this API in a non-secure context will result in an error.
+```js showLineNumbers filename="worker.js"
+self.onmessage = async (e) => {
+  const context = await navigator.ml.createContext();
+  const builder = new MLGraphBuilder(context);
+  const desc = { dataType: 'float32', shape: [4] };
+  const graph = await builder.build({
+    c: builder.add(builder.input('a', desc), builder.input('b', desc)),
+  });
 
-## Browser Compatibility
+  const [a, b, c] = await Promise.all([
+    context.createTensor({ ...desc, writable: true }),
+    context.createTensor({ ...desc, writable: true }),
+    context.createTensor({ ...desc, readable: true }),
+  ]);
+  context.writeTensor(a, new Float32Array(e.data.a));
+  context.writeTensor(b, new Float32Array(e.data.b));
+  context.dispatch(graph, { a, b }, { c });
 
-> <InfoIcon /> The `navigator.ml` interface is experimental and support may vary across browsers.
+  self.postMessage(new Float32Array(await context.readTensor(c)));
+};
+```
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+## 规范 [#specifications]
+
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `navigator.ml`](https://www.w3.org/TR/webnn/#api-navigator-ml) | 候选推荐草案 |
+
+最新的编辑草案可在 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-navigator-ml) 查看。
+
+## 浏览器兼容性 [#browser-compatibility]
+
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。
+
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)。
+
+## 参见 [#see-also]
+
+- [`ML`](ml)
+- [`MLContext`](mlcontext)
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)
+- [权限策略](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Permissions_Policy)

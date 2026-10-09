@@ -1,281 +1,2422 @@
-# MLGraphBuilder
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-```math
-x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
+# MLGraphBuilder operations
+
+> <InfoIcon /> **Experimental:** This is an [experimental technology](../browser-compatibility/api#webnn-apis). Check the browser compatibility table carefully before using it in production.
+
+The operations of the Web Neural Network (WebNN) API are methods of the [`MLGraphBuilder`](mlgraphbuilder) interface. Each operation takes one or more [`MLOperand`](mloperand) arguments, usually together with an options dictionary, and returns a new `MLOperand` (or a sequence of operands) that describes the result. Operations do not compute anything when called: they add a node to the graph that [`build()`](mlgraphbuilder#build) later compiles and [`MLContext.dispatch()`](mlcontext#dispatch) executes.
+
+This page documents all 95 operations, grouped by category. For the builder itself, including [`input()`](mlgraphbuilder#input), [`constant()`](mlgraphbuilder#constant) and [`build()`](mlgraphbuilder#build), see [`MLGraphBuilder`](mlgraphbuilder).
+
+## Overview [#overview]
+
+| Category | Operations |
+| --- | --- |
+| [Element-wise binary](#element-wise-binary) | [`add()`](#add), [`sub()`](#sub), [`mul()`](#mul), [`div()`](#div), [`max()`](#max), [`min()`](#min), [`pow()`](#pow) |
+| [Comparison and logical](#element-wise-logical) | [`equal()`](#equal), [`notEqual()`](#notequal), [`greater()`](#greater), [`greaterOrEqual()`](#greaterorequal), [`lesser()`](#lesser), [`lesserOrEqual()`](#lesserorequal), [`logicalNot()`](#logicalnot), [`logicalAnd()`](#logicaland), [`logicalOr()`](#logicalor), [`logicalXor()`](#logicalxor), [`isNaN()`](#isnan), [`isInfinite()`](#isinfinite) |
+| [Element-wise unary](#element-wise-unary) | [`abs()`](#abs), [`ceil()`](#ceil), [`cos()`](#cos), [`erf()`](#erf), [`exp()`](#exp), [`floor()`](#floor), [`identity()`](#identity), [`log()`](#log), [`neg()`](#neg), [`reciprocal()`](#reciprocal), [`roundEven()`](#roundeven), [`sign()`](#sign), [`sin()`](#sin), [`sqrt()`](#sqrt), [`tan()`](#tan) |
+| [Activations](#activations) | [`elu()`](#elu), [`gelu()`](#gelu), [`hardSigmoid()`](#hardsigmoid), [`hardSwish()`](#hardswish), [`leakyRelu()`](#leakyrelu), [`linear()`](#linear), [`prelu()`](#prelu), [`relu()`](#relu), [`sigmoid()`](#sigmoid), [`softmax()`](#softmax), [`softplus()`](#softplus), [`softsign()`](#softsign), [`tanh()`](#tanh) |
+| [Convolution](#convolution) | [`conv2d()`](#conv2d), [`convTranspose2d()`](#convtranspose2d) |
+| [Pooling](#pooling) | [`averagePool2d()`](#averagepool2d), [`l2Pool2d()`](#l2pool2d), [`maxPool2d()`](#maxpool2d) |
+| [Normalization](#normalization) | [`batchNormalization()`](#batchnormalization), [`instanceNormalization()`](#instancenormalization), [`layerNormalization()`](#layernormalization) |
+| [Matrix](#matrix) | [`gemm()`](#gemm), [`matmul()`](#matmul), [`triangular()`](#triangular) |
+| [Reduction](#reduction) | [`argMax()`](#argmax), [`argMin()`](#argmin), [`cumulativeSum()`](#cumulativesum), [`reduceL1()`](#reducel1), [`reduceL2()`](#reducel2), [`reduceLogSum()`](#reducelogsum), [`reduceLogSumExp()`](#reducelogsumexp), [`reduceMax()`](#reducemax), [`reduceMean()`](#reducemean), [`reduceMin()`](#reducemin), [`reduceProduct()`](#reduceproduct), [`reduceSum()`](#reducesum), [`reduceSumSquare()`](#reducesumsquare) |
+| [Shape and data movement](#shape-and-data-movement) | [`cast()`](#cast), [`clamp()`](#clamp), [`concat()`](#concat), [`expand()`](#expand), [`pad()`](#pad), [`reshape()`](#reshape), [`reverse()`](#reverse), [`slice()`](#slice), [`split()`](#split), [`tile()`](#tile), [`transpose()`](#transpose) |
+| [Gather and scatter](#gather-and-scatter) | [`gather()`](#gather), [`gatherElements()`](#gatherelements), [`gatherND()`](#gathernd), [`scatterElements()`](#scatterelements), [`scatterND()`](#scatternd), [`where()`](#where) |
+| [Quantization](#quantization) | [`dequantizeLinear()`](#dequantizelinear), [`quantizeLinear()`](#quantizelinear) |
+| [Recurrent networks](#recurrent-networks) | [`gru()`](#gru), [`gruCell()`](#grucell), [`lstm()`](#lstm), [`lstmCell()`](#lstmcell) |
+| [Resampling](#resampling) | [`resample2d()`](#resample2d) |
+
+## Common behavior [#common-behavior]
+
+The following rules apply to every operation on this page, so they are not repeated in each entry.
+
+### Options and labels [#options-and-labels]
+
+Every options dictionary derives from [`MLOperatorOptions`](mloperand#mloperatoroptions) and therefore accepts an optional `label` string. Implementations may use it to make error messages and debugging output more useful. The options argument is always optional, except where an entry says otherwise.
+
+```js showLineNumbers filename="label.js"
+const y = builder.matmul(a, b, { label: 'decoder.proj' });
 ```
 
-## argMin
-- Type: operation
+### Exceptions [#exceptions]
 
-## argMax
-- Type: operation
+Operations are validated synchronously, at the point of the call. Unless an entry lists other behavior, an operation throws:
 
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException)
 
-## batchNormalization
-- Type: operation
+  The builder cannot build: [`build()`](mlgraphbuilder#build) has already been called, or the builder's context is lost.
+- `TypeError`
 
+  An operand was created by a different `MLGraphBuilder`; an operand's data type is not one of the operation's _allowed data types_; an operand's rank or shape is not valid for the operation (for example, shapes that cannot be broadcast, or an `axis` outside the valid range); or an option value is out of range.
 
-## cast
-- Type: operation
+### Data types and ranks [#data-types-and-ranks]
 
+Each entry has a **tensor limits** table with one row per operand (the output is listed in italics):
 
-## clamp
-- Type: operation
+- **Allowed data types** are the [`MLOperandDataType`](mloperand#mloperanddatatype) values the specification permits. _same as `input`_ means the operand must have the same data type as another operand, and _any_ means every data type is allowed.
+- **Required data types** are the values every implementation must support at minimum. An implementation may support more of the allowed types, but not fewer than the required ones. Models that use only required types are portable across implementations.
+- **Allowed ranks** and **required ranks** work the same way for the number of dimensions. `N` stands for any rank.
 
+The data types and ranks that the current context really supports are available at run time from [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits). The returned dictionary has one member per operation, named after the method (for example `limits.conv2d` or `limits.add`), with the dictionary type given in each entry.
 
-## concat
-- Type: operation
+```js showLineNumbers filename="support.js"
+const limits = context.opSupportLimits();
+const canUseFp16 = limits.softmax.input.dataTypes.includes('float16');
+const maxRank = limits.add.a.rankRange.max;
+```
 
+### Broadcasting [#broadcasting]
 
-## conv2d
-- Type: operation
+Several operations combine operands of different shapes using the [NumPy broadcasting rule](https://numpy.org/doc/stable/user/basics.broadcasting.html). The shapes are aligned from the trailing dimension, and for each pair of dimensions the sizes must either be equal or one of them must be 1.
 
+- **Bidirectionally broadcastable:** both operands may be stretched. The output rank is the larger of the two ranks and each output dimension is the larger of the two input sizes. Used by the element-wise binary and logical operations, `prelu()` and `where()`.
+- **Unidirectionally broadcastable:** only the first operand is stretched to match a target shape. Used by `expand()` and by the `c` operand of `gemm()`.
 
-## convTranspose2d
-- Type: operation
+## Element-wise binary operations [#element-wise-binary]
 
+Element-wise binary operations compute a result from two input tensors, one pair of elements at a time. The inputs must be bidirectionally broadcastable.
 
-## add
-- Type: operation
+### Syntax [#element-wise-binary-syntax]
 
-## sub
-- Type: operation
+```js showLineNumbers filename="syntax.js"
+add(a, b)
+add(a, b, options)
+// Likewise for sub(), mul(), div(), max(), min() and pow()
+```
 
-## mul
-- Type: operation
+### Parameters [#element-wise-binary-parameters]
 
-## div
-- Type: operation
+- `a`
 
-## max
-- Type: operation
+  An [`MLOperand`](mloperand): the first input tensor.
+- `b`
 
-## min
-- Type: operation
+  An `MLOperand`: the second input tensor.
+- `options` _optional_
 
-## pow
-- Type: operation
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
 
+### Return value [#element-wise-binary-return-value]
 
-## equal
-- Type: operation
+An `MLOperand` holding the result. Its rank is the larger of the ranks of `a` and `b`, and each dimension is the larger of the corresponding input dimensions.
 
-## greater
-- Type: operation
+### Tensor limits [#element-wise-binary-limits]
 
-## greaterOrEqual
-- Type: operation
+Support limits key: `add`, `sub`, `mul`, `div`, `max`, `min`, `pow` ([`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)).
 
-## lesser
-- Type: operation
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| `b` | same as `a` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `a` | `float32`, `float16`, `int32` | N | 0 to 5 |
 
-## lesserOrEqual
-- Type: operation
+### add() [#add]
 
-## logicalNot
-- Type: operation
+Element-wise addition: `a + b`.
 
+### sub() [#sub]
 
-## abs
-- Type: operation
+Element-wise subtraction: `a - b`.
 
-## ceil
-- Type: operation
+### mul() [#mul]
 
-## cos
-- Type: operation
+Element-wise multiplication: `a * b`.
 
-## erf
-- Type: operation
+### div() [#div]
 
-## exp
-- Type: operation
+Element-wise division: `a / b`.
 
-## floor
-- Type: operation
+### max() [#max]
 
-## identity
-- Type: operation
+Element-wise maximum of `a` and `b`.
 
-## log
-- Type: operation
+### min() [#min]
 
-## neg
-- Type: operation
+Element-wise minimum of `a` and `b`.
 
-## reciprocal
-- Type: operation
+### pow() [#pow]
 
-## sin
-- Type: operation
+Element-wise power: each element of `a` raised to the power of the corresponding element of `b`.
 
-## sqrt
-- Type: operation
+### Example [#element-wise-binary-example]
 
-## tan
-- Type: operation
+```js showLineNumbers filename="binary.js"
+const a = builder.input('a', { dataType: 'float32', shape: [2, 3] });
+const bias = builder.constant(
+  { dataType: 'float32', shape: [3] }, new Float32Array([0.1, 0.2, 0.3]));
 
+// bias is broadcast across the first dimension: the output shape is [2, 3].
+const y = builder.add(a, bias);
+console.log(y.shape); // [2, 3]
+```
 
-## elu
-- Type: operation
+## Element-wise logical operations [#element-wise-logical]
 
+Comparison and logical operations produce a `uint8` tensor in which each element is `1` (true) or `0` (false). Operations with two operands require bidirectionally broadcastable inputs.
 
-## expand
-- Type: operation
+### Syntax [#element-wise-logical-syntax]
 
+```js showLineNumbers filename="syntax.js"
+equal(a, b)            // notEqual, greater, greaterOrEqual, lesser, lesserOrEqual
+logicalAnd(a, b)       // logicalOr, logicalXor
+logicalNot(a)
+isNaN(a)               // isInfinite
+// Each accepts an optional trailing options argument.
+```
 
-## gather
-- Type: operation
+### Parameters [#element-wise-logical-parameters]
 
+- `a`
 
-## gelu
-- Type: operation
+  An [`MLOperand`](mloperand): the first (or only) input tensor.
+- `b`
 
+  An `MLOperand`: the second input tensor. Not used by `logicalNot()`, `isNaN()` and `isInfinite()`.
+- `options` _optional_
 
-## gemm
-- Type: operation
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
 
+### Return value [#element-wise-logical-return-value]
 
-## gru
-- Type: operation
+An `MLOperand` of data type `uint8`. For two-operand operations the rank and dimensions follow the broadcasting rule; for single-operand operations the shape equals that of `a`.
 
+### Tensor limits [#element-wise-logical-limits]
 
-## gruCell
-- Type: operation
+**equal(), notEqual(), greater(), greaterOrEqual(), lesser(), lesserOrEqual()**: support limits key of the same name ([`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)).
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| `b` | same as `a` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | `uint8` | `uint8` | N | 0 to 5 |
 
-## hardSigmoid
-- Type: operation
+**logicalNot()**: support limits key `logicalNot` (`MLLogicalNotSupportLimits`, with members `a` and `output`).
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | `uint8` | `uint8` | N | 0 to 5 |
+| _output_ | `uint8` | `uint8` | N | 0 to 5 |
 
-## hardSwish
-- Type: operation
+**logicalAnd(), logicalOr(), logicalXor()**: support limits key of the same name ([`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)).
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | `uint8` | `uint8` | N | 0 to 5 |
+| `b` | same as `a` | `uint8` | N | 0 to 5 |
+| _output_ | `uint8` | `uint8` | N | 0 to 5 |
 
-## instanceNormalization
-- Type: operation
+**isNaN(), isInfinite()**: support limits key of the same name (`MLLogicalNotSupportLimits`).
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | any | `float32`, `float16` | N | 0 to 5 |
+| _output_ | `uint8` | `uint8` | N | 0 to 5 |
 
-## layerNormalization
-- Type: operation
+### equal() [#equal]
 
+`1` where `a` equals `b`, otherwise `0`.
 
-## leakyRelu
-- Type: operation
+### notEqual() [#notequal]
 
+`1` where `a` does not equal `b`, otherwise `0`.
 
-## linear
-- Type: operation
+### greater() [#greater]
 
+`1` where `a` is greater than `b`, otherwise `0`.
 
-## lstm
-- Type: operation
+### greaterOrEqual() [#greaterorequal]
 
+`1` where `a` is greater than or equal to `b`, otherwise `0`.
 
-## lstmCell
-- Type: operation
+### lesser() [#lesser]
 
+`1` where `a` is less than `b`, otherwise `0`.
 
-## matmul
-- Type: operation
+### lesserOrEqual() [#lesserorequal]
 
+`1` where `a` is less than or equal to `b`, otherwise `0`.
 
-## pad
-- Type: operation
+### logicalNot() [#logicalnot]
 
+Logical negation of `a`.
 
-## averagePool2d
-- Type: operation
+### logicalAnd() [#logicaland]
 
-## l2Pool2d
-- Type: operation
+Logical AND of `a` and `b`.
 
-## maxPool2d
-- Type: operation
+### logicalOr() [#logicalor]
 
+Logical OR of `a` and `b`.
 
-## prelu
-- Type: operation
+### logicalXor() [#logicalxor]
 
+Logical exclusive OR of `a` and `b`.
 
-## reduceL1
-- Type: operation
+### isNaN() [#isnan]
 
-## reduceL2
-- Type: operation
+`1` where the element of `a` is not-a-number (NaN), otherwise `0`.
 
-## reduceLogSum
-- Type: operation
+### isInfinite() [#isinfinite]
 
-## reduceLogSumExp
-- Type: operation
+`1` where the element of `a` is positive or negative infinity, otherwise `0`.
 
-## reduceMax
-- Type: operation
+### Example [#element-wise-logical-example]
 
-## reduceMean
-- Type: operation
+```js showLineNumbers filename="logical.js"
+// Keep only values greater than a threshold, zero elsewhere.
+const x = builder.input('x', { dataType: 'float32', shape: [4] });
+const threshold = builder.constant('float32', 0.5);
+const zero = builder.constant('float32', 0);
 
-## reduceMin
-- Type: operation
+const mask = builder.greater(x, threshold);   // uint8: 1 or 0
+const y = builder.where(mask, x, zero);       // see where()
+```
 
-## reduceProduct
-- Type: operation
+## Element-wise unary operations [#element-wise-unary]
 
-## reduceSum
-- Type: operation
+Element-wise unary operations apply a function to each element of one input tensor. The output has the same shape as the input.
 
-## reduceSumSquare
-- Type: operation
+### Syntax [#element-wise-unary-syntax]
 
+```js showLineNumbers filename="syntax.js"
+abs(input)
+abs(input, options)
+// Likewise for ceil(), cos(), erf(), exp(), floor(), identity(), log(), neg(),
+// reciprocal(), roundEven(), sign(), sin(), sqrt() and tan()
+```
 
-## relu
-- Type: operation
+### Parameters [#element-wise-unary-parameters]
 
+- `input`
 
-## resample2d
-- Type: operation
+  An [`MLOperand`](mloperand): the input tensor.
+- `options` _optional_
 
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
 
-## reshape
-- Type: operation
+### Return value [#element-wise-unary-return-value]
 
+An `MLOperand` with the same shape as `input`. Its data type equals that of `input`.
 
-## sigmoid
-- Type: operation
+### Tensor limits [#element-wise-unary-limits]
 
+Support limits key: the method name ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
 
-## slice
-- Type: operation
+**abs(), neg(), sign()**
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 0 to 5 |
 
-## softmax
-- Type: operation
+**ceil(), cos(), erf(), exp(), floor(), log(), reciprocal(), roundEven(), sin(), sqrt(), tan()**
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
 
-## softplus
-- Type: operation
+**identity()**
 
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 0 to 5 |
 
-## softsign
-- Type: operation
+### abs() [#abs]
 
+The absolute value of each element.
 
-## split
-- Type: operation
+### ceil() [#ceil]
 
+The ceiling of each element: the smallest integer greater than or equal to it.
 
-## tanh
-- Type: operation
+### cos() [#cos]
 
+The cosine of each element (in radians).
 
-## transpose
-- Type: operation
+### erf() [#erf]
 
+The [error function](https://en.wikipedia.org/wiki/Error_function) of each element.
 
-## triangular
-- Type: operation
+### exp() [#exp]
 
+The exponential, e raised to the power of each element.
 
-## where
-- Type: operation
+### floor() [#floor]
+
+The floor of each element: the largest integer less than or equal to it.
+
+### identity() [#identity]
+
+Copies each element of the input to the output unchanged. Use it to expose an [input or constant operand as a graph output](mlgraphbuilder#build), or to give an operand a separate node.
+
+### log() [#log]
+
+The natural logarithm of each element.
+
+### neg() [#neg]
+
+The numerical negative (`-x`) of each element.
+
+### reciprocal() [#reciprocal]
+
+The reciprocal (`1 / x`) of each element.
+
+### roundEven() [#roundeven]
+
+Rounds each element to the nearest integer, with halves rounded to the nearest **even** value ("banker's rounding"). For example, `[0.1, 0.9, 1.1, 1.9, -3.5, -2.5, -1.5, 1.5, 2.5, 3.5]` yields `[0, 1, 1, 2, -4, -2, -2, 2, 2, 4]`.
+
+### sign() [#sign]
+
+The sign of each element: `1` if greater than zero, `-1` if less than zero, and `0` otherwise.
+
+### sin() [#sin]
+
+The sine of each element (in radians).
+
+### sqrt() [#sqrt]
+
+The square root of each element.
+
+### tan() [#tan]
+
+The tangent of each element (in radians).
+
+### Example [#element-wise-unary-example]
+
+```js showLineNumbers filename="unary.js"
+const x = builder.input('x', { dataType: 'float32', shape: [3] });
+
+// Euclidean norm of a vector built from unary and reduction operations.
+const norm = builder.sqrt(builder.reduceSum(builder.mul(x, x)));
+console.log(norm.shape); // []
+```
+
+## Activation functions [#activations]
+
+Activation functions are applied element-wise (except `softmax()` and `prelu()`, which are noted below) and are typically placed after a convolution or matrix multiplication. Unless stated otherwise, each takes one input tensor and returns a tensor of the same shape and data type.
+
+All of the following use [`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits) under the support limits key of the same name, except `prelu()`, which has its own dictionary.
+
+### elu() [#elu]
+
+The exponential linear unit: `max(0, x) + alpha * (exp(min(0, x)) - 1)`.
+
+```js showLineNumbers filename="syntax.js"
+elu(input)
+elu(input, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand).
+- `options` _optional_
+
+  An `MLEluOptions` dictionary (derived from [`MLOperatorOptions`](mloperand#mloperatoroptions)).
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `1` | A scalar multiplier. |
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### gelu() [#gelu]
+
+The Gaussian error linear unit: `0.5 * x * (1 + erf(x / sqrt(2)))`.
+
+```js showLineNumbers filename="syntax.js"
+gelu(input)
+gelu(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### hardSigmoid() [#hardsigmoid]
+
+A non-smooth approximation of the sigmoid function that is cheaper to compute: `max(0, min(1, alpha * x + beta))`.
+
+```js showLineNumbers filename="syntax.js"
+hardSigmoid(input)
+hardSigmoid(input, options)
+```
+
+An `MLHardSigmoidOptions` dictionary accepts:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `0.2` | A scalar multiplier. |
+| `beta` | `double` | `0.5` | A scalar addition. |
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### hardSwish() [#hardswish]
+
+The function introduced by MobileNetV3: `x * max(0, min(6, x + 3)) / 6`.
+
+```js showLineNumbers filename="syntax.js"
+hardSwish(input)
+hardSwish(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### leakyRelu() [#leakyrelu]
+
+The leaky rectified linear function: `max(0, x) + alpha * min(0, x)`.
+
+```js showLineNumbers filename="syntax.js"
+leakyRelu(input)
+leakyRelu(input, options)
+```
+
+An `MLLeakyReluOptions` dictionary accepts:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `0.01` | A scalar multiplier applied to negative values. |
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### linear() [#linear]
+
+A linear function: `alpha * x + beta`.
+
+```js showLineNumbers filename="syntax.js"
+linear(input)
+linear(input, options)
+```
+
+An `MLLinearOptions` dictionary accepts:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `1` | A scalar multiplier. |
+| `beta` | `double` | `0` | A scalar addition. |
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### prelu() [#prelu]
+
+The parametric rectified linear function: `max(0, x) + slope * min(0, x)`. Unlike [`leakyRelu()`](#leakyrelu), the slope is a tensor, typically learned during training. `slope` must be bidirectionally broadcastable to `input`, and the output rank is the larger of the two ranks.
+
+```js showLineNumbers filename="syntax.js"
+prelu(input, slope)
+prelu(input, slope, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `slope`
+
+  An `MLOperand`: the slope tensor.
+
+Support limits key `prelu` (`MLPreluSupportLimits`, with members `input`, `slope` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16` | N | 0 to 5 |
+| `slope` | same as `input` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | N | 0 to 5 |
+
+### relu() [#relu]
+
+The rectified linear function: `max(0, x)`.
+
+```js showLineNumbers filename="syntax.js"
+relu(input)
+relu(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### sigmoid() [#sigmoid]
+
+The sigmoid function: `1 / (exp(-x) + 1)`.
+
+```js showLineNumbers filename="syntax.js"
+sigmoid(input)
+sigmoid(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### softmax() [#softmax]
+
+The [softmax](https://en.wikipedia.org/wiki/Softmax_function) values of the input along the given axis, so that the values along that axis are positive and sum to 1.
+
+```js showLineNumbers filename="syntax.js"
+softmax(input, axis)
+softmax(input, axis, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D input tensor.
+- `axis`
+
+  An `unsigned long`: the dimension along which softmax is computed. It must be in the range 0 to N-1, where N is the rank of `input`.
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 1 to N | 1 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 1 to 5 |
+
+### softplus() [#softplus]
+
+The softplus function: `ln(1 + exp(x))`.
+
+```js showLineNumbers filename="syntax.js"
+softplus(input)
+softplus(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### softsign() [#softsign]
+
+The softsign function: `x / (1 + abs(x))`.
+
+```js showLineNumbers filename="syntax.js"
+softsign(input)
+softsign(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### tanh() [#tanh]
+
+The hyperbolic tangent: `(exp(2 * x) - 1) / (exp(2 * x) + 1)`.
+
+```js showLineNumbers filename="syntax.js"
+tanh(input)
+tanh(input, options)
+```
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### Example [#activations-example]
+
+```js showLineNumbers filename="activations.js"
+const logits = builder.input('logits', { dataType: 'float32', shape: [1, 10] });
+const probabilities = builder.softmax(logits, 1);
+
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64] });
+const slope = builder.constant({ dataType: 'float32', shape: [64] }, slopeData);
+const activated = builder.prelu(x, slope);
+```
+
+## Convolution operations [#convolution]
+
+Convolutions slide a filter (kernel) over a 4-D input tensor. The memory layout of the input, output, and filter is selected with the `inputLayout` and `filterLayout` options. The layout that the platform handles most efficiently is reported by [`MLOpSupportLimits.preferredInputLayout`](mlcontext#mlopsupportlimits).
+
+Both operations use `MLConv2dSupportLimits` under their own support limits key, with members `input`, `filter`, `bias` and `output`.
+
+### conv2d() [#conv2d]
+
+Computes a 2-D convolution of a 4-D `input` tensor with a 4-D `filter` tensor.
+
+```js showLineNumbers filename="syntax.js"
+conv2d(input, filter)
+conv2d(input, filter, options)
+```
+
+#### Parameters [#conv2d-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input 4-D tensor, interpreted according to `inputLayout`.
+- `filter`
+
+  An `MLOperand`: the filter 4-D tensor, interpreted according to `filterLayout` and `groups`.
+- `options` _optional_
+
+  An `MLConv2dOptions` dictionary (derived from [`MLOperatorOptions`](mloperand#mloperatoroptions)):
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `padding` | `sequence<unsigned long>` | `[0, 0, 0, 0]` | Rows and columns added to the input: `[beginningHeight, endingHeight, beginningWidth, endingWidth]`. |
+| `strides` | `sequence<unsigned long>` | `[1, 1]` | The stride of the sliding window: `[strideHeight, strideWidth]`. |
+| `dilations` | `sequence<unsigned long>` | `[1, 1]` | The dilation factor applied to the filter: `[dilationHeight, dilationWidth]`. |
+| `groups` | `unsigned long` | `1` | The number of groups that input and output channels are divided into. Use a value equal to the number of input channels for a depthwise convolution. |
+| `inputLayout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | Layout of the input and output: `"nchw"` is `[batches, channels, height, width]`, `"nhwc"` is `[batches, height, width, channels]`. |
+| `filterLayout` | `MLConv2dFilterOperandLayout` | `"oihw"` | Layout of the filter, see the table below. |
+| `bias` | `MLOperand` | none | A 1-D tensor of shape `[outputChannels]` added to the result. |
+
+`filterLayout` values:
+
+| Value | Filter shape |
+| --- | --- |
+| `"oihw"` | `[outputChannels, inputChannels/groups, height, width]` |
+| `"hwio"` | `[height, width, inputChannels/groups, outputChannels]` |
+| `"ohwi"` | `[outputChannels, height, width, inputChannels/groups]` |
+| `"ihwo"` | `[inputChannels/groups, height, width, outputChannels]` |
+
+#### Return value [#conv2d-return-value]
+
+An `MLOperand`: a 4-D tensor holding the convolution result, laid out according to `inputLayout`. Each spatial output dimension is calculated, with the division rounded down, as:
+
+```text
+outputSize = 1 + (inputSize - (filterSize - 1) * dilation - 1 + beginningPadding + endingPadding) / stride
+```
+
+#### Tensor limits [#conv2d-limits]
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `filter` | same as `input` | `float32`, `float16` | 4 | 4 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+#### Example [#conv2d-example]
+
+```js showLineNumbers filename="conv2d.js"
+const input = builder.input('input', { dataType: 'float32', shape: [1, 3, 224, 224] });
+const filter = builder.constant({ dataType: 'float32', shape: [32, 3, 3, 3] }, filterData);
+const bias = builder.constant({ dataType: 'float32', shape: [32] }, biasData);
+
+const y = builder.conv2d(input, filter, {
+  strides: [2, 2],
+  padding: [1, 1, 1, 1],
+  bias,
+});
+console.log(y.shape); // [1, 32, 112, 112]
+```
+
+### convTranspose2d() [#convtranspose2d]
+
+Computes a 2-D transposed convolution (sometimes called deconvolution) of a 4-D `input` tensor with a 4-D `filter` tensor. It is commonly used to upsample feature maps.
+
+```js showLineNumbers filename="syntax.js"
+convTranspose2d(input, filter)
+convTranspose2d(input, filter, options)
+```
+
+#### Parameters [#convtranspose2d-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input 4-D tensor, interpreted according to `inputLayout`.
+- `filter`
+
+  An `MLOperand`: the filter 4-D tensor, interpreted according to `filterLayout` and `groups`.
+- `options` _optional_
+
+  An `MLConvTranspose2dOptions` dictionary. It has the members `padding`, `strides`, `dilations`, `groups`, `inputLayout` and `bias` described for [`conv2d()`](#conv2d), plus:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `outputPadding` | `sequence<unsigned long>` | `[0, 0]` | Padding for each spatial dimension of the output, used only to disambiguate the output shape when `strides` is greater than 1. It does not necessarily write padding values. |
+| `outputSizes` | `sequence<unsigned long>` | none | The sizes `[outputHeight, outputWidth]` of the last two output dimensions. When specified, `outputPadding` is ignored. |
+| `filterLayout` | `MLConvTranspose2dFilterOperandLayout` | `"iohw"` | Layout of the filter, see the table below. |
+
+`filterLayout` values:
+
+| Value | Filter shape |
+| --- | --- |
+| `"iohw"` | `[inputChannels, outputChannels/groups, height, width]` |
+| `"hwoi"` | `[height, width, outputChannels/groups, inputChannels]` |
+| `"ohwi"` | `[outputChannels/groups, height, width, inputChannels]` |
+
+#### Return value [#convtranspose2d-return-value]
+
+An `MLOperand`: a 4-D tensor holding the result, laid out according to `inputLayout`. Unless `outputSizes` is given, each spatial output dimension (rounded down) is:
+
+```text
+outputSize = (inputSize - 1) * stride + (filterSize - 1) * dilation + 1 - beginningPadding - endingPadding + outputPadding
+```
+
+#### Tensor limits [#convtranspose2d-limits]
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `filter` | same as `input` | `float32`, `float16` | 4 | 4 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+## Pooling operations [#pooling]
+
+Pooling reduces the spatial dimensions of a 4-D tensor by computing one value for each position of a sliding window. The three operations share the same options and differ only in the function applied to the elements in each window.
+
+### Syntax [#pooling-syntax]
+
+```js showLineNumbers filename="syntax.js"
+averagePool2d(input)
+averagePool2d(input, options)
+// Likewise for l2Pool2d() and maxPool2d()
+```
+
+### Parameters [#pooling-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input 4-D tensor, interpreted according to `layout`.
+- `options` _optional_
+
+  An `MLPool2dOptions` dictionary (derived from [`MLOperatorOptions`](mloperand#mloperatoroptions)):
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `windowDimensions` | `sequence<unsigned long>` | the input's height and width | The size of the sliding window: `[windowHeight, windowWidth]`. By default the window covers the whole spatial extent, which gives global pooling. |
+| `padding` | `sequence<unsigned long>` | `[0, 0, 0, 0]` | Rows and columns added to the input: `[beginningHeight, endingHeight, beginningWidth, endingWidth]`. |
+| `strides` | `sequence<unsigned long>` | `[1, 1]` | The stride of the window: `[strideHeight, strideWidth]`. |
+| `dilations` | `sequence<unsigned long>` | `[1, 1]` | The dilation factor applied to the window: `[dilationHeight, dilationWidth]`. |
+| `layout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | Layout of the input and output. |
+| `outputShapeRounding` | `MLRoundingType` | `"floor"` | How the output size is rounded: `"floor"` ignores partial windows at the edge, `"ceil"` includes them. |
+| `outputSizes` | `sequence<unsigned long>` | none | The sizes `[outputHeight, outputWidth]` of the spatial output dimensions. When specified, `outputShapeRounding` is ignored. |
+
+### Return value [#pooling-return-value]
+
+An `MLOperand`: a 4-D tensor laid out according to `layout`. Each spatial dimension is calculated, unless `outputSizes` is given, as:
+
+```text
+outputSize = floor(1 + (inputSize - windowSize + beginningPadding + endingPadding) / stride)
+```
+
+where `ceil` replaces `floor` when `outputShapeRounding` is `"ceil"`.
+
+### Tensor limits [#pooling-limits]
+
+Support limits key: `averagePool2d`, `l2Pool2d`, `maxPool2d` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+**averagePool2d(), l2Pool2d()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+**maxPool2d()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16` | 4 | 4 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+### averagePool2d() [#averagepool2d]
+
+Computes the average of the values in each window.
+
+### l2Pool2d() [#l2pool2d]
+
+Applies the L2 norm to each window: the square root of the sum of the squares of its elements.
+
+### maxPool2d() [#maxpool2d]
+
+Computes the maximum of the values in each window.
+
+### Example [#pooling-example]
+
+```js showLineNumbers filename="pooling.js"
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64, 56, 56] });
+
+const halved = builder.maxPool2d(x, { windowDimensions: [2, 2], strides: [2, 2] });
+console.log(halved.shape); // [1, 64, 28, 28]
+
+// Global average pooling: the window defaults to the full spatial size.
+const pooled = builder.averagePool2d(x);
+console.log(pooled.shape); // [1, 64, 1, 1]
+```
+
+## Normalization operations [#normalization]
+
+Normalization operations rescale activations to have a controlled mean and variance. They differ in which values the statistics are computed over.
+
+### batchNormalization() [#batchnormalization]
+
+Normalizes the input using [batch normalization](https://arxiv.org/abs/1502.03167). The mean and variance of each feature, computed across the batch during training, are supplied as operands for inference: `(input - mean) / sqrt(variance + epsilon) * scale + bias`.
+
+```js showLineNumbers filename="syntax.js"
+batchNormalization(input, mean, variance)
+batchNormalization(input, mean, variance, options)
+```
+
+#### Parameters [#batchnormalization-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input N-D tensor.
+- `mean`
+
+  An `MLOperand`: a 1-D tensor of the mean values of the input features, with size equal to the size of the input dimension denoted by `axis`.
+- `variance`
+
+  An `MLOperand`: a 1-D tensor of the variance values of the input features, with the same size.
+- `options` _optional_
+
+  An `MLBatchNormalizationOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | none | A 1-D tensor of scaling values, with size equal to the dimension denoted by `axis`. |
+| `bias` | `MLOperand` | none | A 1-D tensor of bias values, with size equal to the dimension denoted by `axis`. |
+| `axis` | `unsigned long` | `1` | The index of the feature (channel) dimension. It must be in the range 0 to N-1. The default `1` is the channel dimension of the `"nchw"` layout. |
+| `epsilon` | `double` | `1e-5` | A small value that prevents division by zero. |
+
+#### Return value [#batchnormalization-return-value]
+
+An `MLOperand`: the normalized tensor, with the same shape as `input`.
+
+#### Tensor limits [#batchnormalization-limits]
+
+Support limits key `batchNormalization` (`MLBatchNormalizationSupportLimits`, with members `input`, `mean`, `variance`, `scale`, `bias` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 1 to N | 3 to 5 |
+| `mean` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `variance` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `scale` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 3 to 5 |
+
+### instanceNormalization() [#instancenormalization]
+
+Normalizes the input using [instance normalization](https://arxiv.org/abs/1607.08022). Unlike batch normalization, the mean and variance are computed on the fly for each feature of each individual sample.
+
+```js showLineNumbers filename="syntax.js"
+instanceNormalization(input)
+instanceNormalization(input, options)
+```
+
+#### Parameters [#instancenormalization-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input 4-D tensor.
+- `options` _optional_
+
+  An `MLInstanceNormalizationOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | none | A 1-D tensor of scaling values, with size equal to the number of channels (for `"nchw"`, `input.shape[1]`). |
+| `bias` | `MLOperand` | none | A 1-D tensor of bias values, with size equal to the number of channels. |
+| `epsilon` | `double` | `1e-5` | A small value that prevents division by zero. |
+| `layout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | The layout of the input. |
+
+#### Return value [#instancenormalization-return-value]
+
+An `MLOperand`: the normalized 4-D tensor, with the same shape as `input`.
+
+#### Tensor limits [#instancenormalization-limits]
+
+Support limits key `instanceNormalization` (`MLNormalizationSupportLimits`, with members `input`, `scale`, `bias` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `scale` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+### layerNormalization() [#layernormalization]
+
+Normalizes the input using [layer normalization](https://arxiv.org/abs/1607.06450). The mean and variance are computed on the fly across the features of each individual sample. It is widely used in transformer models.
+
+```js showLineNumbers filename="syntax.js"
+layerNormalization(input)
+layerNormalization(input, options)
+```
+
+#### Parameters [#layernormalization-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input N-D tensor.
+- `options` _optional_
+
+  An `MLLayerNormalizationOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | none (treated as 1) | An N-D tensor of scaling values whose shape is the sizes of the input dimensions listed in `axes`. |
+| `bias` | `MLOperand` | none (treated as 0) | An N-D tensor of bias values with the same shape as `scale`. |
+| `axes` | `sequence<unsigned long>` | all dimensions except the first | The input dimensions to reduce. For a 4-D input the default is `[1, 2, 3]`. If empty, no dimensions are reduced. |
+| `epsilon` | `double` | `1e-5` | A small value that prevents division by zero. |
+
+#### Return value [#layernormalization-return-value]
+
+An `MLOperand`: the normalized tensor, with the same shape as `input`.
+
+#### Tensor limits [#layernormalization-limits]
+
+Support limits key `layerNormalization` ([`MLNormalizationSupportLimits`](#instancenormalization-limits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| `scale` | same as `input` | `float32`, `float16` | N | 0 to 5 |
+| `bias` | same as `input` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+#### Example [#layernormalization-example]
+
+```js showLineNumbers filename="layernorm.js"
+const hidden = builder.input('hidden', { dataType: 'float32', shape: [1, 128, 768] });
+const gamma = builder.constant({ dataType: 'float32', shape: [768] }, gammaData);
+const beta = builder.constant({ dataType: 'float32', shape: [768] }, betaData);
+
+// Normalize over the last dimension only.
+const normalized = builder.layerNormalization(hidden, {
+  axes: [2],
+  scale: gamma,
+  bias: beta,
+  epsilon: 1e-12,
+});
+```
+
+## Matrix operations [#matrix]
+
+### gemm() [#gemm]
+
+Computes the [general matrix multiplication](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3) from BLAS: `alpha * A * B + beta * C`. `A` is a 2-D tensor of shape `[M, K]` (or `[K, M]` when transposed), `B` is `[K, N]` (or `[N, K]`), and `C` is unidirectionally broadcastable to `[M, N]`.
+
+```js showLineNumbers filename="syntax.js"
+gemm(a, b)
+gemm(a, b, options)
+```
+
+#### Parameters [#gemm-parameters]
+
+- `a`
+
+  An [`MLOperand`](mloperand): the first 2-D tensor, of shape `[M, K]`, or `[K, M]` if `aTranspose` is `true`.
+- `b`
+
+  An `MLOperand`: the second 2-D tensor, of shape `[K, N]`, or `[N, K]` if `bTranspose` is `true`.
+- `options` _optional_
+
+  An `MLGemmOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `c` | `MLOperand` | none (treated as 0) | The third tensor: a scalar, or a tensor unidirectionally broadcastable to `[M, N]`. |
+| `alpha` | `double` | `1.0` | A multiplier for the product of `a` and `b`. |
+| `beta` | `double` | `1.0` | A multiplier for `c`. |
+| `aTranspose` | `boolean` | `false` | Whether `a` is transposed before multiplying. |
+| `bTranspose` | `boolean` | `false` | Whether `b` is transposed before multiplying. |
+
+#### Return value [#gemm-return-value]
+
+An `MLOperand`: a 2-D tensor of shape `[M, N]`.
+
+#### Tensor limits [#gemm-limits]
+
+Support limits key `gemm` (`MLGemmSupportLimits`, with members `a`, `b`, `c` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `b` | same as `a` | `float32`, `float16` | 2 | 2 |
+| `c` | same as `a` | `float32`, `float16` | 0 to 2 | 0 to 2 |
+| _output_ | same as `a` | `float32`, `float16` | 2 | 2 |
+
+#### Example [#gemm-example]
+
+```js showLineNumbers filename="gemm.js"
+// A fully connected layer: y = x * W^T + bias
+const x = builder.input('x', { dataType: 'float32', shape: [8, 512] });
+const w = builder.constant({ dataType: 'float32', shape: [1000, 512] }, weights);
+const bias = builder.constant({ dataType: 'float32', shape: [1000] }, biasData);
+
+const y = builder.gemm(x, w, { c: bias, bTranspose: true });
+console.log(y.shape); // [8, 1000]
+```
+
+### matmul() [#matmul]
+
+Computes the matrix product of two tensors. For 2-D inputs of shape `[M, K]` and `[K, N]` the output has shape `[M, N]`. If either input has more than two dimensions it is treated as a stack of matrices in its last two dimensions; the leading (batch) dimensions must be bidirectionally broadcastable, and the output rank is the larger of the two ranks.
+
+```js showLineNumbers filename="syntax.js"
+matmul(a, b)
+matmul(a, b, options)
+```
+
+#### Parameters [#matmul-parameters]
+
+- `a`
+
+  An [`MLOperand`](mloperand): the first tensor, at least 2-D.
+- `b`
+
+  An `MLOperand`: the second tensor, at least 2-D. The size of its second-to-last dimension must equal the size of the last dimension of `a`.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+#### Return value [#matmul-return-value]
+
+An `MLOperand` holding the matrix product.
+
+#### Tensor limits [#matmul-limits]
+
+Support limits key `matmul` ([`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `a` | `float32`, `float16` | `float32`, `float16` | 2 to N | 2 to 5 |
+| `b` | same as `a` | `float32`, `float16` | 2 to N | 2 to 5 |
+| _output_ | same as `a` | `float32`, `float16` | 2 to N | 2 to 5 |
+
+#### Example [#matmul-example]
+
+```js showLineNumbers filename="matmul.js"
+// Attention scores for 12 heads: [1, 12, 128, 64] x [1, 12, 64, 128]
+const q = builder.input('q', { dataType: 'float32', shape: [1, 12, 128, 64] });
+const kT = builder.input('kT', { dataType: 'float32', shape: [1, 12, 64, 128] });
+const scores = builder.matmul(q, kT);
+console.log(scores.shape); // [1, 12, 128, 128]
+```
+
+### triangular() [#triangular]
+
+Returns the upper or lower triangular part of a matrix. If the input has more than two dimensions it is treated as a batch of matrices, and the result has the same shape. Elements outside the retained part are set to zero. It is typically used to build causal attention masks.
+
+```js showLineNumbers filename="syntax.js"
+triangular(input)
+triangular(input, options)
+```
+
+#### Parameters [#triangular-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor, at least 2-D.
+- `options` _optional_
+
+  An `MLTriangularOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `upper` | `boolean` | `true` | `true` keeps the upper triangular part, `false` keeps the lower part. |
+| `diagonal` | `long` | `0` | How many diagonals above (positive) or below (negative) the main diagonal are affected. `0` leaves only the main diagonal in the retained part. |
+
+#### Return value [#triangular-return-value]
+
+An `MLOperand` with the same shape as `input`.
+
+#### Tensor limits [#triangular-limits]
+
+Support limits key `triangular` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16` | 2 to N | 2 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 2 to 5 |
+
+#### Example [#triangular-example]
+
+```js showLineNumbers filename="triangular.js"
+// input: [[7, 1, 2],
+//         [9, 4, 8],
+//         [2, 6, 3]]
+const input = builder.constant(
+  { dataType: 'float32', shape: [3, 3] },
+  new Float32Array([7, 1, 2, 9, 4, 8, 2, 6, 3]));
+
+builder.triangular(input);
+// upper:            [[7, 1, 2], [0, 4, 8], [0, 0, 3]]
+builder.triangular(input, { diagonal: 1 });
+// upper, excluding the main diagonal: [[0, 1, 2], [0, 0, 8], [0, 0, 0]]
+builder.triangular(input, { upper: false });
+// lower:            [[7, 0, 0], [9, 4, 0], [2, 6, 3]]
+builder.triangular(input, { upper: false, diagonal: 1 });
+// lower, plus one diagonal above:     [[7, 1, 0], [9, 4, 8], [2, 6, 3]]
+```
+
+## Reduction operations [#reduction]
+
+Reduction operations collapse one or more dimensions of a tensor to a single value each, for example by summing or taking the maximum.
+
+### argMax() and argMin() [#argmax-argmin]
+
+`argMax()` and `argMin()` return the index of the maximum or minimum value along an axis. When values tie, which index is returned is implementation-defined.
+
+```js showLineNumbers filename="syntax.js"
+argMax(input, axis)
+argMax(input, axis, options)
+argMin(input, axis)
+argMin(input, axis, options)
+```
+
+#### Parameters [#argmax-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input N-D tensor.
+- `axis`
+
+  An `unsigned long`: the dimension to reduce, in the range 0 to N-1.
+- `options` _optional_
+
+  An `MLArgMinMaxOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `keepDimensions` | `boolean` | `false` | If `true`, the reduced dimension is kept with size 1. |
+| `outputDataType` | [`MLOperandDataType`](mloperand#mloperanddatatype) | `"int32"` | The data type of the output indices: `"int32"` or `"int64"`. |
+
+#### Return value [#argmax-return-value]
+
+An `MLOperand` of data type `outputDataType` whose rank equals the input rank if `keepDimensions` is `true`, or the input rank minus 1 otherwise. Values are in the range 0 to S-1, where S is the size of the input along `axis`. A `TypeError` is thrown if S does not fit in `outputDataType`.
+
+#### Tensor limits [#argmax-limits]
+
+Support limits key `argMax`, `argMin` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| _output_ | `int32`, `int64` | `int32` | N | 0 to 5 |
+
+### argMax() [#argmax]
+
+Index of the maximum value along `axis`.
+
+### argMin() [#argmin]
+
+Index of the minimum value along `axis`.
+
+### cumulativeSum() [#cumulativesum]
+
+Computes the running (prefix) sum of values along an axis.
+
+```js showLineNumbers filename="syntax.js"
+cumulativeSum(input, axis)
+cumulativeSum(input, axis, options)
+```
+
+#### Parameters [#cumulativesum-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `axis`
+
+  An `unsigned long`: the axis to sum along, in the range 0 to N-1.
+- `options` _optional_
+
+  An `MLCumulativeSumOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `exclusive` | `boolean` | `false` | If `true`, the current element is excluded from its own sum. For input `[1, 2, 3, 4]`, inclusive gives `[1, 3, 6, 10]` and exclusive gives `[0, 1, 3, 6]`. |
+| `reversed` | `boolean` | `false` | If `true`, sums from the high index toward the low index. For input `[1, 2, 3, 4]`, inclusive reversed gives `[10, 9, 7, 4]`. |
+
+#### Return value [#cumulativesum-return-value]
+
+An `MLOperand` with the same shape as `input`.
+
+#### Tensor limits [#cumulativesum-limits]
+
+Support limits key `cumulativeSum` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 1 to 5 |
+
+### Reduce functions [#reduce-functions]
+
+The ten `reduce*()` operations share one signature and one set of options. Each applies a reduction function to the values across the reduced dimensions.
+
+```js showLineNumbers filename="syntax.js"
+reduceSum(input)
+reduceSum(input, options)
+// Likewise for reduceL1(), reduceL2(), reduceLogSum(), reduceLogSumExp(),
+// reduceMax(), reduceMean(), reduceMin(), reduceProduct() and reduceSumSquare()
+```
+
+#### Parameters [#reduce-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `options` _optional_
+
+  An `MLReduceOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axes` | `sequence<unsigned long>` | all dimensions | The dimensions to reduce, each in the range 0 to N-1. If omitted, all dimensions are reduced. If given and empty, no dimension is reduced and the function is applied to every element individually. |
+| `keepDimensions` | `boolean` | `false` | If `true`, the output has the same rank as the input, with reduced dimensions set to size 1. |
+
+#### Return value [#reduce-return-value]
+
+An `MLOperand` of rank 0 to the input rank, depending on `axes` and `keepDimensions`. Reducing a scalar returns a scalar.
+
+#### Tensor limits [#reduce-limits]
+
+Support limits key: the method name ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+**reduceL1(), reduceSum(), reduceSumSquare()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | N | 0 to 5 |
+
+**reduceL2(), reduceLogSum(), reduceLogSumExp(), reduceMean()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | N | 0 to 5 |
+
+**reduceMax(), reduceMin()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | N | 0 to 5 |
+
+**reduceProduct()**
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | N | 0 to 5 |
+
+### reduceL1() [#reducel1]
+
+The [L1 norm](https://mathworld.wolfram.com/L1-Norm.html): the sum of the absolute values.
+
+### reduceL2() [#reducel2]
+
+The [L2 norm](https://mathworld.wolfram.com/L2-Norm.html): the square root of the sum of the squares.
+
+### reduceLogSum() [#reducelogsum]
+
+The natural logarithm of the sum of the values.
+
+### reduceLogSumExp() [#reducelogsumexp]
+
+The natural logarithm of the sum of the exponentials of the values.
+
+### reduceMax() [#reducemax]
+
+The maximum of the values.
+
+### reduceMean() [#reducemean]
+
+The average of the values.
+
+### reduceMin() [#reducemin]
+
+The minimum of the values.
+
+### reduceProduct() [#reduceproduct]
+
+The product of the values.
+
+### reduceSum() [#reducesum]
+
+The sum of the values.
+
+### reduceSumSquare() [#reducesumsquare]
+
+The sum of the squares of the values.
+
+### Example [#reduction-example]
+
+```js showLineNumbers filename="reduce.js"
+const x = builder.input('x', { dataType: 'float32', shape: [2, 3, 4] });
+
+const total = builder.reduceSum(x);                                  // shape []
+const perRow = builder.reduceMean(x, { axes: [2] });                 // shape [2, 3]
+const kept = builder.reduceMax(x, { axes: [1, 2], keepDimensions: true }); // shape [2, 1, 1]
+const best = builder.argMax(x, 2);                                   // int32, shape [2, 3]
+```
+
+## Shape and data movement operations [#shape-and-data-movement]
+
+These operations change the type, shape, or arrangement of tensor data without (mostly) changing the values themselves.
+
+### cast() [#cast]
+
+Converts each element of the input to another data type.
+
+```js showLineNumbers filename="syntax.js"
+cast(input, dataType)
+cast(input, dataType, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `dataType`
+
+  An [`MLOperandDataType`](mloperand#mloperanddatatype): the target data type.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` with the same shape as `input` and data type `dataType`.
+
+Support limits key `cast` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+| _output_ | any | `float32`, `float16`, `int32`, `int8`, `uint8` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="cast.js"
+// Turn a uint8 comparison mask into float32 so it can be multiplied.
+const mask = builder.greater(x, threshold);
+const maskF32 = builder.cast(mask, 'float32');
+const y = builder.mul(x, maskF32);
+```
+
+### clamp() [#clamp]
+
+Clamps each element of the input to the range between a minimum and a maximum value.
+
+```js showLineNumbers filename="syntax.js"
+clamp(input)
+clamp(input, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `options` _optional_
+
+  An `MLClampOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `minValue` | [`MLNumber`](mloperand#mlnumber) | none | The lower limit. If omitted, values are not clamped from below. |
+| `maxValue` | `MLNumber` | none | The upper limit. If omitted, values are not clamped from above. |
+
+Both limits are cast to the data type of `input`.
+
+**Return value:** an `MLOperand` with the same shape as `input`.
+
+Support limits key `clamp` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="clamp.js"
+// ReLU6
+const relu6 = builder.clamp(x, { minValue: 0, maxValue: 6 });
+```
+
+### concat() [#concat]
+
+Concatenates a list of tensors along an axis.
+
+```js showLineNumbers filename="syntax.js"
+concat(inputs, axis)
+concat(inputs, axis, options)
+```
+
+- `inputs`
+
+  A sequence of [`MLOperand`](mloperand) objects. All must have the same shape except in the dimension being concatenated, and the same data type.
+- `axis`
+
+  An `unsigned long`: the dimension to concatenate along, in the range 0 to N-1.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` with the same shape as the inputs, except that the size along `axis` is the sum of the input sizes along that axis.
+
+Support limits key `concat` (`MLConcatSupportLimits`, with members `inputs` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| each item of `inputs` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| _output_ | same as the inputs | `float32`, `float16`, `int32` | same as the inputs | 1 to 5 |
+
+```js showLineNumbers filename="concat.js"
+const a = builder.input('a', { dataType: 'float32', shape: [1, 3] });
+const b = builder.input('b', { dataType: 'float32', shape: [1, 5] });
+console.log(builder.concat([a, b], 1).shape); // [1, 8]
+```
+
+### expand() [#expand]
+
+Expands every dimension of size 1 of the input to a larger size, following the NumPy broadcasting rule. The input must be unidirectionally broadcastable to `newShape`: each of its dimensions is either 1 or equal to the corresponding dimension in `newShape`.
+
+```js showLineNumbers filename="syntax.js"
+expand(input, newShape)
+expand(input, newShape, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `newShape`
+
+  A sequence of `unsigned long`: the shape to expand to.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` with shape `newShape`.
+
+Support limits key `expand` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | N | 0 to 5 |
+
+### pad() [#pad]
+
+Inflates a tensor by adding values at the edges of each dimension.
+
+```js showLineNumbers filename="syntax.js"
+pad(input, beginningPadding, endingPadding)
+pad(input, beginningPadding, endingPadding, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `beginningPadding`
+
+  A sequence of `unsigned long` of length N (the rank of `input`): how many values to add before the content in each dimension.
+- `endingPadding`
+
+  A sequence of `unsigned long` of length N: how many values to add after the content in each dimension.
+- `options` _optional_
+
+  An `MLPadOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `MLPaddingMode` | `"constant"` | How the padding is filled, see below. |
+| `value` | [`MLNumber`](mloperand#mlnumber) | `0` | The value to use when `mode` is `"constant"`. |
+
+`MLPaddingMode` values:
+
+| Value | Description |
+| --- | --- |
+| `"constant"` | Pads with `value`. |
+| `"edge"` | Repeats the value at the edge of the tensor. |
+| `"reflection"` | Mirrors the values next to the edge, not repeating the edge value itself. Each padding amount must be smaller than the size of the corresponding input dimension, otherwise a `TypeError` is thrown. |
+
+**Return value:** an `MLOperand` whose size in each dimension is `beginningPadding + inputSize + endingPadding`.
+
+Support limits key `pad` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="pad.js"
+// input: [[1, 2, 3],
+//         [4, 5, 6]]
+const input = builder.constant(
+  { dataType: 'float32', shape: [2, 3] }, new Float32Array([1, 2, 3, 4, 5, 6]));
+const begin = [1, 2];
+const end = [1, 2];
+
+builder.pad(input, begin, end);
+// "constant": [[0,0,0,0,0,0,0], [0,0,1,2,3,0,0], [0,0,4,5,6,0,0], [0,0,0,0,0,0,0]]
+
+builder.pad(input, begin, end, { mode: 'edge' });
+// "edge":     [[1,1,1,2,3,3,3], [1,1,1,2,3,3,3], [4,4,4,5,6,6,6], [4,4,4,5,6,6,6]]
+
+builder.pad(input, begin, end, { mode: 'reflection' });
+// "reflection": [[6,5,4,5,6,5,4], [3,2,1,2,3,2,1], [6,5,4,5,6,5,4], [3,2,1,2,3,2,1]]
+```
+
+### reshape() [#reshape]
+
+Changes the logical shape of a tensor without copying or changing its contents. The number of elements implied by `newShape` must equal the number of elements in `input`.
+
+```js showLineNumbers filename="syntax.js"
+reshape(input, newShape)
+reshape(input, newShape, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `newShape`
+
+  A sequence of `unsigned long`: the shape of the output.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` with the same values as `input` and shape `newShape`.
+
+Support limits key `reshape` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+
+```js showLineNumbers filename="reshape.js"
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64, 7, 7] });
+const flat = builder.reshape(x, [1, 64 * 7 * 7]);
+```
+
+### reverse() [#reverse]
+
+Reverses the order of elements along the given axes.
+
+```js showLineNumbers filename="syntax.js"
+reverse(input)
+reverse(input, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `options` _optional_
+
+  An `MLReverseOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axes` | `sequence<unsigned long>` | all dimensions | The dimensions to reverse. If explicitly empty, no dimensions are reversed. |
+
+**Return value:** an `MLOperand` with the same shape as `input`.
+
+Support limits key `reverse` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 0 to 5 |
+
+### slice() [#slice]
+
+Extracts a sub-tensor from the input.
+
+```js showLineNumbers filename="syntax.js"
+slice(input, starts, sizes)
+slice(input, starts, sizes, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `starts`
+
+  A sequence of `unsigned long` of length N: the index at which to start slicing in each dimension. Each must be in the range 0 to the dimension size minus 1.
+- `sizes`
+
+  A sequence of `unsigned long` of length N: the number of elements to take in each dimension. A size must not be 0, and `start + size` must not exceed the dimension size.
+- `options` _optional_
+
+  An `MLSliceOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `strides` | `sequence<unsigned long>` | all `1` | The step between selected elements in each dimension. Its length must equal the rank of `input`, and each value must be greater than zero. |
+
+**Return value:** an `MLOperand` with the same rank as `input`, containing the selected region.
+
+Support limits key `slice` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32`, `int8`, `uint8` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="slice.js"
+const x = builder.input('x', { dataType: 'float32', shape: [4, 6] });
+// Rows 1-2, columns 0-3.
+const part = builder.slice(x, [1, 0], [2, 4]);
+console.log(part.shape); // [2, 4]
+```
+
+### split() [#split]
+
+Splits a tensor into several sub-tensors along an axis.
+
+```js showLineNumbers filename="syntax.js"
+split(input, splits)
+split(input, splits, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input tensor.
+- `splits`
+
+  An `unsigned long`, or a sequence of `unsigned long`. A number is the count of equally sized outputs, and must divide the size of `input` along `axis` evenly. A sequence gives the size of each output along `axis`, and its sum must equal the size of `input` along `axis`.
+- `options` _optional_
+
+  An `MLSplitOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | The dimension to split along, in the range 0 to N-1. |
+
+**Return value:** a sequence of `MLOperand`. If `splits` is a number, the sequence has that many elements, each with the shape of `input` except along `axis`, where the size is the original size divided by `splits`. If `splits` is a sequence, there is one output per entry, and the size of output _i_ along `axis` is `splits[i]`.
+
+Support limits key `split` (`MLSplitSupportLimits`, with members `input` and `outputs`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| _outputs_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 1 to 5 |
+
+```js showLineNumbers filename="split.js"
+const qkv = builder.input('qkv', { dataType: 'float32', shape: [1, 128, 2304] });
+const [q, k, v] = builder.split(qkv, 3, { axis: 2 });
+console.log(q.shape); // [1, 128, 768]
+```
+
+### tile() [#tile]
+
+Repeats a tensor a given number of times along each dimension.
+
+```js showLineNumbers filename="syntax.js"
+tile(input, repetitions)
+tile(input, repetitions, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input N-D tensor.
+- `repetitions`
+
+  A sequence of `unsigned long`: how many times to repeat each dimension. Its length must equal the rank of `input`; use `1` for dimensions that should keep their size.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` whose size in each dimension is the input size multiplied by the repetition count.
+
+Support limits key `tile` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 0 to 5 |
+
+### transpose() [#transpose]
+
+Permutes the dimensions of a tensor.
+
+```js showLineNumbers filename="syntax.js"
+transpose(input)
+transpose(input, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input N-D tensor.
+- `options` _optional_
+
+  An `MLTransposeOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `permutation` | `sequence<unsigned long>` | `[N-1, ..., 0]` | The order of the input dimensions in the output. It must have N entries, each in the range 0 to N-1, without duplicates. The default reverses the dimensions, for example `[2, 1, 0]` for a 3-D tensor. |
+
+**Return value:** an `MLOperand` whose dimension _i_ is the input dimension `permutation[i]`.
+
+Support limits key `transpose` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="transpose.js"
+// NHWC to NCHW
+const nhwc = builder.input('x', { dataType: 'float32', shape: [1, 224, 224, 3] });
+const nchw = builder.transpose(nhwc, { permutation: [0, 3, 1, 2] });
+console.log(nchw.shape); // [1, 3, 224, 224]
+```
+
+## Gather and scatter operations [#gather-and-scatter]
+
+These operations read values from, or write values into, a tensor at positions given by an _indices_ tensor. Index values must be of type `int32`, `uint32` or `int64`, and may be negative to count from the end of a dimension: valid values lie in the range -S (inclusive) to S (exclusive), where S is the size of the indexed dimension.
+
+### gather() [#gather]
+
+Gathers values of the input along an axis according to the indices.
+
+```js showLineNumbers filename="syntax.js"
+gather(input, indices)
+gather(input, indices, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D tensor to gather from.
+- `indices`
+
+  An `MLOperand`: the tensor of indices into the dimension `axis` of `input`.
+- `options` _optional_
+
+  An `MLGatherOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | The axis of `input` to gather along, in the range 0 to N-1. |
+
+**Return value:** an `MLOperand` of rank `rank(input) + rank(indices) - 1`.
+
+Support limits key `gather` (`MLGatherSupportLimits`, with members `input`, `indices` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32`, `int8`, `uint8` | 1 to N | 1 to 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+
+```js showLineNumbers filename="gather.js"
+// Embedding lookup: 30000 x 768 table, 16 token ids.
+const table = builder.constant({ dataType: 'float32', shape: [30000, 768] }, embeddings);
+const ids = builder.input('ids', { dataType: 'int32', shape: [16] });
+const vectors = builder.gather(table, ids, { axis: 0 });
+console.log(vectors.shape); // [16, 768]
+```
+
+### gatherElements() [#gatherelements]
+
+Gathers individual elements of the input along an axis: each output element is read from the position in `input` whose index along `axis` is given by the corresponding element of `indices`.
+
+```js showLineNumbers filename="syntax.js"
+gatherElements(input, indices)
+gatherElements(input, indices, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D tensor to gather from.
+- `indices`
+
+  An `MLOperand`: the indices, with the same rank as `input`.
+- `options` _optional_
+
+  An `MLGatherOptions` dictionary (see [`gather()`](#gather)); `axis` defaults to `0`.
+
+**Return value:** an `MLOperand` with the same rank as `input`.
+
+Support limits key `gatherElements` ([`MLGatherSupportLimits`](#gather)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | same as `input` | 1 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 1 to 5 |
+
+### gatherND() [#gathernd]
+
+Gathers slices of the input using full coordinates. The last dimension of `indices` holds the coordinate: an `indices` tensor of shape `[10, 1]` holds 10 single-axis indices, and shape `[4, 3]` holds 4 three-dimensional coordinates.
+
+```js showLineNumbers filename="syntax.js"
+gatherND(input, indices)
+gatherND(input, indices, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D tensor to gather from.
+- `indices`
+
+  An `MLOperand`: the coordinates into `input`. Each value must be in the range -S to S-1 (S is the size of the corresponding input dimension).
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` of rank `rank(input) + rank(indices) - shape(indices)[-1] - 1`.
+
+Support limits key `gatherND` ([`MLGatherSupportLimits`](#gather)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32`, `int8`, `uint8` | 1 to N | 1 to 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 1 to N | 1 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 to 5 |
+
+### scatterElements() [#scatterelements]
+
+Writes values from `updates` over a copy of `input`, at positions along an axis given by `indices`.
+
+```js showLineNumbers filename="syntax.js"
+scatterElements(input, indices, updates)
+scatterElements(input, indices, updates, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D tensor used to initialize the output.
+- `indices`
+
+  An `MLOperand`: the positions along `axis` to write to.
+- `updates`
+
+  An `MLOperand`: the new values, with the same shape as `indices`.
+- `options` _optional_
+
+  An `MLScatterOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | The axis to scatter along, in the range 0 to N-1. |
+
+**Return value:** an `MLOperand` with the same shape as `input`.
+
+Support limits key `scatterElements` (`MLScatterSupportLimits`, with members `input`, `indices`, `updates` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | same as `input` | 1 to 5 |
+| `updates` | same as `input` | `float32`, `float16`, `int32` | same as `input` | 1 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | same as `input` | 1 to 5 |
+
+### scatterND() [#scatternd]
+
+Writes slices from `updates` over a copy of `input`, using full coordinates. The last dimension of `indices` holds the coordinate, as for [`gatherND()`](#gathernd).
+
+```js showLineNumbers filename="syntax.js"
+scatterND(input, indices, updates)
+scatterND(input, indices, updates, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the N-D tensor used to initialize the output.
+- `indices`
+
+  An `MLOperand`: the coordinates into the output to write to.
+- `updates`
+
+  An `MLOperand`: the new values or slices to write.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` with the same shape as `input`.
+
+Support limits key `scatterND` ([`MLScatterSupportLimits`](#scatterelements)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | any | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 1 to N | 1 to 5 |
+| `updates` | same as `input` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `input` | `float32`, `float16`, `int32` | 1 to N | 1 to 5 |
+
+### where() [#where]
+
+Selects values element by element from `trueValue` or `falseValue`, depending on `condition` (non-zero is true, zero is false). The three tensors must be bidirectionally broadcastable. The `condition` is usually the output of a [comparison or logical operation](#element-wise-logical).
+
+```js showLineNumbers filename="syntax.js"
+where(condition, trueValue, falseValue)
+where(condition, trueValue, falseValue, options)
+```
+
+- `condition`
+
+  An [`MLOperand`](mloperand): the condition tensor.
+- `trueValue`
+
+  An `MLOperand`: the values chosen where the condition is true.
+- `falseValue`
+
+  An `MLOperand`: the values chosen where the condition is false.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` whose rank is the largest of the input ranks and whose dimensions are the largest of the input dimensions.
+
+Support limits key `where` (`MLWhereSupportLimits`, with members `condition`, `trueValue`, `falseValue` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `condition` | `uint8` | `uint8` | N | 0 to 5 |
+| `trueValue` | any | `float32`, `float16`, `int32` | N | 0 to 5 |
+| `falseValue` | same as `trueValue` | `float32`, `float16`, `int32` | N | 0 to 5 |
+| _output_ | same as `trueValue` | `float32`, `float16`, `int32` | N | 0 to 5 |
+
+```js showLineNumbers filename="where.js"
+// Causal attention mask: keep the lower triangle, fill the rest with -inf.
+const scores = builder.input('scores', { dataType: 'float32', shape: [1, 12, 128, 128] });
+const ones = builder.constant({ dataType: 'uint8', shape: [128, 128] }, new Uint8Array(128 * 128).fill(1));
+const lower = builder.triangular(ones, { upper: false });
+const masked = builder.where(lower, scores, builder.constant('float32', -Infinity));
+```
+
+## Quantization operations [#quantization]
+
+Quantization maps floating-point values to low-precision integers and back, which reduces model size and memory bandwidth. Both operations take a `scale` and a `zeroPoint` tensor that can be smaller than the input because they are **blockwise broadcastable**: they must have the same rank as `input`, and every dimension of `input` must be an exact multiple of the corresponding dimension of `scale`. This allows per-tensor, per-channel and per-block quantization.
+
+Scale values must be positive and nonzero; otherwise the behavior is implementation-defined (correct results, incorrect results, or a compilation failure).
+
+### dequantizeLinear() [#dequantizelinear]
+
+Converts a quantized integer tensor to floating point: `output = (input - zeroPoint) * scale`.
+
+```js showLineNumbers filename="syntax.js"
+dequantizeLinear(input, scale, zeroPoint)
+dequantizeLinear(input, scale, zeroPoint, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the quantized input tensor.
+- `scale`
+
+  An `MLOperand`: the scale to multiply by, blockwise broadcastable with `input`.
+- `zeroPoint`
+
+  An `MLOperand`: the zero point to subtract, with the same shape as `scale`.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` holding the dequantized values, with the shape of `input` and the data type of `scale`.
+
+Support limits key `dequantizeLinear` (`MLQuantizeDequantizeLinearSupportLimits`, with members `input`, `scale`, `zeroPoint` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `uint8`, `int8`, `uint32`, `int32` | `uint8`, `int8` | N | 0 to 5 |
+| `scale` | `float32`, `float16` | `float32`, `float16` | same as `input` | 0 to 5 |
+| `zeroPoint` | same as `input` | `uint8`, `int8`, `int32` | same as `input` | 0 to 5 |
+| _output_ | same as `scale` | `float32`, `float16` | same as `input` | 0 to 5 |
+
+### quantizeLinear() [#quantizelinear]
+
+Converts a floating-point tensor to a quantized integer tensor. For example, for `uint8` output: `output = clamp(roundEven(input / scale) + zeroPoint, 0, 255)`.
+
+```js showLineNumbers filename="syntax.js"
+quantizeLinear(input, scale, zeroPoint)
+quantizeLinear(input, scale, zeroPoint, options)
+```
+
+- `input`
+
+  An [`MLOperand`](mloperand): the floating-point input tensor.
+- `scale`
+
+  An `MLOperand`: the scale to divide by, blockwise broadcastable with `input`.
+- `zeroPoint`
+
+  An `MLOperand`: the zero point to add, with the same shape as `scale`. Its data type selects the output type.
+- `options` _optional_
+
+  An [`MLOperatorOptions`](mloperand#mloperatoroptions) dictionary.
+
+**Return value:** an `MLOperand` holding the quantized values, with the shape of `input` and the data type of `zeroPoint`.
+
+Support limits key `quantizeLinear` ([`MLQuantizeDequantizeLinearSupportLimits`](#dequantizelinear)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 to 5 |
+| `scale` | same as `input` | `float32`, `float16` | same as `input` | 0 to 5 |
+| `zeroPoint` | `uint8`, `int8`, `uint32`, `int32` | `uint8`, `int8` | same as `input` | 0 to 5 |
+| _output_ | same as `zeroPoint` | `uint8`, `int8` | same as `input` | 0 to 5 |
+
+```js showLineNumbers filename="quantize.js"
+// Per-tensor int8 quantization round trip.
+const x = builder.input('x', { dataType: 'float32', shape: [1, 16] });
+const scale = builder.constant({ dataType: 'float32', shape: [1, 1] }, new Float32Array([0.05]));
+const zeroPoint = builder.constant({ dataType: 'int8', shape: [1, 1] }, new Int8Array([0]));
+
+const q = builder.quantizeLinear(x, scale, zeroPoint);   // int8
+const restored = builder.dequantizeLinear(q, scale, zeroPoint); // float32
+```
+
+## Recurrent network operations [#recurrent-networks]
+
+Recurrent operations process a sequence of inputs one time step at a time while carrying hidden state. Each network type comes in two forms: a full operation that loops over all time steps (`gru()`, `lstm()`), and a _cell_ operation that computes a single step (`gruCell()`, `lstmCell()`).
+
+Shared enumerations:
+
+| Enumeration | Values |
+| --- | --- |
+| `MLRecurrentNetworkDirection` | `"forward"`, `"backward"`, `"both"`. With `"both"`, the first dimension of weight and bias tensors must be 2 and the sequence is processed in both directions. |
+| `MLRecurrentNetworkActivation` | `"relu"`, `"sigmoid"`, `"tanh"` |
+| `MLGruWeightLayout` | `"zrn"` (update, reset, new gates) or `"rzn"` (reset, update, new gates) |
+| `MLLstmWeightLayout` | `"iofg"` (input, output, forget, cell gates) or `"ifgo"` (input, forget, cell, output gates) |
+
+In the shapes below, `numDirections` is 1 for `"forward"` and `"backward"`, and 2 for `"both"`.
+
+### gru() [#gru]
+
+Runs a [Gated Recurrent Unit](https://arxiv.org/abs/1406.1078) network over a sequence, using an update gate, a reset gate, and a new gate.
+
+```js showLineNumbers filename="syntax.js"
+gru(input, weight, recurrentWeight, steps, hiddenSize)
+gru(input, weight, recurrentWeight, steps, hiddenSize, options)
+```
+
+#### Parameters [#gru-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): a 3-D tensor of shape `[steps, batchSize, inputSize]`.
+- `weight`
+
+  An `MLOperand`: a 3-D tensor of shape `[numDirections, 3 * hiddenSize, inputSize]`. The gate order in the second dimension follows `layout`.
+- `recurrentWeight`
+
+  An `MLOperand`: a 3-D tensor of shape `[numDirections, 3 * hiddenSize, hiddenSize]`.
+- `steps`
+
+  An `unsigned long`: the number of time steps. It must be greater than 0.
+- `hiddenSize`
+
+  An `unsigned long`: the number of features in the hidden state.
+- `options` _optional_
+
+  An `MLGruOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | none | A 2-D tensor of shape `[numDirections, 3 * hiddenSize]`. |
+| `recurrentBias` | `MLOperand` | none | A 2-D tensor of shape `[numDirections, 3 * hiddenSize]`. |
+| `initialHiddenState` | `MLOperand` | zeros | A 3-D tensor of shape `[numDirections, batchSize, hiddenSize]`. |
+| `resetAfter` | `boolean` | `true` | Whether the reset gate is applied after (`true`) or before (`false`) the matrix multiplication. |
+| `returnSequence` | `boolean` | `false` | Whether to also return the output of every time step. |
+| `direction` | `MLRecurrentNetworkDirection` | `"forward"` | The processing direction. |
+| `layout` | `MLGruWeightLayout` | `"zrn"` | The gate ordering of the weights and biases. |
+| `activations` | `sequence<MLRecurrentNetworkActivation>` | `["sigmoid", "tanh"]` | Two activation functions: the first for the update and reset gates, the second for the new gate. |
+
+#### Return value [#gru-return-value]
+
+A sequence of `MLOperand`. The first is a 3-D tensor of shape `[numDirections, batchSize, hiddenSize]`: the output of the last time step. If `returnSequence` is `true`, the second is a 4-D tensor of shape `[steps, numDirections, batchSize, hiddenSize]` with the output of every time step.
+
+#### Tensor limits [#gru-limits]
+
+Support limits key `gru` (`MLGruSupportLimits`, with members `input`, `weight`, `recurrentWeight`, `bias`, `recurrentBias`, `initialHiddenState`, `output0` and `output1`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 3 | 3 |
+| `weight` | same as `input` | `float32`, `float16` | 3 | 3 |
+| `recurrentWeight` | same as `input` | `float32`, `float16` | 3 | 3 |
+| `bias` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `recurrentBias` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `initialHiddenState` | same as `input` | `float32`, `float16` | 3 | 3 |
+| _outputs[0]_ | same as `input` | `float32`, `float16` | 3 | 3 |
+| _outputs[1]_ (if `returnSequence`) | same as `input` | `float32`, `float16` | 4 | 4 |
+
+### gruCell() [#grucell]
+
+Computes a single time step of a GRU network.
+
+```js showLineNumbers filename="syntax.js"
+gruCell(input, weight, recurrentWeight, hiddenState, hiddenSize)
+gruCell(input, weight, recurrentWeight, hiddenState, hiddenSize, options)
+```
+
+#### Parameters [#grucell-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): a 2-D tensor of shape `[batchSize, inputSize]`.
+- `weight`
+
+  An `MLOperand`: a 2-D tensor of shape `[3 * hiddenSize, inputSize]`.
+- `recurrentWeight`
+
+  An `MLOperand`: a 2-D tensor of shape `[3 * hiddenSize, hiddenSize]`.
+- `hiddenState`
+
+  An `MLOperand`: a 2-D tensor of shape `[batchSize, hiddenSize]`.
+- `hiddenSize`
+
+  An `unsigned long`: the number of features in the hidden state.
+- `options` _optional_
+
+  An `MLGruCellOptions` dictionary with the members `resetAfter`, `layout` and `activations` described for [`gru()`](#gru), and:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | none | A 1-D tensor of shape `[3 * hiddenSize]`. |
+| `recurrentBias` | `MLOperand` | none | A 1-D tensor of shape `[3 * hiddenSize]`. |
+
+#### Return value [#grucell-return-value]
+
+An `MLOperand`: a 2-D tensor of shape `[batchSize, hiddenSize]` with the new hidden state.
+
+#### Tensor limits [#grucell-limits]
+
+Support limits key `gruCell` (`MLGruCellSupportLimits`, with members `input`, `weight`, `recurrentWeight`, `hiddenState`, `bias`, `recurrentBias` and `output`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `weight` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `recurrentWeight` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `hiddenState` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `recurrentBias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _output_ | same as `input` | `float32`, `float16` | 2 | 2 |
+
+### lstm() [#lstm]
+
+Runs a [Long Short-Term Memory](https://www.bioinf.jku.at/publications/older/2604.pdf) network over a sequence, using input, output, forget, and cell gates.
+
+```js showLineNumbers filename="syntax.js"
+lstm(input, weight, recurrentWeight, steps, hiddenSize)
+lstm(input, weight, recurrentWeight, steps, hiddenSize, options)
+```
+
+#### Parameters [#lstm-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): a 3-D tensor of shape `[steps, batchSize, inputSize]`.
+- `weight`
+
+  An `MLOperand`: a 3-D tensor of shape `[numDirections, 4 * hiddenSize, inputSize]`. The gate order follows `layout`.
+- `recurrentWeight`
+
+  An `MLOperand`: a 3-D tensor of shape `[numDirections, 4 * hiddenSize, hiddenSize]`.
+- `steps`
+
+  An `unsigned long`: the number of time steps. It must be greater than 0.
+- `hiddenSize`
+
+  An `unsigned long`: the number of features in the hidden state.
+- `options` _optional_
+
+  An `MLLstmOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | none | A 2-D tensor of shape `[numDirections, 4 * hiddenSize]`. |
+| `recurrentBias` | `MLOperand` | none | A 2-D tensor of shape `[numDirections, 4 * hiddenSize]`. |
+| `peepholeWeight` | `MLOperand` | none | A 2-D tensor of shape `[numDirections, 3 * hiddenSize]`, packed in the order input, output, forget. |
+| `initialHiddenState` | `MLOperand` | zeros | A 3-D tensor of shape `[numDirections, batchSize, hiddenSize]`. |
+| `initialCellState` | `MLOperand` | zeros | A 3-D tensor of shape `[numDirections, batchSize, hiddenSize]`. |
+| `returnSequence` | `boolean` | `false` | Whether to also return the output of every time step. |
+| `direction` | `MLRecurrentNetworkDirection` | `"forward"` | The processing direction. |
+| `layout` | `MLLstmWeightLayout` | `"iofg"` | The gate ordering of the weights and biases. |
+| `activations` | `sequence<MLRecurrentNetworkActivation>` | `["sigmoid", "tanh", "tanh"]` | Three activation functions: the first for the input, forget and output gates, the second for the cell gate, the third for the output cell state before it is combined with the output gate. |
+
+#### Return value [#lstm-return-value]
+
+A sequence of `MLOperand`: the output hidden state of the last time step and the output cell state of the last time step, both 3-D tensors of shape `[numDirections, batchSize, hiddenSize]`. If `returnSequence` is `true`, a third 4-D tensor of shape `[steps, numDirections, batchSize, hiddenSize]` holds the output of every time step.
+
+#### Tensor limits [#lstm-limits]
+
+Support limits key `lstm` (`MLLstmSupportLimits`, with members `input`, `weight`, `recurrentWeight`, `bias`, `recurrentBias`, `peepholeWeight`, `initialHiddenState`, `initialCellState`, `output0`, `output1` and `output2`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 3 | 3 |
+| `weight` | same as `input` | `float32`, `float16` | 3 | 3 |
+| `recurrentWeight` | same as `input` | `float32`, `float16` | 3 | 3 |
+| `bias` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `recurrentBias` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `peepholeWeight` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `initialHiddenState` | same as `input` | `float32`, `float16` | 3 | 3 |
+| `initialCellState` | same as `input` | `float32`, `float16` | 3 | 3 |
+| _outputs[0]_ | same as `input` | `float32`, `float16` | 3 | 3 |
+| _outputs[1]_ | same as `input` | `float32`, `float16` | 3 | 3 |
+| _outputs[2]_ (if `returnSequence`) | same as `input` | `float32`, `float16` | 4 | 4 |
+
+### lstmCell() [#lstmcell]
+
+Computes a single time step of an LSTM network.
+
+```js showLineNumbers filename="syntax.js"
+lstmCell(input, weight, recurrentWeight, hiddenState, cellState, hiddenSize)
+lstmCell(input, weight, recurrentWeight, hiddenState, cellState, hiddenSize, options)
+```
+
+#### Parameters [#lstmcell-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): a 2-D tensor of shape `[batchSize, inputSize]`.
+- `weight`
+
+  An `MLOperand`: a 2-D tensor of shape `[4 * hiddenSize, inputSize]`.
+- `recurrentWeight`
+
+  An `MLOperand`: a 2-D tensor of shape `[4 * hiddenSize, hiddenSize]`.
+- `hiddenState`
+
+  An `MLOperand`: a 2-D tensor of shape `[batchSize, hiddenSize]`.
+- `cellState`
+
+  An `MLOperand`: a 2-D tensor of shape `[batchSize, hiddenSize]`.
+- `hiddenSize`
+
+  An `unsigned long`: the number of features in the hidden state.
+- `options` _optional_
+
+  An `MLLstmCellOptions` dictionary with the members `layout` and `activations` described for [`lstm()`](#lstm), and:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | none | A 1-D tensor of shape `[4 * hiddenSize]`. |
+| `recurrentBias` | `MLOperand` | none | A 1-D tensor of shape `[4 * hiddenSize]`. |
+| `peepholeWeight` | `MLOperand` | none | A 1-D tensor of shape `[3 * hiddenSize]`, packed in the order input, output, forget. |
+
+#### Return value [#lstmcell-return-value]
+
+A sequence of two `MLOperand`: the new hidden state and the new cell state, both 2-D tensors of shape `[batchSize, hiddenSize]`.
+
+#### Tensor limits [#lstmcell-limits]
+
+Support limits key `lstmCell` (`MLLstmCellSupportLimits`, with members `input`, `weight`, `recurrentWeight`, `hiddenState`, `cellState`, `bias`, `recurrentBias`, `peepholeWeight`, `output0` and `output1`).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `weight` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `recurrentWeight` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `hiddenState` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `cellState` | same as `input` | `float32`, `float16` | 2 | 2 |
+| `bias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `recurrentBias` | same as `input` | `float32`, `float16` | 1 | 1 |
+| `peepholeWeight` | same as `input` | `float32`, `float16` | 1 | 1 |
+| _outputs[0]_ | same as `input` | `float32`, `float16` | 2 | 2 |
+| _outputs[1]_ | same as `input` | `float32`, `float16` | 2 | 2 |
+
+### Example [#recurrent-networks-example]
+
+```js showLineNumbers filename="lstm.js"
+const steps = 8, batch = 1, inputSize = 16, hiddenSize = 32;
+const input = builder.input('input', { dataType: 'float32', shape: [steps, batch, inputSize] });
+const weight = builder.constant(
+  { dataType: 'float32', shape: [1, 4 * hiddenSize, inputSize] }, weightData);
+const recurrentWeight = builder.constant(
+  { dataType: 'float32', shape: [1, 4 * hiddenSize, hiddenSize] }, recurrentWeightData);
+
+const [hidden, cell, sequence] = builder.lstm(
+  input, weight, recurrentWeight, steps, hiddenSize, { returnSequence: true });
+console.log(hidden.shape);   // [1, 1, 32]
+console.log(sequence.shape); // [8, 1, 1, 32]
+```
+
+## Resampling operations [#resampling]
+
+### resample2d() [#resample2d]
+
+Resamples a 4-D tensor to a different size along two of its dimensions, for example to scale an image up or down.
+
+```js showLineNumbers filename="syntax.js"
+resample2d(input)
+resample2d(input, options)
+```
+
+#### Parameters [#resample2d-parameters]
+
+- `input`
+
+  An [`MLOperand`](mloperand): the input 4-D tensor.
+- `options` _optional_
+
+  An `MLResample2dOptions` dictionary:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `MLInterpolationMode` | `"nearest-neighbor"` | The interpolation algorithm: `"nearest-neighbor"` or `"linear"` (bilinear). |
+| `scales` | `sequence<float>` | `[1.0, 1.0]` | Scaling factors for the two dimensions listed in `axes`: `[scaleForFirstAxis, scaleForSecondAxis]`. |
+| `sizes` | `sequence<unsigned long>` | none | Target sizes for the two dimensions in `axes`. When given, `scales` is ignored. |
+| `axes` | `sequence<unsigned long>` | `[2, 3]` | The two input dimensions to resample. |
+
+For each of the two resampled axes, with `inputSize` from the input shape and `outputSize` from `sizes` or `scales`, both interpolation modes first compute a source coordinate for each `outputCoordinate`:
+
+```text
+scale = outputSize / inputSize
+unclampedCoordinate = (outputCoordinate + 0.5) / scale - 0.5
+inputCoordinate = clamp(unclampedCoordinate, 0, inputSize - 1)
+```
+
+`"nearest-neighbor"` then takes the value at `x = ceil(inputCoordinate.x - 0.5)`, `y = ceil(inputCoordinate.y - 0.5)`. `"linear"` blends the four surrounding values bilinearly, weighting each by its distance from `inputCoordinate`.
+
+#### Return value [#resample2d-return-value]
+
+An `MLOperand`: a 4-D tensor with the resampled dimensions changed to the target sizes.
+
+#### Tensor limits [#resample2d-limits]
+
+Support limits key `resample2d` ([`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)).
+
+| Operand | Allowed data types | Required data types | Allowed ranks | Required ranks |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `uint8`, `int8` | `float32`, `float16` | 4 | 4 |
+| _output_ | same as `input` | `float32`, `float16` | 4 | 4 |
+
+#### Example [#resample2d-example]
+
+```js showLineNumbers filename="resample2d.js"
+const image = builder.input('image', { dataType: 'float32', shape: [1, 3, 224, 224] });
+
+// Upscale 2x with bilinear interpolation.
+const big = builder.resample2d(image, { mode: 'linear', scales: [2.0, 2.0] });
+console.log(big.shape); // [1, 3, 448, 448]
+
+// Resize to an exact size.
+const small = builder.resample2d(image, { sizes: [112, 112] });
+console.log(small.shape); // [1, 3, 112, 112]
+```
+
+## Specifications [#specifications]
+
+| Specification | Status |
+| --- | --- |
+| [Web Neural Network API — `MLGraphBuilder` operations](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
+
+The latest Editor's Draft is available at [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder).
+
+## Browser compatibility [#browser-compatibility]
+
+> <InfoIcon /> WebNN is under active development. Operator coverage differs between browsers, operating systems, and hardware backends, and newer operations such as `cumulativeSum()`, `gatherElements()`, `scatterND()`, `reverse()`, `tile()`, `dequantizeLinear()` and `quantizeLinear()` may not be available everywhere. Always check [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits) at run time.
+
+See [Browser Compatibility: WebNN APIs](../browser-compatibility/api#webnn-apis) and the per-backend operator tables for [Windows ML](../browser-compatibility/windowsml), [LiteRT](../browser-compatibility/litert) and [Core ML](../browser-compatibility/coreml).
+
+## See also [#see-also]
+
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [`MLOperand`](mloperand)
+- [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits)
+- [`MLGraph`](mlgraph)

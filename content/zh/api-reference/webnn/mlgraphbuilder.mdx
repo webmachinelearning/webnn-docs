@@ -1,194 +1,313 @@
-
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLGraphBuilder
 
-The `MLGraphBuilder` interface enables the construction of computational graphs through a set of operations. It manages the intermediate state during graph building sessions.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## Web IDL
+Web 神经网络（WebNN）API 的 **`MLGraphBuilder`** 接口用于构建计算图。它保存图构建会话的状态：你声明输入和常量，在得到的 [`MLOperand`](mloperand) 对象上组合[操作](mlgraphbuilder-ops)，最后使用 [`build()`](#build) 将图编译为 [`MLGraph`](mlgraph)。
+
+图的构建是同步的，并会立即验证每个操作：形状和数据类型会随构建过程计算出来，无效的参数会在出错的调用处抛出 `TypeError`。只有 `build()` 是异步的。
+
+此功能仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可用。
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
 typedef record<USVString, MLOperand> MLNamedOperands;
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraphBuilder {
-  // Construct the graph builder from the context.
+  // 从上下文构造图构建器。
   constructor(MLContext context);
 
-  // Create an operand for a graph input.
+  // 为图的输入创建操作数。
   MLOperand input(USVString name, MLOperandDescriptor descriptor);
 
-  // Create an operand for a graph constant.
+  // 为图的常量创建操作数。
   MLOperand constant(MLOperandDescriptor descriptor,
                      AllowSharedBufferSource buffer);
 
-  // Create a scalar operand from the specified number of the specified type.
-  MLOperand constant(MLOperandDataType type, MLNumber value);
+  // 根据指定类型的指定数值创建标量操作数。
+  MLOperand constant(MLOperandDataType dataType, MLNumber value);
 
-  // Compile the graph up to the specified output operands asynchronously.
+  // 根据指定的常量张量创建操作数。
+  MLOperand constant(MLTensor tensor);
+
+  // 异步编译图，直到指定的输出操作数。
   Promise<MLGraph> build(MLNamedOperands outputs);
 };
 ```
 
-## Syntax
+各种操作（`add()`、`conv2d()`、`softmax()` 等）被定义为 `MLGraphBuilder` 的部分接口，并记录在 [MLGraphBuilder 操作](mlgraphbuilder-ops)中。
 
-```javascript
+## 构造函数 [#constructor]
+
+### MLGraphBuilder() [#mlgraphbuilder]
+
+创建与 [`MLContext`](mlcontext) 关联的新 `MLGraphBuilder`。
+
+#### 语法 [#constructor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+new MLGraphBuilder(context)
+```
+
+#### 参数 [#constructor-parameters]
+
+- `context`
+
+  图将为其编译并在其上执行的 [`MLContext`](mlcontext)。
+
+#### 异常 [#constructor-exceptions]
+
+- `SecurityError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果文档不被允许使用 `webnn` [权限策略](navigatorml#permissions-policy)特性，则抛出。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果 `context` 已丢失，则抛出。
+
+## 实例属性 [#instance-properties]
+
+无。
+
+## 实例方法 [#instance-methods]
+
+| 方法 | 描述 |
+| --- | --- |
+| [`input()`](#input) | 创建具名的输入操作数。 |
+| [`constant()`](#constant) | 根据缓冲区、标量值或常量 `MLTensor` 创建常量操作数。 |
+| [`build()`](#build) | 编译图，直到给定的输出操作数。 |
+| [操作](#operations) | 超过 90 个方法，例如 `add()`、`conv2d()`、`matmul()` 和 `softmax()`，用于创建操作。 |
+
+除 `build()` 之外的所有方法，如果构建器**无法构建**（即已对其调用过 `build()`，或其上下文已丢失），都会抛出 `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)。
+
+### input() [#input]
+
+**`input()`** 方法创建表示图输入的具名 [`MLOperand`](mloperand)。执行图时，必须在 [`MLContext.dispatch()`](mlcontext#dispatch) 的 `inputs` 参数中提供具有相同名称、数据类型和形状的张量。
+
+#### 语法 [#input-syntax]
+
+```js showLineNumbers filename="syntax.js"
+input(name, descriptor)
+```
+
+#### 参数 [#input-parameters]
+
+- `name`
+
+  为输入命名的非空字符串。名称在构建器内必须唯一。
+- `descriptor`
+
+  给出输入的 `dataType` 和 `shape` 的 [`MLOperandDescriptor`](mloperand#mloperanddescriptor)。
+
+#### 返回值 [#input-return-value]
+
+一个 [`MLOperand`](mloperand)。
+
+#### 异常 [#input-exceptions]
+
+- `TypeError`
+
+  如果 `name` 为空或已被其他输入使用，或者 `descriptor` 的形状无效，则抛出。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果构建器无法构建，则抛出。
+
+> <InfoIcon /> 图可以完全没有输入，例如仅对常量进行变换的图。
+
+### constant() [#constant]
+
+**`constant()`** 方法创建一个 [`MLOperand`](mloperand)，其值在构建图时固定，通常是模型权重。常量使实现能够在 `build()` 期间以设备友好的格式预处理并缓存数据（即所谓的*权重预处理*），从而加快后续执行。
+
+#### 语法 [#constant-syntax]
+
+```js showLineNumbers filename="syntax.js"
+constant(descriptor, buffer)
+constant(dataType, value)
+constant(tensor)
+```
+
+#### 参数 [#constant-parameters]
+
+- `descriptor`
+
+  给出常量的 `dataType` 和 `shape` 的 [`MLOperandDescriptor`](mloperand#mloperanddescriptor)。
+- `buffer`
+
+  带有初始数据的 `ArrayBuffer`、`SharedArrayBuffer` 或 `ArrayBufferView`。其字节长度必须等于描述符的字节长度，并且类型化数组必须与数据类型匹配，或者是 `Uint8Array`（参见[缓冲区要求](mlcontext#buffer-requirements)）。数据会在调用 `constant()` 时被复制，因此缓冲区可以立即重用。
+- `dataType`
+
+  用于标量（0 维）常量的 [`MLOperandDataType`](mloperand#mloperanddatatype)。
+- `value`
+
+  带有标量值的 [`MLNumber`](mloperand#mlnumber)（`number` 或 `bigint`）。它会被转换为 `dataType`；超出该类型范围的值会被截断。
+- `tensor`
+
+  在同一上下文中使用 [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor) 创建的常量 [`MLTensor`](mltensor)。该操作数使用张量的数据类型和形状。张量可以在 `build()` 完成后销毁。
+
+#### 返回值 [#constant-return-value]
+
+一个 [`MLOperand`](mloperand)。
+
+#### 异常 [#constant-exceptions]
+
+- `TypeError`
+
+  如果 `descriptor` 的形状无效或 `buffer` 与其不匹配，则抛出；对于 `constant(tensor)`，如果张量属于不同的上下文、已被销毁或不是常量张量，也会抛出。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果构建器无法构建，则抛出。
+
+### build() [#build]
+
+**`build()`** 方法将图（从给定的输出操作数回溯到它们所依赖的输入和常量）编译为 [`MLGraph`](mlgraph)。输出不依赖的操作数会被忽略。
+
+`MLGraphBuilder` 只能构建**一次**。调用 `build()` 之后，构建器不能再创建操作数，也不能再次构建；请为每个图创建一个新的构建器。
+
+#### 语法 [#build-syntax]
+
+```js showLineNumbers filename="syntax.js"
+build(outputs)
+```
+
+#### 参数 [#build-parameters]
+
+- `outputs`
+
+  一个对象（`MLNamedOperands`），将每个输出名称映射到由此构建器创建的 [`MLOperand`](mloperand)。执行图时，必须在 [`MLContext.dispatch()`](mlcontext#dispatch) 的 `outputs` 参数中为这些名称各提供一个张量。
+
+#### 返回值 [#build-return-value]
+
+一个 `Promise`，兑现为 [`MLGraph`](mlgraph)。
+
+#### 异常 [#build-exceptions]
+
+返回的 Promise 会以如下异常被拒绝：
+
+- `TypeError`
+
+  `outputs` 为空；某个输出名称为空；某个操作数由不同的构建器创建；某个操作数是输入或常量操作数；或者某个常量操作数由一个此后已被销毁的张量创建。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  构建器无法构建（已构建过，或上下文已丢失），或者上下文在编译期间丢失。
+- `OperationError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  底层平台无法编译该图。
+
+> <InfoIcon /> 直接将输入或常量操作数作为图的输出会被拒绝，因为这通常意味着出现了错误。如果确实需要，请使用 [`identity()`](mlgraphbuilder-ops#identity) 包装该操作数。
+
+## 操作 [#operations]
+
+操作是接受一个或多个 `MLOperand` 对象（通常还有一个派生自 [`MLOperatorOptions`](mloperand#mloperatoroptions) 的选项字典）并返回新的 `MLOperand` 或操作数序列的方法。完整详情请参见 [MLGraphBuilder 操作](mlgraphbuilder-ops)。
+
+| 类别 | 操作 |
+| --- | --- |
+| [逐元素二元](mlgraphbuilder-ops#element-wise-binary) | `add()`, `sub()`, `mul()`, `div()`, `max()`, `min()`, `pow()` |
+| [比较与逻辑](mlgraphbuilder-ops#element-wise-logical) | `equal()`, `notEqual()`, `greater()`, `greaterOrEqual()`, `lesser()`, `lesserOrEqual()`, `logicalNot()`, `logicalAnd()`, `logicalOr()`, `logicalXor()`, `isNaN()`, `isInfinite()` |
+| [逐元素一元](mlgraphbuilder-ops#element-wise-unary) | `abs()`, `ceil()`, `cos()`, `erf()`, `exp()`, `floor()`, `identity()`, `log()`, `neg()`, `reciprocal()`, `roundEven()`, `sign()`, `sin()`, `sqrt()`, `tan()` |
+| [激活函数](mlgraphbuilder-ops#activations) | `elu()`, `gelu()`, `hardSigmoid()`, `hardSwish()`, `leakyRelu()`, `linear()`, `prelu()`, `relu()`, `sigmoid()`, `softmax()`, `softplus()`, `softsign()`, `tanh()` |
+| [卷积](mlgraphbuilder-ops#convolution) | `conv2d()`, `convTranspose2d()` |
+| [池化](mlgraphbuilder-ops#pooling) | `averagePool2d()`, `l2Pool2d()`, `maxPool2d()` |
+| [归一化](mlgraphbuilder-ops#normalization) | `batchNormalization()`, `instanceNormalization()`, `layerNormalization()` |
+| [矩阵](mlgraphbuilder-ops#matrix) | `gemm()`, `matmul()`, `triangular()` |
+| [归约](mlgraphbuilder-ops#reduction) | `argMax()`, `argMin()`, `cumulativeSum()`, `reduceL1()`, `reduceL2()`, `reduceLogSum()`, `reduceLogSumExp()`, `reduceMax()`, `reduceMean()`, `reduceMin()`, `reduceProduct()`, `reduceSum()`, `reduceSumSquare()` |
+| [形状与数据移动](mlgraphbuilder-ops#shape-and-data-movement) | `cast()`, `clamp()`, `concat()`, `expand()`, `pad()`, `reshape()`, `reverse()`, `slice()`, `split()`, `tile()`, `transpose()` |
+| [聚集与分散](mlgraphbuilder-ops#gather-and-scatter) | `gather()`, `gatherElements()`, `gatherND()`, `scatterElements()`, `scatterND()`, `where()` |
+| [量化](mlgraphbuilder-ops#quantization) | `dequantizeLinear()`, `quantizeLinear()` |
+| [循环网络](mlgraphbuilder-ops#recurrent-networks) | `gru()`, `gruCell()`, `lstm()`, `lstmCell()` |
+| [重采样](mlgraphbuilder-ops#resampling) | `resample2d()` |
+
+## 示例 [#examples]
+
+### 构建一个简单的图 [#building-a-simple-graph]
+
+```js showLineNumbers filename="simple-graph.js"
+const context = await navigator.ml.createContext();
 const builder = new MLGraphBuilder(context);
 
-// Creating input and constant operands
-const input = builder.input(name, descriptor);
-const constant1 = builder.constant(descriptor, buffer);
-const constant2 = builder.constant(type, value);
+const a = builder.input('a', { dataType: 'float32', shape: [3, 4] });
+const b = builder.input('b', { dataType: 'float32', shape: [4, 3] });
+const c = builder.matmul(a, b);
+console.log(c.shape); // [3, 3]
 
-// Building the graph
-const graph = await builder.build(outputs);
+const graph = await builder.build({ c });
 ```
 
-## Constructor
+### 使用三种常量 [#using-the-three-kinds-of-constants]
 
-### MLGraphBuilder()
+```js showLineNumbers filename="constants.js"
+const builder = new MLGraphBuilder(context);
+const x = builder.input('x', { dataType: 'float32', shape: [2, 2] });
 
-Creates a new `MLGraphBuilder` instance.
+// 1. 来自缓冲区。
+const w = builder.constant({ dataType: 'float32', shape: [2, 2] },
+                           new Float32Array([1, 2, 3, 4]));
 
-```js showLineNumbers filename="constructor.js"
-constructor(context)
+// 2. 标量；与其他操作数组合时会进行广播。
+const half = builder.constant('float32', 0.5);
+
+// 3. 来自常量 MLTensor，例如由多个图共享的权重。
+const biasTensor = await context.createConstantTensor(
+  { dataType: 'float32', shape: [2] }, new Float32Array([0.1, 0.2]));
+const bias = builder.constant(biasTensor);
+
+const y = builder.add(builder.mul(builder.matmul(x, w), half), bias);
+const graph = await builder.build({ y });
 ```
 
-#### Parameters
+### 一个小型卷积块 [#a-small-convolutional-block]
 
-- `context`: An `MLContext` object to associate with the graph builder.
+```js showLineNumbers filename="conv-block.js"
+const builder = new MLGraphBuilder(context);
+const input = builder.input('input', { dataType: 'float32', shape: [1, 3, 32, 32] }); // NCHW
 
-## Properties
+const filter = builder.constant({ dataType: 'float32', shape: [16, 3, 3, 3] }, filterData); // OIHW
+const bias = builder.constant({ dataType: 'float32', shape: [16] }, biasData);
 
-This interface doesn't contain any properties.
+let x = builder.conv2d(input, filter, { padding: [1, 1, 1, 1], bias });
+x = builder.relu(x);
+x = builder.maxPool2d(x, { windowDimensions: [2, 2], strides: [2, 2] });
+console.log(x.shape); // [1, 16, 16, 16]
 
-## Methods
-
-### input()
-
-Creates a named `MLOperand` that can be used as an input to the graph.
-
-```js showLineNumbers filename="input.js"
-builder.input(name, descriptor)
+const graph = await builder.build({ output: x });
 ```
 
-#### Parameters
+### 处理构建错误 [#handling-build-errors]
 
-- `name`: A string representing the name of the input.
-- `descriptor`: An `MLOperandDescriptor` object defining the input's characteristics.
+```js showLineNumbers filename="build-errors.js"
+const builder = new MLGraphBuilder(context);
+const x = builder.input('x', { dataType: 'float32', shape: [4] });
 
-#### Return Value
-
-Returns an `MLOperand` object.
-
-### constant()
-
-Creates a constant `MLOperand`. This method has two overloads:
-
-#### Syntax 1: Creating a graph constant
-
-```js showLineNumbers filename="constant-1.js"
-builder.constant(descriptor, buffer)
-```
-
-##### Parameters
-
-- `descriptor`: An `MLOperandDescriptor` describing the output tensor.
-- `buffer`: An `AllowSharedBufferSource` containing the initializing data.
-
-##### Return Value
-
-Returns an `MLOperand` representing the constant tensor.
-
-#### Syntax 2: Creating a scalar operand
-
-```js showLineNumbers filename="constant-2.js"
-builder.constant(type, value)
-```
-
-##### Parameters
-
-- `type`: An `MLOperandDataType` specifying the data type.
-- `value`: An `MLNumber` representing the constant value.
-
-##### Return Value
-
-Returns an `MLOperand` representing the scalar constant.
-
-### build()
-
-Compiles the graph asynchronously up to the specified output operands.
-
-```js showLineNumbers filename="build.js"
-builder.build(outputs)
-```
-
-#### Parameters
-
-- `outputs`: An `MLNamedOperands` record identifying the output operands of the graph.
-
-#### Return Value
-
-Returns a `Promise` that resolves to an `MLGraph` object.
-
-## Implementation Notes
-
-When building a graph with `MLContext` type set to "default", the following occurs:
-
-1. The graph is compiled based on the specified output operands
-2. Graph initialization occurs just before the `MLGraph` is returned
-3. Weight preprocessing is performed where:
-   - Constant inputs are preprocessed
-   - Data is cached at the OS level
-   - This optimization improves subsequent graph execution performance
-
-## Examples
-
-### Creating and Building a Simple Graph
-
-```js showLineNumbers filename="example-1.js"
-async function simpleGraph() {
-  const context = await navigator.ml.createContext({
-    deviceType: 'gpu'
-  });
-  // Create a graph builder
-  const builder = new MLGraphBuilder(context);
-  // Create an input
-  const a = builder.input("a", {
-    dataType: "float32",
-    shape: [3, 4]
-  });
-  // Create a input
-  const b = builder.input("b", {
-    dataType: "float32",
-    shape: [4, 3]
-  });
-  const c = builder.matmul(a, b);
-  // Build the graph
-  const graph = await builder.build({c});
-  return graph;
+try {
+  await builder.build({ x }); // 被拒绝：输入不能作为图的输出。
+} catch (e) {
+  console.log(e.name); // "TypeError"
 }
+
+// 改为使用 identity() 包装该操作数（使用新的构建器）。
+const builder2 = new MLGraphBuilder(context);
+const x2 = builder2.input('x', { dataType: 'float32', shape: [4] });
+const graph = await builder2.build({ y: builder2.identity(x2) });
 ```
 
-### Creating a Scalar Constant
+## 规范 [#specifications]
 
-```js showLineNumbers filename="example-2.js"
-const builder = new MLGraphBuilder(context);
-const scalarConstant = builder.constant("float32", 42.0);
-```
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `MLGraphBuilder` 接口](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) | 候选推荐草案 |
 
-## Specifications
+最新的编辑草案可在 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder) 获取。
 
-| WebNN API | Status |
-|--------------|---------|
-| [`MLGraphBuilder` interface](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder) | Candidate Recommendation Draft |
+## 浏览器兼容性 [#browser-compatibility]
 
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。`constant(tensor)` 是最近新增的，可能尚未实现。
 
-## Security Requirements
+参见 [浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis) 以及 [Windows ML](../browser-compatibility/windowsml)、[LiteRT](../browser-compatibility/litert) 和 [Core ML](../browser-compatibility/coreml) 各后端的算子表格。
 
-1. Must be used in a secure context (HTTPS or localhost)
-2. Access is restricted to Window and DedicatedWorker contexts
-3. The graph builder can only build if its associated `context` is not lost
+## 参见 [#see-also]
 
-## Browser Compatibility
-
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+- [MLGraphBuilder 操作](mlgraphbuilder-ops)
+- [`MLOperand`](mloperand)
+- [`MLGraph`](mlgraph)
+- [`MLContext`](mlcontext)

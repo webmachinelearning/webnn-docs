@@ -1,281 +1,2422 @@
-# MLGraphBuilder
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-```math
-x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
+# MLGraphBuilder 操作
+
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
+
+Web 神经网络（WebNN）API 的操作是 [`MLGraphBuilder`](mlgraphbuilder) 接口的方法。每个操作接受一个或多个 [`MLOperand`](mloperand) 参数（通常还带有一个选项字典），并返回一个描述结果的新 `MLOperand`（或操作数序列）。调用时操作并不会进行任何计算：它们只是向图中添加一个节点，由 [`build()`](mlgraphbuilder#build) 随后编译，并由 [`MLContext.dispatch()`](mlcontext#dispatch) 执行。
+
+本页记录了全部 95 个操作，并按类别分组。关于构建器本身（包括 [`input()`](mlgraphbuilder#input)、[`constant()`](mlgraphbuilder#constant) 和 [`build()`](mlgraphbuilder#build)），请参阅 [`MLGraphBuilder`](mlgraphbuilder)。
+
+## 概述 [#overview]
+
+| 类别 | 操作 |
+| --- | --- |
+| [逐元素二元](#element-wise-binary) | [`add()`](#add), [`sub()`](#sub), [`mul()`](#mul), [`div()`](#div), [`max()`](#max), [`min()`](#min), [`pow()`](#pow) |
+| [比较与逻辑](#element-wise-logical) | [`equal()`](#equal), [`notEqual()`](#notequal), [`greater()`](#greater), [`greaterOrEqual()`](#greaterorequal), [`lesser()`](#lesser), [`lesserOrEqual()`](#lesserorequal), [`logicalNot()`](#logicalnot), [`logicalAnd()`](#logicaland), [`logicalOr()`](#logicalor), [`logicalXor()`](#logicalxor), [`isNaN()`](#isnan), [`isInfinite()`](#isinfinite) |
+| [逐元素一元](#element-wise-unary) | [`abs()`](#abs), [`ceil()`](#ceil), [`cos()`](#cos), [`erf()`](#erf), [`exp()`](#exp), [`floor()`](#floor), [`identity()`](#identity), [`log()`](#log), [`neg()`](#neg), [`reciprocal()`](#reciprocal), [`roundEven()`](#roundeven), [`sign()`](#sign), [`sin()`](#sin), [`sqrt()`](#sqrt), [`tan()`](#tan) |
+| [激活函数](#activations) | [`elu()`](#elu), [`gelu()`](#gelu), [`hardSigmoid()`](#hardsigmoid), [`hardSwish()`](#hardswish), [`leakyRelu()`](#leakyrelu), [`linear()`](#linear), [`prelu()`](#prelu), [`relu()`](#relu), [`sigmoid()`](#sigmoid), [`softmax()`](#softmax), [`softplus()`](#softplus), [`softsign()`](#softsign), [`tanh()`](#tanh) |
+| [卷积](#convolution) | [`conv2d()`](#conv2d), [`convTranspose2d()`](#convtranspose2d) |
+| [池化](#pooling) | [`averagePool2d()`](#averagepool2d), [`l2Pool2d()`](#l2pool2d), [`maxPool2d()`](#maxpool2d) |
+| [归一化](#normalization) | [`batchNormalization()`](#batchnormalization), [`instanceNormalization()`](#instancenormalization), [`layerNormalization()`](#layernormalization) |
+| [矩阵](#matrix) | [`gemm()`](#gemm), [`matmul()`](#matmul), [`triangular()`](#triangular) |
+| [归约](#reduction) | [`argMax()`](#argmax), [`argMin()`](#argmin), [`cumulativeSum()`](#cumulativesum), [`reduceL1()`](#reducel1), [`reduceL2()`](#reducel2), [`reduceLogSum()`](#reducelogsum), [`reduceLogSumExp()`](#reducelogsumexp), [`reduceMax()`](#reducemax), [`reduceMean()`](#reducemean), [`reduceMin()`](#reducemin), [`reduceProduct()`](#reduceproduct), [`reduceSum()`](#reducesum), [`reduceSumSquare()`](#reducesumsquare) |
+| [形状与数据移动](#shape-and-data-movement) | [`cast()`](#cast), [`clamp()`](#clamp), [`concat()`](#concat), [`expand()`](#expand), [`pad()`](#pad), [`reshape()`](#reshape), [`reverse()`](#reverse), [`slice()`](#slice), [`split()`](#split), [`tile()`](#tile), [`transpose()`](#transpose) |
+| [收集与散射](#gather-and-scatter) | [`gather()`](#gather), [`gatherElements()`](#gatherelements), [`gatherND()`](#gathernd), [`scatterElements()`](#scatterelements), [`scatterND()`](#scatternd), [`where()`](#where) |
+| [量化](#quantization) | [`dequantizeLinear()`](#dequantizelinear), [`quantizeLinear()`](#quantizelinear) |
+| [循环网络](#recurrent-networks) | [`gru()`](#gru), [`gruCell()`](#grucell), [`lstm()`](#lstm), [`lstmCell()`](#lstmcell) |
+| [重采样](#resampling) | [`resample2d()`](#resample2d) |
+
+## 通用行为 [#common-behavior]
+
+以下规则适用于本页的每个操作，因此不会在各个条目中重复说明。
+
+### 选项与标签 [#options-and-labels]
+
+每个选项字典都派生自 [`MLOperatorOptions`](mloperand#mloperatoroptions)，因此都接受一个可选的 `label` 字符串。实现可以利用它让错误消息和调试输出更有用。选项参数始终是可选的，除非某个条目另有说明。
+
+```js showLineNumbers filename="label.js"
+const y = builder.matmul(a, b, { label: 'decoder.proj' });
 ```
 
-## argMin
-- Type: operation
+### 异常 [#exceptions]
 
-## argMax
-- Type: operation
+操作会在调用时同步进行验证。除非某个条目列出了其他行为，否则操作会抛出：
 
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
 
-## batchNormalization
-- Type: operation
+  构建器无法构建：已经调用过 [`build()`](mlgraphbuilder#build)，或者构建器的上下文已丢失。
+- `TypeError`
 
+  某个操作数由另一个 `MLGraphBuilder` 创建；某个操作数的数据类型不属于该操作的*允许的数据类型*；某个操作数的秩或形状对该操作无效（例如无法广播的形状，或超出有效范围的 `axis`）；或者某个选项值超出范围。
 
-## cast
-- Type: operation
+### 数据类型与秩 [#data-types-and-ranks]
 
+每个条目都有一个**张量限制**表格，每个操作数占一行（输出以斜体列出）：
 
-## clamp
-- Type: operation
+- **允许的数据类型**是规范允许的 [`MLOperandDataType`](mloperand#mloperanddatatype) 值。*与 `input` 相同*表示该操作数必须与另一个操作数具有相同的数据类型，*任意*表示允许所有数据类型。
+- **必需的数据类型**是每个实现至少必须支持的值。实现可以支持更多允许的类型，但不能少于必需的类型。仅使用必需类型的模型可以在各个实现之间移植。
+- **允许的秩**和**必需的秩**对维度数量的作用方式相同。`N` 表示任意秩。
 
+当前上下文实际支持的数据类型和秩可在运行时通过 [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits) 获得。返回的字典为每个操作提供一个成员，以方法名命名（例如 `limits.conv2d` 或 `limits.add`），其字典类型在各个条目中给出。
 
-## concat
-- Type: operation
+```js showLineNumbers filename="support.js"
+const limits = context.opSupportLimits();
+const canUseFp16 = limits.softmax.input.dataTypes.includes('float16');
+const maxRank = limits.add.a.rankRange.max;
+```
 
+### 广播 [#broadcasting]
 
-## conv2d
-- Type: operation
+一些操作使用 [NumPy 广播规则](https://numpy.org/doc/stable/user/basics.broadcasting.html)组合不同形状的操作数。形状从末尾维度开始对齐，对于每一对维度，其大小要么相等，要么其中一个为 1。
 
+- **可双向广播：** 两个操作数都可以被拉伸。输出的秩是两个秩中较大的一个，每个输出维度是两个输入大小中较大的一个。用于逐元素二元操作和逻辑操作、`prelu()` 以及 `where()`。
+- **可单向广播：** 只有第一个操作数会被拉伸以匹配目标形状。用于 `expand()` 以及 `gemm()` 的 `c` 操作数。
 
-## convTranspose2d
-- Type: operation
+## 逐元素二元操作 [#element-wise-binary]
 
+逐元素二元操作根据两个输入张量，一次一对元素地计算结果。输入必须可双向广播。
 
-## add
-- Type: operation
+### 语法 [#element-wise-binary-syntax]
 
-## sub
-- Type: operation
+```js showLineNumbers filename="syntax.js"
+add(a, b)
+add(a, b, options)
+// 对 sub()、mul()、div()、max()、min() 和 pow() 同理
+```
 
-## mul
-- Type: operation
+### 参数 [#element-wise-binary-parameters]
 
-## div
-- Type: operation
+- `a`
 
-## max
-- Type: operation
+  一个 [`MLOperand`](mloperand)：第一个输入张量。
+- `b`
 
-## min
-- Type: operation
+  一个 `MLOperand`：第二个输入张量。
+- `options` _可选_
 
-## pow
-- Type: operation
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
 
+### 返回值 [#element-wise-binary-return-value]
 
-## equal
-- Type: operation
+一个包含结果的 `MLOperand`。其秩为 `a` 和 `b` 的秩中较大的一个，每个维度为对应输入维度中较大的一个。
 
-## greater
-- Type: operation
+### 张量限制 [#element-wise-binary-limits]
 
-## greaterOrEqual
-- Type: operation
+支持限制键：`add`、`sub`、`mul`、`div`、`max`、`min`、`pow`（[`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)）。
 
-## lesser
-- Type: operation
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| `b` | 与 `a` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `a` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
 
-## lesserOrEqual
-- Type: operation
+### add() [#add]
 
-## logicalNot
-- Type: operation
+逐元素加法：`a + b`。
 
+### sub() [#sub]
 
-## abs
-- Type: operation
+逐元素减法：`a - b`。
 
-## ceil
-- Type: operation
+### mul() [#mul]
 
-## cos
-- Type: operation
+逐元素乘法：`a * b`。
 
-## erf
-- Type: operation
+### div() [#div]
 
-## exp
-- Type: operation
+逐元素除法：`a / b`。
 
-## floor
-- Type: operation
+### max() [#max]
 
-## identity
-- Type: operation
+`a` 和 `b` 的逐元素最大值。
 
-## log
-- Type: operation
+### min() [#min]
 
-## neg
-- Type: operation
+`a` 和 `b` 的逐元素最小值。
 
-## reciprocal
-- Type: operation
+### pow() [#pow]
 
-## sin
-- Type: operation
+逐元素幂运算：`a` 的每个元素的、对应 `b` 元素次幂。
 
-## sqrt
-- Type: operation
+### 示例 [#element-wise-binary-example]
 
-## tan
-- Type: operation
+```js showLineNumbers filename="binary.js"
+const a = builder.input('a', { dataType: 'float32', shape: [2, 3] });
+const bias = builder.constant(
+  { dataType: 'float32', shape: [3] }, new Float32Array([0.1, 0.2, 0.3]));
 
+// bias 会沿第一个维度广播：输出形状为 [2, 3]。
+const y = builder.add(a, bias);
+console.log(y.shape); // [2, 3]
+```
 
-## elu
-- Type: operation
+## 逐元素逻辑操作 [#element-wise-logical]
 
+比较和逻辑操作会生成一个 `uint8` 张量，其中每个元素为 `1`（真）或 `0`（假）。带有两个操作数的操作要求输入可双向广播。
 
-## expand
-- Type: operation
+### 语法 [#element-wise-logical-syntax]
 
+```js showLineNumbers filename="syntax.js"
+equal(a, b)            // notEqual, greater, greaterOrEqual, lesser, lesserOrEqual
+logicalAnd(a, b)       // logicalOr, logicalXor
+logicalNot(a)
+isNaN(a)               // isInfinite
+// 每个操作都接受一个可选的末尾 options 参数。
+```
 
-## gather
-- Type: operation
+### 参数 [#element-wise-logical-parameters]
 
+- `a`
 
-## gelu
-- Type: operation
+  一个 [`MLOperand`](mloperand)：第一个（或唯一的）输入张量。
+- `b`
 
+  一个 `MLOperand`：第二个输入张量。`logicalNot()`、`isNaN()` 和 `isInfinite()` 不使用该参数。
+- `options` _可选_
 
-## gemm
-- Type: operation
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
 
+### 返回值 [#element-wise-logical-return-value]
 
-## gru
-- Type: operation
+一个数据类型为 `uint8` 的 `MLOperand`。对于双操作数的操作，其秩和维度遵循广播规则；对于单操作数的操作，其形状与 `a` 相同。
 
+### 张量限制 [#element-wise-logical-limits]
 
-## gruCell
-- Type: operation
+**equal()、notEqual()、greater()、greaterOrEqual()、lesser()、lesserOrEqual()**：同名的支持限制键（[`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)）。
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| `b` | 与 `a` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | `uint8` | `uint8` | N | 0 至 5 |
 
-## hardSigmoid
-- Type: operation
+**logicalNot()**：支持限制键 `logicalNot`（`MLLogicalNotSupportLimits`，包含成员 `a` 和 `output`）。
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | `uint8` | `uint8` | N | 0 至 5 |
+| _输出_ | `uint8` | `uint8` | N | 0 至 5 |
 
-## hardSwish
-- Type: operation
+**logicalAnd()、logicalOr()、logicalXor()**：同名的支持限制键（[`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)）。
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | `uint8` | `uint8` | N | 0 至 5 |
+| `b` | 与 `a` 相同 | `uint8` | N | 0 至 5 |
+| _输出_ | `uint8` | `uint8` | N | 0 至 5 |
 
-## instanceNormalization
-- Type: operation
+**isNaN()、isInfinite()**：同名的支持限制键（`MLLogicalNotSupportLimits`）。
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | 任意 | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | `uint8` | `uint8` | N | 0 至 5 |
 
-## layerNormalization
-- Type: operation
+### equal() [#equal]
 
+当 `a` 等于 `b` 时为 `1`，否则为 `0`。
 
-## leakyRelu
-- Type: operation
+### notEqual() [#notequal]
 
+当 `a` 不等于 `b` 时为 `1`，否则为 `0`。
 
-## linear
-- Type: operation
+### greater() [#greater]
 
+当 `a` 大于 `b` 时为 `1`，否则为 `0`。
 
-## lstm
-- Type: operation
+### greaterOrEqual() [#greaterorequal]
 
+当 `a` 大于或等于 `b` 时为 `1`，否则为 `0`。
 
-## lstmCell
-- Type: operation
+### lesser() [#lesser]
 
+当 `a` 小于 `b` 时为 `1`，否则为 `0`。
 
-## matmul
-- Type: operation
+### lesserOrEqual() [#lesserorequal]
 
+当 `a` 小于或等于 `b` 时为 `1`，否则为 `0`。
 
-## pad
-- Type: operation
+### logicalNot() [#logicalnot]
 
+`a` 的逻辑非。
 
-## averagePool2d
-- Type: operation
+### logicalAnd() [#logicaland]
 
-## l2Pool2d
-- Type: operation
+`a` 和 `b` 的逻辑与。
 
-## maxPool2d
-- Type: operation
+### logicalOr() [#logicalor]
 
+`a` 和 `b` 的逻辑或。
 
-## prelu
-- Type: operation
+### logicalXor() [#logicalxor]
 
+`a` 和 `b` 的逻辑异或。
 
-## reduceL1
-- Type: operation
+### isNaN() [#isnan]
 
-## reduceL2
-- Type: operation
+当 `a` 的元素不是数字（NaN）时为 `1`，否则为 `0`。
 
-## reduceLogSum
-- Type: operation
+### isInfinite() [#isinfinite]
 
-## reduceLogSumExp
-- Type: operation
+当 `a` 的元素为正无穷或负无穷时为 `1`，否则为 `0`。
 
-## reduceMax
-- Type: operation
+### 示例 [#element-wise-logical-example]
 
-## reduceMean
-- Type: operation
+```js showLineNumbers filename="logical.js"
+// 仅保留大于阈值的值，其余位置置零。
+const x = builder.input('x', { dataType: 'float32', shape: [4] });
+const threshold = builder.constant('float32', 0.5);
+const zero = builder.constant('float32', 0);
 
-## reduceMin
-- Type: operation
+const mask = builder.greater(x, threshold);   // uint8：1 或 0
+const y = builder.where(mask, x, zero);       // 参见 where()
+```
 
-## reduceProduct
-- Type: operation
+## 逐元素一元操作 [#element-wise-unary]
 
-## reduceSum
-- Type: operation
+逐元素一元操作对一个输入张量的每个元素应用一个函数。输出与输入具有相同的形状。
 
-## reduceSumSquare
-- Type: operation
+### 语法 [#element-wise-unary-syntax]
 
+```js showLineNumbers filename="syntax.js"
+abs(input)
+abs(input, options)
+// 对 ceil()、cos()、erf()、exp()、floor()、identity()、log()、neg()、
+// reciprocal()、roundEven()、sign()、sin()、sqrt() 和 tan() 同理
+```
 
-## relu
-- Type: operation
+### 参数 [#element-wise-unary-parameters]
 
+- `input`
 
-## resample2d
-- Type: operation
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `options` _可选_
 
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
 
-## reshape
-- Type: operation
+### 返回值 [#element-wise-unary-return-value]
 
+一个与 `input` 形状相同的 `MLOperand`。其数据类型与 `input` 的相同。
 
-## sigmoid
-- Type: operation
+### 张量限制 [#element-wise-unary-limits]
 
+支持限制键：方法名（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
 
-## slice
-- Type: operation
+**abs()、neg()、sign()**
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 0 至 5 |
 
-## softmax
-- Type: operation
+**ceil()、cos()、erf()、exp()、floor()、log()、reciprocal()、roundEven()、sin()、sqrt()、tan()**
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
 
-## softplus
-- Type: operation
+**identity()**
 
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 0 至 5 |
 
-## softsign
-- Type: operation
+### abs() [#abs]
 
+每个元素的绝对值。
 
-## split
-- Type: operation
+### ceil() [#ceil]
 
+每个元素的向上取整：大于或等于它的最小整数。
 
-## tanh
-- Type: operation
+### cos() [#cos]
 
+每个元素的余弦（以弧度为单位）。
 
-## transpose
-- Type: operation
+### erf() [#erf]
 
+每个元素的[误差函数](https://en.wikipedia.org/wiki/Error_function)。
 
-## triangular
-- Type: operation
+### exp() [#exp]
 
+指数，即 e 的每个元素次幂。
 
-## where
-- Type: operation
+### floor() [#floor]
+
+每个元素的向下取整：小于或等于它的最大整数。
+
+### identity() [#identity]
+
+将输入的每个元素原样复制到输出。可用它将[输入或常量操作数暴露为图的输出](mlgraphbuilder#build)，或为某个操作数提供一个独立的节点。
+
+### log() [#log]
+
+每个元素的自然对数。
+
+### neg() [#neg]
+
+每个元素的数值相反数（`-x`）。
+
+### reciprocal() [#reciprocal]
+
+每个元素的倒数（`1 / x`）。
+
+### roundEven() [#roundeven]
+
+将每个元素舍入到最接近的整数，恰为一半时舍入到最接近的**偶数**值（“银行家舍入”）。例如，`[0.1, 0.9, 1.1, 1.9, -3.5, -2.5, -1.5, 1.5, 2.5, 3.5]` 得到 `[0, 1, 1, 2, -4, -2, -2, 2, 2, 4]`。
+
+### sign() [#sign]
+
+每个元素的符号：大于零时为 `1`，小于零时为 `-1`，否则为 `0`。
+
+### sin() [#sin]
+
+每个元素的正弦（以弧度为单位）。
+
+### sqrt() [#sqrt]
+
+每个元素的平方根。
+
+### tan() [#tan]
+
+每个元素的正切（以弧度为单位）。
+
+### 示例 [#element-wise-unary-example]
+
+```js showLineNumbers filename="unary.js"
+const x = builder.input('x', { dataType: 'float32', shape: [3] });
+
+// 由一元操作和归约操作构建的向量欧几里得范数。
+const norm = builder.sqrt(builder.reduceSum(builder.mul(x, x)));
+console.log(norm.shape); // []
+```
+
+## 激活函数 [#activations]
+
+激活函数逐元素应用（`softmax()` 和 `prelu()` 除外，下文另有说明），通常放在卷积或矩阵乘法之后。除非另有说明，每个激活函数接受一个输入张量，并返回形状和数据类型相同的张量。
+
+以下所有激活函数都在同名的支持限制键下使用 [`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)，`prelu()` 除外，它有自己的字典。
+
+### elu() [#elu]
+
+指数线性单元：`max(0, x) + alpha * (exp(min(0, x)) - 1)`。
+
+```js showLineNumbers filename="syntax.js"
+elu(input)
+elu(input, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)。
+- `options` _可选_
+
+  一个 `MLEluOptions` 字典（派生自 [`MLOperatorOptions`](mloperand#mloperatoroptions)）。
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `1` | 标量乘数。 |
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### gelu() [#gelu]
+
+高斯误差线性单元：`0.5 * x * (1 + erf(x / sqrt(2)))`。
+
+```js showLineNumbers filename="syntax.js"
+gelu(input)
+gelu(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### hardSigmoid() [#hardsigmoid]
+
+sigmoid 函数的一种非平滑近似，计算开销更低：`max(0, min(1, alpha * x + beta))`。
+
+```js showLineNumbers filename="syntax.js"
+hardSigmoid(input)
+hardSigmoid(input, options)
+```
+
+`MLHardSigmoidOptions` 字典接受：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `0.2` | 标量乘数。 |
+| `beta` | `double` | `0.5` | 标量加数。 |
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### hardSwish() [#hardswish]
+
+MobileNetV3 引入的函数：`x * max(0, min(6, x + 3)) / 6`。
+
+```js showLineNumbers filename="syntax.js"
+hardSwish(input)
+hardSwish(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### leakyRelu() [#leakyrelu]
+
+带泄漏的修正线性函数：`max(0, x) + alpha * min(0, x)`。
+
+```js showLineNumbers filename="syntax.js"
+leakyRelu(input)
+leakyRelu(input, options)
+```
+
+`MLLeakyReluOptions` 字典接受：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `0.01` | 应用于负值的标量乘数。 |
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### linear() [#linear]
+
+线性函数：`alpha * x + beta`。
+
+```js showLineNumbers filename="syntax.js"
+linear(input)
+linear(input, options)
+```
+
+`MLLinearOptions` 字典接受：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `alpha` | `double` | `1` | 标量乘数。 |
+| `beta` | `double` | `0` | 标量加数。 |
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### prelu() [#prelu]
+
+参数化修正线性函数：`max(0, x) + slope * min(0, x)`。与 [`leakyRelu()`](#leakyrelu) 不同，斜率是一个张量，通常在训练期间学得。`slope` 必须可双向广播到 `input`，输出的秩为两个秩中较大的一个。
+
+```js showLineNumbers filename="syntax.js"
+prelu(input, slope)
+prelu(input, slope, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `slope`
+
+  一个 `MLOperand`：斜率张量。
+
+支持限制键 `prelu`（`MLPreluSupportLimits`，包含成员 `input`、`slope` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16` | N | 0 至 5 |
+| `slope` | 与 `input` 相同 | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | N | 0 至 5 |
+
+### relu() [#relu]
+
+修正线性函数：`max(0, x)`。
+
+```js showLineNumbers filename="syntax.js"
+relu(input)
+relu(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int64`, `int32`, `int8` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### sigmoid() [#sigmoid]
+
+sigmoid 函数：`1 / (exp(-x) + 1)`。
+
+```js showLineNumbers filename="syntax.js"
+sigmoid(input)
+sigmoid(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### softmax() [#softmax]
+
+输入沿给定轴的 [softmax](https://en.wikipedia.org/wiki/Softmax_function) 值，使沿该轴的值均为正且和为 1。
+
+```js showLineNumbers filename="syntax.js"
+softmax(input, axis)
+softmax(input, axis, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：N 维输入张量。
+- `axis`
+
+  一个 `unsigned long`：计算 softmax 所沿的维度。它必须在 0 到 N-1 的范围内，其中 N 为 `input` 的秩。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 1 至 N | 1 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 1 至 5 |
+
+### softplus() [#softplus]
+
+softplus 函数：`ln(1 + exp(x))`。
+
+```js showLineNumbers filename="syntax.js"
+softplus(input)
+softplus(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### softsign() [#softsign]
+
+softsign 函数：`x / (1 + abs(x))`。
+
+```js showLineNumbers filename="syntax.js"
+softsign(input)
+softsign(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### tanh() [#tanh]
+
+双曲正切：`(exp(2 * x) - 1) / (exp(2 * x) + 1)`。
+
+```js showLineNumbers filename="syntax.js"
+tanh(input)
+tanh(input, options)
+```
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+### 示例 [#activations-example]
+
+```js showLineNumbers filename="activations.js"
+const logits = builder.input('logits', { dataType: 'float32', shape: [1, 10] });
+const probabilities = builder.softmax(logits, 1);
+
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64] });
+const slope = builder.constant({ dataType: 'float32', shape: [64] }, slopeData);
+const activated = builder.prelu(x, slope);
+```
+
+## 卷积操作 [#convolution]
+
+卷积会在 4 维输入张量上滑动一个滤波器（卷积核）。输入、输出和滤波器的内存布局由 `inputLayout` 和 `filterLayout` 选项指定。平台处理效率最高的布局由 [`MLOpSupportLimits.preferredInputLayout`](mlcontext#mlopsupportlimits) 报告。
+
+这两个操作在各自的支持限制键下都使用 `MLConv2dSupportLimits`，其成员为 `input`、`filter`、`bias` 和 `output`。
+
+### conv2d() [#conv2d]
+
+对 4 维 `input` 张量与 4 维 `filter` 张量计算 2 维卷积。
+
+```js showLineNumbers filename="syntax.js"
+conv2d(input, filter)
+conv2d(input, filter, options)
+```
+
+#### 参数 [#conv2d-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 4 维张量，按照 `inputLayout` 解释。
+- `filter`
+
+  一个 `MLOperand`：滤波器 4 维张量，按照 `filterLayout` 和 `groups` 解释。
+- `options` _可选_
+
+  一个 `MLConv2dOptions` 字典（派生自 [`MLOperatorOptions`](mloperand#mloperatoroptions)）：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `padding` | `sequence<unsigned long>` | `[0, 0, 0, 0]` | 添加到输入的行数和列数：`[beginningHeight, endingHeight, beginningWidth, endingWidth]`。 |
+| `strides` | `sequence<unsigned long>` | `[1, 1]` | 滑动窗口的步长：`[strideHeight, strideWidth]`。 |
+| `dilations` | `sequence<unsigned long>` | `[1, 1]` | 应用于滤波器的膨胀系数：`[dilationHeight, dilationWidth]`。 |
+| `groups` | `unsigned long` | `1` | 输入通道和输出通道被划分成的组数。若要进行逐通道（深度）卷积，请使用等于输入通道数的值。 |
+| `inputLayout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | 输入和输出的布局：`"nchw"` 为 `[batches, channels, height, width]`，`"nhwc"` 为 `[batches, height, width, channels]`。 |
+| `filterLayout` | `MLConv2dFilterOperandLayout` | `"oihw"` | 滤波器的布局，参见下表。 |
+| `bias` | `MLOperand` | 无 | 形状为 `[outputChannels]` 的 1 维张量，将被加到结果上。 |
+
+`filterLayout` 的取值：
+
+| 值 | 滤波器形状 |
+| --- | --- |
+| `"oihw"` | `[outputChannels, inputChannels/groups, height, width]` |
+| `"hwio"` | `[height, width, inputChannels/groups, outputChannels]` |
+| `"ohwi"` | `[outputChannels, height, width, inputChannels/groups]` |
+| `"ihwo"` | `[inputChannels/groups, height, width, outputChannels]` |
+
+#### 返回值 [#conv2d-return-value]
+
+一个 `MLOperand`：保存卷积结果的 4 维张量，按照 `inputLayout` 布局。每个空间输出维度的计算方式如下（除法向下取整）：
+
+```text
+outputSize = 1 + (inputSize - (filterSize - 1) * dilation - 1 + beginningPadding + endingPadding) / stride
+```
+
+#### 张量限制 [#conv2d-limits]
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `filter` | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+#### 示例 [#conv2d-example]
+
+```js showLineNumbers filename="conv2d.js"
+const input = builder.input('input', { dataType: 'float32', shape: [1, 3, 224, 224] });
+const filter = builder.constant({ dataType: 'float32', shape: [32, 3, 3, 3] }, filterData);
+const bias = builder.constant({ dataType: 'float32', shape: [32] }, biasData);
+
+const y = builder.conv2d(input, filter, {
+  strides: [2, 2],
+  padding: [1, 1, 1, 1],
+  bias,
+});
+console.log(y.shape); // [1, 32, 112, 112]
+```
+
+### convTranspose2d() [#convtranspose2d]
+
+对 4 维 `input` 张量与 4 维 `filter` 张量计算 2 维转置卷积（有时称为反卷积）。它常用于对特征图进行上采样。
+
+```js showLineNumbers filename="syntax.js"
+convTranspose2d(input, filter)
+convTranspose2d(input, filter, options)
+```
+
+#### 参数 [#convtranspose2d-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 4 维张量，按照 `inputLayout` 解释。
+- `filter`
+
+  一个 `MLOperand`：滤波器 4 维张量，按照 `filterLayout` 和 `groups` 解释。
+- `options` _可选_
+
+  一个 `MLConvTranspose2dOptions` 字典。它包含 [`conv2d()`](#conv2d) 中描述的 `padding`、`strides`、`dilations`、`groups`、`inputLayout` 和 `bias` 成员，此外还有：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `outputPadding` | `sequence<unsigned long>` | `[0, 0]` | 输出每个空间维度的填充，仅在 `strides` 大于 1 时用于消除输出形状的歧义。它不一定会写入填充值。 |
+| `outputSizes` | `sequence<unsigned long>` | 无 | 输出最后两个维度的大小 `[outputHeight, outputWidth]`。指定后，`outputPadding` 将被忽略。 |
+| `filterLayout` | `MLConvTranspose2dFilterOperandLayout` | `"iohw"` | 滤波器的布局，参见下表。 |
+
+`filterLayout` 的取值：
+
+| 值 | 滤波器形状 |
+| --- | --- |
+| `"iohw"` | `[inputChannels, outputChannels/groups, height, width]` |
+| `"hwoi"` | `[height, width, outputChannels/groups, inputChannels]` |
+| `"ohwi"` | `[outputChannels/groups, height, width, inputChannels]` |
+
+#### 返回值 [#convtranspose2d-return-value]
+
+一个 `MLOperand`：保存结果的 4 维张量，按照 `inputLayout` 布局。除非给出了 `outputSizes`，否则每个空间输出维度（向下取整）为：
+
+```text
+outputSize = (inputSize - 1) * stride + (filterSize - 1) * dilation + 1 - beginningPadding - endingPadding + outputPadding
+```
+
+#### 张量限制 [#convtranspose2d-limits]
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `filter` | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+## 池化操作 [#pooling]
+
+池化通过为滑动窗口的每个位置计算一个值来缩减 4 维张量的空间维度。这三个操作共享相同的选项，区别仅在于应用于每个窗口内元素的函数。
+
+### 语法 [#pooling-syntax]
+
+```js showLineNumbers filename="syntax.js"
+averagePool2d(input)
+averagePool2d(input, options)
+// 对 l2Pool2d() 和 maxPool2d() 同理
+```
+
+### 参数 [#pooling-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 4 维张量，按照 `layout` 解释。
+- `options` _可选_
+
+  一个 `MLPool2dOptions` 字典（派生自 [`MLOperatorOptions`](mloperand#mloperatoroptions)）：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `windowDimensions` | `sequence<unsigned long>` | 输入的高度和宽度 | 滑动窗口的大小：`[windowHeight, windowWidth]`。默认情况下，窗口覆盖整个空间范围，即全局池化。 |
+| `padding` | `sequence<unsigned long>` | `[0, 0, 0, 0]` | 添加到输入的行数和列数：`[beginningHeight, endingHeight, beginningWidth, endingWidth]`。 |
+| `strides` | `sequence<unsigned long>` | `[1, 1]` | 窗口的步长：`[strideHeight, strideWidth]`。 |
+| `dilations` | `sequence<unsigned long>` | `[1, 1]` | 应用于窗口的膨胀系数：`[dilationHeight, dilationWidth]`。 |
+| `layout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | 输入和输出的布局。 |
+| `outputShapeRounding` | `MLRoundingType` | `"floor"` | 输出大小的舍入方式：`"floor"` 忽略边缘处不完整的窗口，`"ceil"` 则包含它们。 |
+| `outputSizes` | `sequence<unsigned long>` | 无 | 空间输出维度的大小 `[outputHeight, outputWidth]`。指定后，`outputShapeRounding` 将被忽略。 |
+
+### 返回值 [#pooling-return-value]
+
+一个 `MLOperand`：按照 `layout` 布局的 4 维张量。除非给出了 `outputSizes`，否则每个空间维度的计算方式如下：
+
+```text
+outputSize = floor(1 + (inputSize - windowSize + beginningPadding + endingPadding) / stride)
+```
+
+当 `outputShapeRounding` 为 `"ceil"` 时，用 `ceil` 替换 `floor`。
+
+### 张量限制 [#pooling-limits]
+
+支持限制键：`averagePool2d`、`l2Pool2d`、`maxPool2d`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+**averagePool2d()、l2Pool2d()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+**maxPool2d()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16` | 4 | 4 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+### averagePool2d() [#averagepool2d]
+
+计算每个窗口内各值的平均值。
+
+### l2Pool2d() [#l2pool2d]
+
+对每个窗口应用 L2 范数：即其元素平方和的平方根。
+
+### maxPool2d() [#maxpool2d]
+
+计算每个窗口内各值的最大值。
+
+### 示例 [#pooling-example]
+
+```js showLineNumbers filename="pooling.js"
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64, 56, 56] });
+
+const halved = builder.maxPool2d(x, { windowDimensions: [2, 2], strides: [2, 2] });
+console.log(halved.shape); // [1, 64, 28, 28]
+
+// 全局平均池化：窗口默认为完整的空间大小。
+const pooled = builder.averagePool2d(x);
+console.log(pooled.shape); // [1, 64, 1, 1]
+```
+
+## 归一化操作 [#normalization]
+
+归一化操作会重新缩放激活值，使其具有受控的均值和方差。它们的区别在于统计量是在哪些值上计算的。
+
+### batchNormalization() [#batchnormalization]
+
+使用[批归一化](https://arxiv.org/abs/1502.03167)对输入进行归一化。训练期间在批次上计算得到的每个特征的均值和方差，在推理时作为操作数提供：`(input - mean) / sqrt(variance + epsilon) * scale + bias`。
+
+```js showLineNumbers filename="syntax.js"
+batchNormalization(input, mean, variance)
+batchNormalization(input, mean, variance, options)
+```
+
+#### 参数 [#batchnormalization-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 N 维张量。
+- `mean`
+
+  一个 `MLOperand`：输入特征均值的 1 维张量，其大小等于输入中由 `axis` 指定的维度的大小。
+- `variance`
+
+  一个 `MLOperand`：输入特征方差的 1 维张量，大小相同。
+- `options` _可选_
+
+  一个 `MLBatchNormalizationOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | 无 | 缩放值的 1 维张量，其大小等于由 `axis` 指定的维度的大小。 |
+| `bias` | `MLOperand` | 无 | 偏置值的 1 维张量，其大小等于由 `axis` 指定的维度的大小。 |
+| `axis` | `unsigned long` | `1` | 特征（通道）维度的索引。它必须在 0 到 N-1 的范围内。默认值 `1` 是 `"nchw"` 布局的通道维度。 |
+| `epsilon` | `double` | `1e-5` | 用于防止除以零的一个很小的值。 |
+
+#### 返回值 [#batchnormalization-return-value]
+
+一个 `MLOperand`：归一化后的张量，与 `input` 的形状相同。
+
+#### 张量限制 [#batchnormalization-limits]
+
+支持限制键 `batchNormalization`（`MLBatchNormalizationSupportLimits`，其成员为 `input`、`mean`、`variance`、`scale`、`bias` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 1 到 N | 3 到 5 |
+| `mean` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `variance` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `scale` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 3 到 5 |
+
+### instanceNormalization() [#instancenormalization]
+
+使用[实例归一化](https://arxiv.org/abs/1607.08022)对输入进行归一化。与批归一化不同，均值和方差是针对每个单独样本的每个特征即时计算的。
+
+```js showLineNumbers filename="syntax.js"
+instanceNormalization(input)
+instanceNormalization(input, options)
+```
+
+#### 参数 [#instancenormalization-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 4 维张量。
+- `options` _可选_
+
+  一个 `MLInstanceNormalizationOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | 无 | 缩放值的 1 维张量，其大小等于通道数（对于 `"nchw"`，即 `input.shape[1]`）。 |
+| `bias` | `MLOperand` | 无 | 偏置值的 1 维张量，其大小等于通道数。 |
+| `epsilon` | `double` | `1e-5` | 用于防止除以零的一个很小的值。 |
+| `layout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | `"nchw"` | 输入的布局。 |
+
+#### 返回值 [#instancenormalization-return-value]
+
+一个 `MLOperand`：归一化后的 4 维张量，与 `input` 的形状相同。
+
+#### 张量限制 [#instancenormalization-limits]
+
+支持限制键 `instanceNormalization`（`MLNormalizationSupportLimits`，其成员为 `input`、`scale`、`bias` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 4 | 4 |
+| `scale` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+### layerNormalization() [#layernormalization]
+
+使用[层归一化](https://arxiv.org/abs/1607.06450)对输入进行归一化。均值和方差是针对每个单独样本，在其各特征上即时计算的。它被广泛用于 Transformer 模型。
+
+```js showLineNumbers filename="syntax.js"
+layerNormalization(input)
+layerNormalization(input, options)
+```
+
+#### 参数 [#layernormalization-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 N 维张量。
+- `options` _可选_
+
+  一个 `MLLayerNormalizationOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `scale` | `MLOperand` | 无（视为 1） | 缩放值的 N 维张量，其形状为 `axes` 中所列输入维度的大小。 |
+| `bias` | `MLOperand` | 无（视为 0） | 偏置值的 N 维张量，形状与 `scale` 相同。 |
+| `axes` | `sequence<unsigned long>` | 除第一个维度外的所有维度 | 要归约的输入维度。对于 4 维输入，默认值为 `[1, 2, 3]`。如果为空，则不归约任何维度。 |
+| `epsilon` | `double` | `1e-5` | 用于防止除以零的一个很小的值。 |
+
+#### 返回值 [#layernormalization-return-value]
+
+一个 `MLOperand`：归一化后的张量，与 `input` 的形状相同。
+
+#### 张量限制 [#layernormalization-limits]
+
+支持限制键 `layerNormalization`（[`MLNormalizationSupportLimits`](#instancenormalization-limits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 到 5 |
+| `scale` | 与 `input` 相同 | `float32`, `float16` | N | 0 到 5 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | N | 0 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 到 5 |
+
+#### 示例 [#layernormalization-example]
+
+```js showLineNumbers filename="layernorm.js"
+const hidden = builder.input('hidden', { dataType: 'float32', shape: [1, 128, 768] });
+const gamma = builder.constant({ dataType: 'float32', shape: [768] }, gammaData);
+const beta = builder.constant({ dataType: 'float32', shape: [768] }, betaData);
+
+// 仅在最后一个维度上进行归一化。
+const normalized = builder.layerNormalization(hidden, {
+  axes: [2],
+  scale: gamma,
+  bias: beta,
+  epsilon: 1e-12,
+});
+```
+
+## 矩阵操作 [#matrix]
+
+### gemm() [#gemm]
+
+计算 BLAS 中的[通用矩阵乘法](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3)：`alpha * A * B + beta * C`。`A` 是形状为 `[M, K]` 的 2 维张量（转置时为 `[K, M]`），`B` 的形状为 `[K, N]`（或 `[N, K]`），`C` 可单向广播为 `[M, N]`。
+
+```js showLineNumbers filename="syntax.js"
+gemm(a, b)
+gemm(a, b, options)
+```
+
+#### 参数 [#gemm-parameters]
+
+- `a`
+
+  一个 [`MLOperand`](mloperand)：第一个 2 维张量，形状为 `[M, K]`，如果 `aTranspose` 为 `true` 则为 `[K, M]`。
+- `b`
+
+  一个 `MLOperand`：第二个 2 维张量，形状为 `[K, N]`，如果 `bTranspose` 为 `true` 则为 `[N, K]`。
+- `options` _可选_
+
+  一个 `MLGemmOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `c` | `MLOperand` | 无（视为 0） | 第三个张量：一个标量，或可单向广播为 `[M, N]` 的张量。 |
+| `alpha` | `double` | `1.0` | `a` 与 `b` 乘积的乘数。 |
+| `beta` | `double` | `1.0` | `c` 的乘数。 |
+| `aTranspose` | `boolean` | `false` | 相乘之前是否对 `a` 进行转置。 |
+| `bTranspose` | `boolean` | `false` | 相乘之前是否对 `b` 进行转置。 |
+
+#### 返回值 [#gemm-return-value]
+
+一个 `MLOperand`：形状为 `[M, N]` 的 2 维张量。
+
+#### 张量限制 [#gemm-limits]
+
+支持限制键 `gemm`（`MLGemmSupportLimits`，其成员为 `a`、`b`、`c` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `b` | 与 `a` 相同 | `float32`, `float16` | 2 | 2 |
+| `c` | 与 `a` 相同 | `float32`, `float16` | 0 到 2 | 0 到 2 |
+| _输出_ | 与 `a` 相同 | `float32`, `float16` | 2 | 2 |
+
+#### 示例 [#gemm-example]
+
+```js showLineNumbers filename="gemm.js"
+// 全连接层：y = x * W^T + bias
+const x = builder.input('x', { dataType: 'float32', shape: [8, 512] });
+const w = builder.constant({ dataType: 'float32', shape: [1000, 512] }, weights);
+const bias = builder.constant({ dataType: 'float32', shape: [1000] }, biasData);
+
+const y = builder.gemm(x, w, { c: bias, bTranspose: true });
+console.log(y.shape); // [8, 1000]
+```
+
+### matmul() [#matmul]
+
+计算两个张量的矩阵乘积。对于形状为 `[M, K]` 和 `[K, N]` 的 2 维输入，输出的形状为 `[M, N]`。如果任一输入的维度多于两个，则其最后两个维度被视为一组矩阵的堆叠；前导（批次）维度必须可双向广播，输出的秩为两个输入秩中较大的一个。
+
+```js showLineNumbers filename="syntax.js"
+matmul(a, b)
+matmul(a, b, options)
+```
+
+#### 参数 [#matmul-parameters]
+
+- `a`
+
+  一个 [`MLOperand`](mloperand)：第一个张量，至少为 2 维。
+- `b`
+
+  一个 `MLOperand`：第二个张量，至少为 2 维。其倒数第二个维度的大小必须等于 `a` 最后一个维度的大小。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+#### 返回值 [#matmul-return-value]
+
+一个保存矩阵乘积的 `MLOperand`。
+
+#### 张量限制 [#matmul-limits]
+
+支持限制键 `matmul`（[`MLBinarySupportLimits`](mlcontext#mlbinarysupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `a` | `float32`, `float16` | `float32`, `float16` | 2 到 N | 2 到 5 |
+| `b` | 与 `a` 相同 | `float32`, `float16` | 2 到 N | 2 到 5 |
+| _输出_ | 与 `a` 相同 | `float32`, `float16` | 2 到 N | 2 到 5 |
+
+#### 示例 [#matmul-example]
+
+```js showLineNumbers filename="matmul.js"
+// 12 个注意力头的注意力分数：[1, 12, 128, 64] x [1, 12, 64, 128]
+const q = builder.input('q', { dataType: 'float32', shape: [1, 12, 128, 64] });
+const kT = builder.input('kT', { dataType: 'float32', shape: [1, 12, 64, 128] });
+const scores = builder.matmul(q, kT);
+console.log(scores.shape); // [1, 12, 128, 128]
+```
+
+### triangular() [#triangular]
+
+返回矩阵的上三角或下三角部分。如果输入的维度多于两个，则将其视为一批矩阵，结果的形状与输入相同。保留部分之外的元素被置为零。它通常用于构建因果注意力掩码。
+
+```js showLineNumbers filename="syntax.js"
+triangular(input)
+triangular(input, options)
+```
+
+#### 参数 [#triangular-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量，至少为 2 维。
+- `options` _可选_
+
+  一个 `MLTriangularOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `upper` | `boolean` | `true` | `true` 保留上三角部分，`false` 保留下三角部分。 |
+| `diagonal` | `long` | `0` | 主对角线之上（正数）或之下（负数）有多少条对角线受影响。`0` 表示保留部分中只留下主对角线。 |
+
+#### 返回值 [#triangular-return-value]
+
+一个与 `input` 形状相同的 `MLOperand`。
+
+#### 张量限制 [#triangular-limits]
+
+支持限制键 `triangular`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16` | 2 到 N | 2 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 2 到 5 |
+
+#### 示例 [#triangular-example]
+
+```js showLineNumbers filename="triangular.js"
+// input: [[7, 1, 2],
+//         [9, 4, 8],
+//         [2, 6, 3]]
+const input = builder.constant(
+  { dataType: 'float32', shape: [3, 3] },
+  new Float32Array([7, 1, 2, 9, 4, 8, 2, 6, 3]));
+
+builder.triangular(input);
+// 上三角：            [[7, 1, 2], [0, 4, 8], [0, 0, 3]]
+builder.triangular(input, { diagonal: 1 });
+// 上三角，不包含主对角线： [[0, 1, 2], [0, 0, 8], [0, 0, 0]]
+builder.triangular(input, { upper: false });
+// 下三角：            [[7, 0, 0], [9, 4, 0], [2, 6, 3]]
+builder.triangular(input, { upper: false, diagonal: 1 });
+// 下三角，外加上方一条对角线：     [[7, 1, 0], [9, 4, 8], [2, 6, 3]]
+```
+
+## 归约操作 [#reduction]
+
+归约操作会将张量的一个或多个维度各自折叠为单个值，例如通过求和或取最大值。
+
+### argMax() 和 argMin() [#argmax-argmin]
+
+`argMax()` 和 `argMin()` 返回沿某个轴的最大值或最小值的索引。当出现相同的值时，返回哪个索引由实现定义。
+
+```js showLineNumbers filename="syntax.js"
+argMax(input, axis)
+argMax(input, axis, options)
+argMin(input, axis)
+argMin(input, axis, options)
+```
+
+#### 参数 [#argmax-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 N 维张量。
+- `axis`
+
+  一个 `unsigned long`：要归约的维度，范围为 0 到 N-1。
+- `options` _可选_
+
+  一个 `MLArgMinMaxOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `keepDimensions` | `boolean` | `false` | 如果为 `true`，则保留被归约的维度，其大小为 1。 |
+| `outputDataType` | [`MLOperandDataType`](mloperand#mloperanddatatype) | `"int32"` | 输出索引的数据类型：`"int32"` 或 `"int64"`。 |
+
+#### 返回值 [#argmax-return-value]
+
+一个数据类型为 `outputDataType` 的 `MLOperand`，如果 `keepDimensions` 为 `true`，其秩等于输入的秩，否则为输入的秩减 1。取值范围为 0 到 S-1，其中 S 是输入沿 `axis` 的大小。如果 S 无法用 `outputDataType` 表示，则会抛出 `TypeError`。
+
+#### 张量限制 [#argmax-limits]
+
+支持限制键 `argMax`、`argMin`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | 1 到 N | 1 到 5 |
+| _输出_ | `int32`, `int64` | `int32` | N | 0 到 5 |
+
+### argMax() [#argmax]
+
+沿 `axis` 的最大值的索引。
+
+### argMin() [#argmin]
+
+沿 `axis` 的最小值的索引。
+
+### cumulativeSum() [#cumulativesum]
+
+沿某个轴计算值的累积（前缀）和。
+
+```js showLineNumbers filename="syntax.js"
+cumulativeSum(input, axis)
+cumulativeSum(input, axis, options)
+```
+
+#### 参数 [#cumulativesum-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `axis`
+
+  一个 `unsigned long`：求和所沿的轴，范围为 0 到 N-1。
+- `options` _可选_
+
+  一个 `MLCumulativeSumOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `exclusive` | `boolean` | `false` | 如果为 `true`，则当前元素不包含在其自身的和中。对于输入 `[1, 2, 3, 4]`，包含当前元素时结果为 `[1, 3, 6, 10]`，不包含当前元素时结果为 `[0, 1, 3, 6]`。 |
+| `reversed` | `boolean` | `false` | 如果为 `true`，则从高索引向低索引求和。对于输入 `[1, 2, 3, 4]`，包含当前元素的反向求和结果为 `[10, 9, 7, 4]`。 |
+
+#### 返回值 [#cumulativesum-return-value]
+
+一个与 `input` 形状相同的 `MLOperand`。
+
+#### 张量限制 [#cumulativesum-limits]
+
+支持限制键 `cumulativeSum`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16`, `int32` | 1 到 N | 1 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 1 到 5 |
+
+### 归约函数 [#reduce-functions]
+
+这十个 `reduce*()` 操作共享同一个签名和同一组选项。每个操作都会对被归约维度上的值应用一个归约函数。
+
+```js showLineNumbers filename="syntax.js"
+reduceSum(input)
+reduceSum(input, options)
+// 对 reduceL1()、reduceL2()、reduceLogSum()、reduceLogSumExp()、
+// reduceMax()、reduceMean()、reduceMin()、reduceProduct() 和 reduceSumSquare() 同理
+```
+
+#### 参数 [#reduce-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `options` _可选_
+
+  一个 `MLReduceOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `axes` | `sequence<unsigned long>` | 所有维度 | 要归约的维度，每个都在 0 到 N-1 的范围内。如果省略，则归约所有维度。如果给定且为空，则不归约任何维度，并将该函数逐个应用于每个元素。 |
+| `keepDimensions` | `boolean` | `false` | 如果为 `true`，则输出与输入的秩相同，被归约的维度大小设为 1。 |
+
+#### 返回值 [#reduce-return-value]
+
+一个秩为 0 到输入秩的 `MLOperand`，具体取决于 `axes` 和 `keepDimensions`。对标量进行归约会返回标量。
+
+#### 张量限制 [#reduce-limits]
+
+支持限制键：方法名（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+**reduceL1()、reduceSum()、reduceSumSquare()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16`, `int32` | N | 0 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | N | 0 到 5 |
+
+**reduceL2()、reduceLogSum()、reduceLogSumExp()、reduceMean()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | N | 0 到 5 |
+
+**reduceMax()、reduceMin()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | N | 0 到 5 |
+
+**reduceProduct()**
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `int32`, `uint32`, `int64`, `uint64` | `float32`, `float16` | N | 0 到 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | N | 0 到 5 |
+
+### reduceL1() [#reducel1]
+
+[L1 范数](https://mathworld.wolfram.com/L1-Norm.html)：绝对值之和。
+
+### reduceL2() [#reducel2]
+
+[L2 范数](https://mathworld.wolfram.com/L2-Norm.html)：平方和的平方根。
+
+### reduceLogSum() [#reducelogsum]
+
+各值之和的自然对数。
+
+### reduceLogSumExp() [#reducelogsumexp]
+
+各值的指数之和的自然对数。
+
+### reduceMax() [#reducemax]
+
+各值的最大值。
+
+### reduceMean() [#reducemean]
+
+各值的平均值。
+
+### reduceMin() [#reducemin]
+
+各值的最小值。
+
+### reduceProduct() [#reduceproduct]
+
+各值的乘积。
+
+### reduceSum() [#reducesum]
+
+各值之和。
+
+### reduceSumSquare() [#reducesumsquare]
+
+各值的平方和。
+
+### 示例 [#reduction-example]
+
+```js showLineNumbers filename="reduce.js"
+const x = builder.input('x', { dataType: 'float32', shape: [2, 3, 4] });
+
+const total = builder.reduceSum(x);                                  // shape []
+const perRow = builder.reduceMean(x, { axes: [2] });                 // shape [2, 3]
+const kept = builder.reduceMax(x, { axes: [1, 2], keepDimensions: true }); // shape [2, 1, 1]
+const best = builder.argMax(x, 2);                                   // int32, shape [2, 3]
+```
+
+## 形状与数据移动操作 [#shape-and-data-movement]
+
+这些操作会改变张量数据的类型、形状或排列方式，而（基本上）不改变数据本身的值。
+
+### cast() [#cast]
+
+将输入的每个元素转换为另一种数据类型。
+
+```js showLineNumbers filename="syntax.js"
+cast(input, dataType)
+cast(input, dataType, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `dataType`
+
+  一个 [`MLOperandDataType`](mloperand#mloperanddatatype)：目标数据类型。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其形状与 `input` 相同，数据类型为 `dataType`。
+
+支持限制键 `cast`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+| _输出_ | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | 与 `input` 相同 | 0 至 5 |
+
+```js showLineNumbers filename="cast.js"
+// 将 uint8 比较掩码转换为 float32，以便进行乘法运算。
+const mask = builder.greater(x, threshold);
+const maskF32 = builder.cast(mask, 'float32');
+const y = builder.mul(x, maskF32);
+```
+
+### clamp() [#clamp]
+
+将输入的每个元素截断到最小值与最大值之间的范围内。
+
+```js showLineNumbers filename="syntax.js"
+clamp(input)
+clamp(input, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `options` _可选_
+
+  一个 `MLClampOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `minValue` | [`MLNumber`](mloperand#mlnumber) | 无 | 下限。如果省略，则不对下方的值进行截断。 |
+| `maxValue` | `MLNumber` | 无 | 上限。如果省略，则不对上方的值进行截断。 |
+
+两个限制值都会被类型转换为 `input` 的数据类型。
+
+**返回值：** 一个 `MLOperand`，其形状与 `input` 相同。
+
+支持限制键 `clamp`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+```js showLineNumbers filename="clamp.js"
+// ReLU6
+const relu6 = builder.clamp(x, { minValue: 0, maxValue: 6 });
+```
+
+### concat() [#concat]
+
+沿某个轴拼接一组张量。
+
+```js showLineNumbers filename="syntax.js"
+concat(inputs, axis)
+concat(inputs, axis, options)
+```
+
+- `inputs`
+
+  一个 [`MLOperand`](mloperand) 对象的序列。除被拼接的维度外，所有张量的形状必须相同，且数据类型必须相同。
+- `axis`
+
+  一个 `unsigned long`：拼接所沿的维度，取值范围为 0 到 N-1。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其形状与各输入相同，只是沿 `axis` 的大小为各输入沿该轴大小之和。
+
+支持限制键 `concat`（`MLConcatSupportLimits`，包含成员 `inputs` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `inputs` 的每个元素 | 任意 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+| _输出_ | 与各输入相同 | `float32`, `float16`, `int32` | 与各输入相同 | 1 至 5 |
+
+```js showLineNumbers filename="concat.js"
+const a = builder.input('a', { dataType: 'float32', shape: [1, 3] });
+const b = builder.input('b', { dataType: 'float32', shape: [1, 5] });
+console.log(builder.concat([a, b], 1).shape); // [1, 8]
+```
+
+### expand() [#expand]
+
+按照 NumPy 广播规则，将输入中大小为 1 的每个维度扩展为更大的尺寸。输入必须可单向广播到 `newShape`：其每个维度要么为 1，要么等于 `newShape` 中对应的维度。
+
+```js showLineNumbers filename="syntax.js"
+expand(input, newShape)
+expand(input, newShape, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `newShape`
+
+  一个 `unsigned long` 的序列：要扩展到的形状。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其形状为 `newShape`。
+
+支持限制键 `expand`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+
+### pad() [#pad]
+
+通过在每个维度的边缘添加值来扩充张量。
+
+```js showLineNumbers filename="syntax.js"
+pad(input, beginningPadding, endingPadding)
+pad(input, beginningPadding, endingPadding, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `beginningPadding`
+
+  一个长度为 N（`input` 的秩）的 `unsigned long` 序列：在每个维度中，内容之前要添加多少个值。
+- `endingPadding`
+
+  一个长度为 N 的 `unsigned long` 序列：在每个维度中，内容之后要添加多少个值。
+- `options` _可选_
+
+  一个 `MLPadOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `mode` | `MLPaddingMode` | `"constant"` | 填充内容的填充方式，见下文。 |
+| `value` | [`MLNumber`](mloperand#mlnumber) | `0` | 当 `mode` 为 `"constant"` 时使用的值。 |
+
+`MLPaddingMode` 的取值：
+
+| 值 | 描述 |
+| --- | --- |
+| `"constant"` | 使用 `value` 填充。 |
+| `"edge"` | 重复张量边缘处的值。 |
+| `"reflection"` | 镜像边缘旁边的值，不重复边缘值本身。每个填充量必须小于对应输入维度的大小，否则会抛出 `TypeError`。 |
+
+**返回值：** 一个 `MLOperand`，其每个维度的大小为 `beginningPadding + inputSize + endingPadding`。
+
+支持限制键 `pad`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 至 5 |
+
+```js showLineNumbers filename="pad.js"
+// input: [[1, 2, 3],
+//         [4, 5, 6]]
+const input = builder.constant(
+  { dataType: 'float32', shape: [2, 3] }, new Float32Array([1, 2, 3, 4, 5, 6]));
+const begin = [1, 2];
+const end = [1, 2];
+
+builder.pad(input, begin, end);
+// "constant": [[0,0,0,0,0,0,0], [0,0,1,2,3,0,0], [0,0,4,5,6,0,0], [0,0,0,0,0,0,0]]
+
+builder.pad(input, begin, end, { mode: 'edge' });
+// "edge":     [[1,1,1,2,3,3,3], [1,1,1,2,3,3,3], [4,4,4,5,6,6,6], [4,4,4,5,6,6,6]]
+
+builder.pad(input, begin, end, { mode: 'reflection' });
+// "reflection": [[6,5,4,5,6,5,4], [3,2,1,2,3,2,1], [6,5,4,5,6,5,4], [3,2,1,2,3,2,1]]
+```
+
+### reshape() [#reshape]
+
+改变张量的逻辑形状，而无需复制或改变其内容。`newShape` 所隐含的元素数量必须等于 `input` 中的元素数量。
+
+```js showLineNumbers filename="syntax.js"
+reshape(input, newShape)
+reshape(input, newShape, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `newShape`
+
+  一个 `unsigned long` 的序列：输出的形状。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其值与 `input` 相同，形状为 `newShape`。
+
+支持限制键 `reshape`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+
+```js showLineNumbers filename="reshape.js"
+const x = builder.input('x', { dataType: 'float32', shape: [1, 64, 7, 7] });
+const flat = builder.reshape(x, [1, 64 * 7 * 7]);
+```
+
+### reverse() [#reverse]
+
+沿给定的轴反转元素的顺序。
+
+```js showLineNumbers filename="syntax.js"
+reverse(input)
+reverse(input, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `options` _可选_
+
+  一个 `MLReverseOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `axes` | `sequence<unsigned long>` | 所有维度 | 要反转的维度。如果显式指定为空，则不反转任何维度。 |
+
+**返回值：** 一个 `MLOperand`，其形状与 `input` 相同。
+
+支持限制键 `reverse`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 0 至 5 |
+
+### slice() [#slice]
+
+从输入中提取子张量。
+
+```js showLineNumbers filename="syntax.js"
+slice(input, starts, sizes)
+slice(input, starts, sizes, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `starts`
+
+  一个长度为 N 的 `unsigned long` 序列：在每个维度中开始切片的索引。每个值必须在 0 到该维度大小减 1 的范围内。
+- `sizes`
+
+  一个长度为 N 的 `unsigned long` 序列：在每个维度中要取的元素数量。大小不能为 0，且 `start + size` 不能超过该维度的大小。
+- `options` _可选_
+
+  一个 `MLSliceOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `strides` | `sequence<unsigned long>` | 全部为 `1` | 每个维度中所选元素之间的步长。其长度必须等于 `input` 的秩，且每个值必须大于零。 |
+
+**返回值：** 一个 `MLOperand`，其秩与 `input` 相同，包含所选区域。
+
+支持限制键 `slice`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32`, `int8`, `uint8` | 与 `input` 相同 | 0 至 5 |
+
+```js showLineNumbers filename="slice.js"
+const x = builder.input('x', { dataType: 'float32', shape: [4, 6] });
+// 第 1 至 2 行，第 0 至 3 列。
+const part = builder.slice(x, [1, 0], [2, 4]);
+console.log(part.shape); // [2, 4]
+```
+
+### split() [#split]
+
+沿某个轴将张量拆分为若干子张量。
+
+```js showLineNumbers filename="syntax.js"
+split(input, splits)
+split(input, splits, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入张量。
+- `splits`
+
+  一个 `unsigned long`，或一个 `unsigned long` 的序列。若为数字，则表示大小相等的输出个数，且必须能整除 `input` 沿 `axis` 的大小。若为序列，则给出每个输出沿 `axis` 的大小，且其总和必须等于 `input` 沿 `axis` 的大小。
+- `options` _可选_
+
+  一个 `MLSplitOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | 拆分所沿的维度，取值范围为 0 到 N-1。 |
+
+**返回值：** 一个 `MLOperand` 的序列。如果 `splits` 是数字，则序列包含相应数量的元素，每个元素的形状与 `input` 相同，只是沿 `axis` 的大小为原大小除以 `splits`。如果 `splits` 是序列，则每个条目对应一个输出，第 _i_ 个输出沿 `axis` 的大小为 `splits[i]`。
+
+支持限制键 `split`（`MLSplitSupportLimits`，包含成员 `input` 和 `outputs`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 1 至 5 |
+
+```js showLineNumbers filename="split.js"
+const qkv = builder.input('qkv', { dataType: 'float32', shape: [1, 128, 2304] });
+const [q, k, v] = builder.split(qkv, 3, { axis: 2 });
+console.log(q.shape); // [1, 128, 768]
+```
+
+### tile() [#tile]
+
+沿每个维度将张量重复给定的次数。
+
+```js showLineNumbers filename="syntax.js"
+tile(input, repetitions)
+tile(input, repetitions, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入 N 维张量。
+- `repetitions`
+
+  一个 `unsigned long` 的序列：每个维度要重复的次数。其长度必须等于 `input` 的秩；对于应保持原大小的维度，请使用 `1`。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其每个维度的大小为输入大小乘以重复次数。
+
+支持限制键 `tile`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 0 至 5 |
+
+### transpose() [#transpose]
+
+排列（置换）张量的各个维度。
+
+```js showLineNumbers filename="syntax.js"
+transpose(input)
+transpose(input, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入 N 维张量。
+- `options` _可选_
+
+  一个 `MLTransposeOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `permutation` | `sequence<unsigned long>` | `[N-1, ..., 0]` | 输入各维度在输出中的顺序。它必须包含 N 个条目，每个条目的取值范围为 0 到 N-1，且不能重复。默认会反转各维度，例如对于 3 维张量为 `[2, 1, 0]`。 |
+
+**返回值：** 一个 `MLOperand`，其第 _i_ 个维度为输入的第 `permutation[i]` 个维度。
+
+支持限制键 `transpose`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 0 至 5 |
+
+```js showLineNumbers filename="transpose.js"
+// NHWC 转 NCHW
+const nhwc = builder.input('x', { dataType: 'float32', shape: [1, 224, 224, 3] });
+const nchw = builder.transpose(nhwc, { permutation: [0, 3, 1, 2] });
+console.log(nchw.shape); // [1, 3, 224, 224]
+```
+
+## 收集与散布操作 [#gather-and-scatter]
+
+这些操作按照 _索引_ 张量给出的位置，从张量中读取值，或向张量中写入值。索引值必须为 `int32`、`uint32` 或 `int64` 类型，并且可以为负数以便从维度末尾开始计数：有效值位于 -S（含）到 S（不含）的范围内，其中 S 是被索引维度的大小。
+
+### gather() [#gather]
+
+根据索引，沿某个轴收集输入的值。
+
+```js showLineNumbers filename="syntax.js"
+gather(input, indices)
+gather(input, indices, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：要从中收集的 N 维张量。
+- `indices`
+
+  一个 `MLOperand`：指向 `input` 的 `axis` 维度的索引张量。
+- `options` _可选_
+
+  一个 `MLGatherOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | `input` 上进行收集所沿的轴，取值范围为 0 到 N-1。 |
+
+**返回值：** 一个秩为 `rank(input) + rank(indices) - 1` 的 `MLOperand`。
+
+支持限制键 `gather`（`MLGatherSupportLimits`，包含成员 `input`、`indices` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | 1 至 N | 1 至 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+
+```js showLineNumbers filename="gather.js"
+// 嵌入查找：30000 x 768 的表，16 个 token id。
+const table = builder.constant({ dataType: 'float32', shape: [30000, 768] }, embeddings);
+const ids = builder.input('ids', { dataType: 'int32', shape: [16] });
+const vectors = builder.gather(table, ids, { axis: 0 });
+console.log(vectors.shape); // [16, 768]
+```
+
+### gatherElements() [#gatherelements]
+
+沿某个轴收集输入中的单个元素：每个输出元素都读取自 `input` 中的某个位置，该位置沿 `axis` 的索引由 `indices` 的对应元素给出。
+
+```js showLineNumbers filename="syntax.js"
+gatherElements(input, indices)
+gatherElements(input, indices, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：要从中收集的 N 维张量。
+- `indices`
+
+  一个 `MLOperand`：索引，其秩与 `input` 相同。
+- `options` _可选_
+
+  一个 `MLGatherOptions` 字典（参见 [`gather()`](#gather)）；`axis` 默认为 `0`。
+
+**返回值：** 一个 `MLOperand`，其秩与 `input` 相同。
+
+支持限制键 `gatherElements`（[`MLGatherSupportLimits`](#gather)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 与 `input` 相同 | 1 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 1 至 5 |
+
+### gatherND() [#gathernd]
+
+使用完整坐标收集输入的切片。`indices` 的最后一个维度保存坐标：形状为 `[10, 1]` 的 `indices` 张量保存 10 个单轴索引，形状为 `[4, 3]` 则保存 4 个三维坐标。
+
+```js showLineNumbers filename="syntax.js"
+gatherND(input, indices)
+gatherND(input, indices, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：要从中收集的 N 维张量。
+- `indices`
+
+  一个 `MLOperand`：指向 `input` 的坐标。每个值必须在 -S 到 S-1 的范围内（S 是对应输入维度的大小）。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个秩为 `rank(input) + rank(indices) - shape(indices)[-1] - 1` 的 `MLOperand`。
+
+支持限制键 `gatherND`（[`MLGatherSupportLimits`](#gather)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32`, `int8`, `uint8` | 1 至 N | 1 至 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 1 至 N | 1 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32`, `int8`, `uint8` | N | 0 至 5 |
+
+### scatterElements() [#scatterelements]
+
+将 `updates` 中的值写入 `input` 的副本，写入位置为沿某个轴由 `indices` 给出的位置。
+
+```js showLineNumbers filename="syntax.js"
+scatterElements(input, indices, updates)
+scatterElements(input, indices, updates, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：用于初始化输出的 N 维张量。
+- `indices`
+
+  一个 `MLOperand`：沿 `axis` 要写入的位置。
+- `updates`
+
+  一个 `MLOperand`：新的值，其形状与 `indices` 相同。
+- `options` _可选_
+
+  一个 `MLScatterOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `axis` | `unsigned long` | `0` | 进行散布所沿的轴，取值范围为 0 到 N-1。 |
+
+**返回值：** 一个 `MLOperand`，其形状与 `input` 相同。
+
+支持限制键 `scatterElements`（`MLScatterSupportLimits`，包含成员 `input`、`indices`、`updates` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 与 `input` 相同 | 1 至 5 |
+| `updates` | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 1 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 与 `input` 相同 | 1 至 5 |
+
+### scatterND() [#scatternd]
+
+使用完整坐标，将 `updates` 中的切片写入 `input` 的副本。`indices` 的最后一个维度保存坐标，与 [`gatherND()`](#gathernd) 相同。
+
+```js showLineNumbers filename="syntax.js"
+scatterND(input, indices, updates)
+scatterND(input, indices, updates, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：用于初始化输出的 N 维张量。
+- `indices`
+
+  一个 `MLOperand`：输出中要写入的坐标。
+- `updates`
+
+  一个 `MLOperand`：要写入的新值或切片。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其形状与 `input` 相同。
+
+支持限制键 `scatterND`（[`MLScatterSupportLimits`](#scatterelements)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | 任意 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+| `indices` | `int32`, `uint32`, `int64` | `int32` | 1 至 N | 1 至 5 |
+| `updates` | 与 `input` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16`, `int32` | 1 至 N | 1 至 5 |
+
+### where() [#where]
+
+根据 `condition`（非零为真，零为假），逐元素地从 `trueValue` 或 `falseValue` 中选取值。这三个张量必须可双向广播。`condition` 通常是[比较或逻辑操作](#element-wise-logical)的输出。
+
+```js showLineNumbers filename="syntax.js"
+where(condition, trueValue, falseValue)
+where(condition, trueValue, falseValue, options)
+```
+
+- `condition`
+
+  一个 [`MLOperand`](mloperand)：条件张量。
+- `trueValue`
+
+  一个 `MLOperand`：条件为真处所选取的值。
+- `falseValue`
+
+  一个 `MLOperand`：条件为假处所选取的值。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，其秩为各输入秩中的最大值，其各维度为各输入对应维度中的最大值。
+
+支持限制键 `where`（`MLWhereSupportLimits`，包含成员 `condition`、`trueValue`、`falseValue` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `condition` | `uint8` | `uint8` | N | 0 至 5 |
+| `trueValue` | 任意 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| `falseValue` | 与 `trueValue` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+| _输出_ | 与 `trueValue` 相同 | `float32`, `float16`, `int32` | N | 0 至 5 |
+
+```js showLineNumbers filename="where.js"
+// 因果注意力掩码：保留下三角，其余部分填充为 -inf。
+const scores = builder.input('scores', { dataType: 'float32', shape: [1, 12, 128, 128] });
+const ones = builder.constant({ dataType: 'uint8', shape: [128, 128] }, new Uint8Array(128 * 128).fill(1));
+const lower = builder.triangular(ones, { upper: false });
+const masked = builder.where(lower, scores, builder.constant('float32', -Infinity));
+```
+
+## 量化操作 [#quantization]
+
+量化将浮点值映射为低精度整数并可还原，从而减小模型体积并降低内存带宽占用。两个操作都接受 `scale` 和 `zeroPoint` 张量，它们可以比输入更小，因为它们**可按块广播**：它们的秩必须与 `input` 相同，且 `input` 的每个维度必须是 `scale` 对应维度的整数倍。这使得逐张量、逐通道和逐块量化成为可能。
+
+缩放因子（scale）的值必须为正且非零；否则行为由实现定义（可能得到正确结果、错误结果或编译失败）。
+
+### dequantizeLinear() [#dequantizelinear]
+
+将量化后的整数张量转换为浮点：`output = (input - zeroPoint) * scale`。
+
+```js showLineNumbers filename="syntax.js"
+dequantizeLinear(input, scale, zeroPoint)
+dequantizeLinear(input, scale, zeroPoint, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：量化后的输入张量。
+- `scale`
+
+  一个 `MLOperand`：用于相乘的缩放因子，可与 `input` 按块广播。
+- `zeroPoint`
+
+  一个 `MLOperand`：用于相减的零点，形状与 `scale` 相同。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，包含反量化后的值，形状与 `input` 相同，数据类型与 `scale` 相同。
+
+支持限制键 `dequantizeLinear`（`MLQuantizeDequantizeLinearSupportLimits`，成员为 `input`、`scale`、`zeroPoint` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `uint8`, `int8`, `uint32`, `int32` | `uint8`, `int8` | N | 0 到 5 |
+| `scale` | `float32`, `float16` | `float32`, `float16` | 与 `input` 相同 | 0 到 5 |
+| `zeroPoint` | 与 `input` 相同 | `uint8`, `int8`, `int32` | 与 `input` 相同 | 0 到 5 |
+| _输出_ | 与 `scale` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 到 5 |
+
+### quantizeLinear() [#quantizelinear]
+
+将浮点张量转换为量化后的整数张量。例如，对于 `uint8` 输出：`output = clamp(roundEven(input / scale) + zeroPoint, 0, 255)`。
+
+```js showLineNumbers filename="syntax.js"
+quantizeLinear(input, scale, zeroPoint)
+quantizeLinear(input, scale, zeroPoint, options)
+```
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：浮点输入张量。
+- `scale`
+
+  一个 `MLOperand`：用于相除的缩放因子，可与 `input` 按块广播。
+- `zeroPoint`
+
+  一个 `MLOperand`：用于相加的零点，形状与 `scale` 相同。其数据类型决定输出类型。
+- `options` _可选_
+
+  一个 [`MLOperatorOptions`](mloperand#mloperatoroptions) 字典。
+
+**返回值：** 一个 `MLOperand`，包含量化后的值，形状与 `input` 相同，数据类型与 `zeroPoint` 相同。
+
+支持限制键 `quantizeLinear`（[`MLQuantizeDequantizeLinearSupportLimits`](#dequantizelinear)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | N | 0 到 5 |
+| `scale` | 与 `input` 相同 | `float32`, `float16` | 与 `input` 相同 | 0 到 5 |
+| `zeroPoint` | `uint8`, `int8`, `uint32`, `int32` | `uint8`, `int8` | 与 `input` 相同 | 0 到 5 |
+| _输出_ | 与 `zeroPoint` 相同 | `uint8`, `int8` | 与 `input` 相同 | 0 到 5 |
+
+```js showLineNumbers filename="quantize.js"
+// 逐张量 int8 量化往返。
+const x = builder.input('x', { dataType: 'float32', shape: [1, 16] });
+const scale = builder.constant({ dataType: 'float32', shape: [1, 1] }, new Float32Array([0.05]));
+const zeroPoint = builder.constant({ dataType: 'int8', shape: [1, 1] }, new Int8Array([0]));
+
+const q = builder.quantizeLinear(x, scale, zeroPoint);   // int8
+const restored = builder.dequantizeLinear(q, scale, zeroPoint); // float32
+```
+
+## 循环神经网络操作 [#recurrent-networks]
+
+循环操作逐个时间步处理输入序列，同时携带隐藏状态。每种网络类型都有两种形式：遍历所有时间步的完整操作（`gru()`、`lstm()`），以及只计算单个时间步的*单元*操作（`gruCell()`、`lstmCell()`）。
+
+共用的枚举：
+
+| 枚举 | 值 |
+| --- | --- |
+| `MLRecurrentNetworkDirection` | `"forward"`, `"backward"`, `"both"`。使用 `"both"` 时，权重和偏置张量的第一个维度必须为 2，且序列会按两个方向处理。 |
+| `MLRecurrentNetworkActivation` | `"relu"`, `"sigmoid"`, `"tanh"` |
+| `MLGruWeightLayout` | `"zrn"`（更新门、重置门、新门）或 `"rzn"`（重置门、更新门、新门） |
+| `MLLstmWeightLayout` | `"iofg"`（输入门、输出门、遗忘门、单元门）或 `"ifgo"`（输入门、遗忘门、单元门、输出门） |
+
+在下面的形状中，对于 `"forward"` 和 `"backward"`，`numDirections` 为 1；对于 `"both"`，则为 2。
+
+### gru() [#gru]
+
+在序列上运行[门控循环单元（GRU）](https://arxiv.org/abs/1406.1078)网络，使用更新门、重置门和新门。
+
+```js showLineNumbers filename="syntax.js"
+gru(input, weight, recurrentWeight, steps, hiddenSize)
+gru(input, weight, recurrentWeight, steps, hiddenSize, options)
+```
+
+#### 参数 [#gru-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：形状为 `[steps, batchSize, inputSize]` 的 3 维张量。
+- `weight`
+
+  一个 `MLOperand`：形状为 `[numDirections, 3 * hiddenSize, inputSize]` 的 3 维张量。第二个维度中的门顺序遵循 `layout`。
+- `recurrentWeight`
+
+  一个 `MLOperand`：形状为 `[numDirections, 3 * hiddenSize, hiddenSize]` 的 3 维张量。
+- `steps`
+
+  一个 `unsigned long`：时间步的数量。必须大于 0。
+- `hiddenSize`
+
+  一个 `unsigned long`：隐藏状态中的特征数量。
+- `options` _可选_
+
+  一个 `MLGruOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | 无 | 形状为 `[numDirections, 3 * hiddenSize]` 的 2 维张量。 |
+| `recurrentBias` | `MLOperand` | 无 | 形状为 `[numDirections, 3 * hiddenSize]` 的 2 维张量。 |
+| `initialHiddenState` | `MLOperand` | 全零 | 形状为 `[numDirections, batchSize, hiddenSize]` 的 3 维张量。 |
+| `resetAfter` | `boolean` | `true` | 重置门是在矩阵乘法之后（`true`）还是之前（`false`）应用。 |
+| `returnSequence` | `boolean` | `false` | 是否同时返回每个时间步的输出。 |
+| `direction` | `MLRecurrentNetworkDirection` | `"forward"` | 处理方向。 |
+| `layout` | `MLGruWeightLayout` | `"zrn"` | 权重和偏置的门顺序。 |
+| `activations` | `sequence<MLRecurrentNetworkActivation>` | `["sigmoid", "tanh"]` | 两个激活函数：第一个用于更新门和重置门，第二个用于新门。 |
+
+#### 返回值 [#gru-return-value]
+
+一个 `MLOperand` 序列。第一个是形状为 `[numDirections, batchSize, hiddenSize]` 的 3 维张量：最后一个时间步的输出。如果 `returnSequence` 为 `true`，第二个是形状为 `[steps, numDirections, batchSize, hiddenSize]` 的 4 维张量，包含每个时间步的输出。
+
+#### 张量限制 [#gru-limits]
+
+支持限制键 `gru`（`MLGruSupportLimits`，成员为 `input`、`weight`、`recurrentWeight`、`bias`、`recurrentBias`、`initialHiddenState`、`output0` 和 `output1`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 3 | 3 |
+| `weight` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| `recurrentWeight` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `recurrentBias` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `initialHiddenState` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| _outputs[0]_ | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| _outputs[1]_（当 `returnSequence` 为 `true` 时） | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+### gruCell() [#grucell]
+
+计算 GRU 网络的单个时间步。
+
+```js showLineNumbers filename="syntax.js"
+gruCell(input, weight, recurrentWeight, hiddenState, hiddenSize)
+gruCell(input, weight, recurrentWeight, hiddenState, hiddenSize, options)
+```
+
+#### 参数 [#grucell-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：形状为 `[batchSize, inputSize]` 的 2 维张量。
+- `weight`
+
+  一个 `MLOperand`：形状为 `[3 * hiddenSize, inputSize]` 的 2 维张量。
+- `recurrentWeight`
+
+  一个 `MLOperand`：形状为 `[3 * hiddenSize, hiddenSize]` 的 2 维张量。
+- `hiddenState`
+
+  一个 `MLOperand`：形状为 `[batchSize, hiddenSize]` 的 2 维张量。
+- `hiddenSize`
+
+  一个 `unsigned long`：隐藏状态中的特征数量。
+- `options` _可选_
+
+  一个 `MLGruCellOptions` 字典，包含 [`gru()`](#gru) 中描述的成员 `resetAfter`、`layout` 和 `activations`，以及：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | 无 | 形状为 `[3 * hiddenSize]` 的 1 维张量。 |
+| `recurrentBias` | `MLOperand` | 无 | 形状为 `[3 * hiddenSize]` 的 1 维张量。 |
+
+#### 返回值 [#grucell-return-value]
+
+一个 `MLOperand`：形状为 `[batchSize, hiddenSize]` 的 2 维张量，包含新的隐藏状态。
+
+#### 张量限制 [#grucell-limits]
+
+支持限制键 `gruCell`（`MLGruCellSupportLimits`，成员为 `input`、`weight`、`recurrentWeight`、`hiddenState`、`bias`、`recurrentBias` 和 `output`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `weight` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `recurrentWeight` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `hiddenState` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `recurrentBias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+
+### lstm() [#lstm]
+
+在序列上运行[长短期记忆（LSTM）](https://www.bioinf.jku.at/publications/older/2604.pdf)网络，使用输入门、输出门、遗忘门和单元门。
+
+```js showLineNumbers filename="syntax.js"
+lstm(input, weight, recurrentWeight, steps, hiddenSize)
+lstm(input, weight, recurrentWeight, steps, hiddenSize, options)
+```
+
+#### 参数 [#lstm-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：形状为 `[steps, batchSize, inputSize]` 的 3 维张量。
+- `weight`
+
+  一个 `MLOperand`：形状为 `[numDirections, 4 * hiddenSize, inputSize]` 的 3 维张量。门的顺序遵循 `layout`。
+- `recurrentWeight`
+
+  一个 `MLOperand`：形状为 `[numDirections, 4 * hiddenSize, hiddenSize]` 的 3 维张量。
+- `steps`
+
+  一个 `unsigned long`：时间步的数量。必须大于 0。
+- `hiddenSize`
+
+  一个 `unsigned long`：隐藏状态中的特征数量。
+- `options` _可选_
+
+  一个 `MLLstmOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | 无 | 形状为 `[numDirections, 4 * hiddenSize]` 的 2 维张量。 |
+| `recurrentBias` | `MLOperand` | 无 | 形状为 `[numDirections, 4 * hiddenSize]` 的 2 维张量。 |
+| `peepholeWeight` | `MLOperand` | 无 | 形状为 `[numDirections, 3 * hiddenSize]` 的 2 维张量，按输入门、输出门、遗忘门的顺序打包。 |
+| `initialHiddenState` | `MLOperand` | 全零 | 形状为 `[numDirections, batchSize, hiddenSize]` 的 3 维张量。 |
+| `initialCellState` | `MLOperand` | 全零 | 形状为 `[numDirections, batchSize, hiddenSize]` 的 3 维张量。 |
+| `returnSequence` | `boolean` | `false` | 是否同时返回每个时间步的输出。 |
+| `direction` | `MLRecurrentNetworkDirection` | `"forward"` | 处理方向。 |
+| `layout` | `MLLstmWeightLayout` | `"iofg"` | 权重和偏置的门顺序。 |
+| `activations` | `sequence<MLRecurrentNetworkActivation>` | `["sigmoid", "tanh", "tanh"]` | 三个激活函数：第一个用于输入门、遗忘门和输出门，第二个用于单元门，第三个用于输出单元状态在与输出门结合之前的处理。 |
+
+#### 返回值 [#lstm-return-value]
+
+一个 `MLOperand` 序列：最后一个时间步的输出隐藏状态和输出单元状态，二者均为形状为 `[numDirections, batchSize, hiddenSize]` 的 3 维张量。如果 `returnSequence` 为 `true`，则第三个形状为 `[steps, numDirections, batchSize, hiddenSize]` 的 4 维张量包含每个时间步的输出。
+
+#### 张量限制 [#lstm-limits]
+
+支持限制键 `lstm`（`MLLstmSupportLimits`，成员为 `input`、`weight`、`recurrentWeight`、`bias`、`recurrentBias`、`peepholeWeight`、`initialHiddenState`、`initialCellState`、`output0`、`output1` 和 `output2`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 3 | 3 |
+| `weight` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| `recurrentWeight` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `recurrentBias` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `peepholeWeight` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `initialHiddenState` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| `initialCellState` | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| _outputs[0]_ | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| _outputs[1]_ | 与 `input` 相同 | `float32`, `float16` | 3 | 3 |
+| _outputs[2]_（当 `returnSequence` 为 `true` 时） | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+### lstmCell() [#lstmcell]
+
+计算 LSTM 网络的单个时间步。
+
+```js showLineNumbers filename="syntax.js"
+lstmCell(input, weight, recurrentWeight, hiddenState, cellState, hiddenSize)
+lstmCell(input, weight, recurrentWeight, hiddenState, cellState, hiddenSize, options)
+```
+
+#### 参数 [#lstmcell-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：形状为 `[batchSize, inputSize]` 的 2 维张量。
+- `weight`
+
+  一个 `MLOperand`：形状为 `[4 * hiddenSize, inputSize]` 的 2 维张量。
+- `recurrentWeight`
+
+  一个 `MLOperand`：形状为 `[4 * hiddenSize, hiddenSize]` 的 2 维张量。
+- `hiddenState`
+
+  一个 `MLOperand`：形状为 `[batchSize, hiddenSize]` 的 2 维张量。
+- `cellState`
+
+  一个 `MLOperand`：形状为 `[batchSize, hiddenSize]` 的 2 维张量。
+- `hiddenSize`
+
+  一个 `unsigned long`：隐藏状态中的特征数量。
+- `options` _可选_
+
+  一个 `MLLstmCellOptions` 字典，包含 [`lstm()`](#lstm) 中描述的成员 `layout` 和 `activations`，以及：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `bias` | `MLOperand` | 无 | 形状为 `[4 * hiddenSize]` 的 1 维张量。 |
+| `recurrentBias` | `MLOperand` | 无 | 形状为 `[4 * hiddenSize]` 的 1 维张量。 |
+| `peepholeWeight` | `MLOperand` | 无 | 形状为 `[3 * hiddenSize]` 的 1 维张量，按输入门、输出门、遗忘门的顺序打包。 |
+
+#### 返回值 [#lstmcell-return-value]
+
+一个包含两个 `MLOperand` 的序列：新的隐藏状态和新的单元状态，二者均为形状为 `[batchSize, hiddenSize]` 的 2 维张量。
+
+#### 张量限制 [#lstmcell-limits]
+
+支持限制键 `lstmCell`（`MLLstmCellSupportLimits`，成员为 `input`、`weight`、`recurrentWeight`、`hiddenState`、`cellState`、`bias`、`recurrentBias`、`peepholeWeight`、`output0` 和 `output1`）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16` | `float32`, `float16` | 2 | 2 |
+| `weight` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `recurrentWeight` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `hiddenState` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `cellState` | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| `bias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `recurrentBias` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| `peepholeWeight` | 与 `input` 相同 | `float32`, `float16` | 1 | 1 |
+| _outputs[0]_ | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+| _outputs[1]_ | 与 `input` 相同 | `float32`, `float16` | 2 | 2 |
+
+### 示例 [#recurrent-networks-example]
+
+```js showLineNumbers filename="lstm.js"
+const steps = 8, batch = 1, inputSize = 16, hiddenSize = 32;
+const input = builder.input('input', { dataType: 'float32', shape: [steps, batch, inputSize] });
+const weight = builder.constant(
+  { dataType: 'float32', shape: [1, 4 * hiddenSize, inputSize] }, weightData);
+const recurrentWeight = builder.constant(
+  { dataType: 'float32', shape: [1, 4 * hiddenSize, hiddenSize] }, recurrentWeightData);
+
+const [hidden, cell, sequence] = builder.lstm(
+  input, weight, recurrentWeight, steps, hiddenSize, { returnSequence: true });
+console.log(hidden.shape);   // [1, 1, 32]
+console.log(sequence.shape); // [8, 1, 1, 32]
+```
+
+## 重采样操作 [#resampling]
+
+### resample2d() [#resample2d]
+
+沿 4 维张量的两个维度将其重采样为不同的大小，例如用于放大或缩小图像。
+
+```js showLineNumbers filename="syntax.js"
+resample2d(input)
+resample2d(input, options)
+```
+
+#### 参数 [#resample2d-parameters]
+
+- `input`
+
+  一个 [`MLOperand`](mloperand)：输入的 4 维张量。
+- `options` _可选_
+
+  一个 `MLResample2dOptions` 字典：
+
+| 选项 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `mode` | `MLInterpolationMode` | `"nearest-neighbor"` | 插值算法：`"nearest-neighbor"`（最近邻）或 `"linear"`（双线性）。 |
+| `scales` | `sequence<float>` | `[1.0, 1.0]` | `axes` 中所列两个维度的缩放系数：`[scaleForFirstAxis, scaleForSecondAxis]`。 |
+| `sizes` | `sequence<unsigned long>` | 无 | `axes` 中两个维度的目标大小。指定后，`scales` 将被忽略。 |
+| `axes` | `sequence<unsigned long>` | `[2, 3]` | 要重采样的两个输入维度。 |
+
+对于两个被重采样的轴中的每一个，设 `inputSize` 取自输入形状，`outputSize` 取自 `sizes` 或 `scales`，两种插值模式都首先为每个 `outputCoordinate` 计算一个源坐标：
+
+```text
+scale = outputSize / inputSize
+unclampedCoordinate = (outputCoordinate + 0.5) / scale - 0.5
+inputCoordinate = clamp(unclampedCoordinate, 0, inputSize - 1)
+```
+
+随后，`"nearest-neighbor"` 取 `x = ceil(inputCoordinate.x - 0.5)`、`y = ceil(inputCoordinate.y - 0.5)` 处的值。`"linear"` 则对周围的四个值进行双线性混合，按各自与 `inputCoordinate` 的距离加权。
+
+#### 返回值 [#resample2d-return-value]
+
+一个 `MLOperand`：4 维张量，其中被重采样的维度已变为目标大小。
+
+#### 张量限制 [#resample2d-limits]
+
+支持限制键 `resample2d`（[`MLSingleInputSupportLimits`](mlcontext#mlsingleinputsupportlimits)）。
+
+| 操作数 | 允许的数据类型 | 必需的数据类型 | 允许的秩 | 必需的秩 |
+| --- | --- | --- | --- | --- |
+| `input` | `float32`, `float16`, `uint8`, `int8` | `float32`, `float16` | 4 | 4 |
+| _输出_ | 与 `input` 相同 | `float32`, `float16` | 4 | 4 |
+
+#### 示例 [#resample2d-example]
+
+```js showLineNumbers filename="resample2d.js"
+const image = builder.input('image', { dataType: 'float32', shape: [1, 3, 224, 224] });
+
+// 使用双线性插值放大 2 倍。
+const big = builder.resample2d(image, { mode: 'linear', scales: [2.0, 2.0] });
+console.log(big.shape); // [1, 3, 448, 448]
+
+// 调整为精确的大小。
+const small = builder.resample2d(image, { sizes: [112, 112] });
+console.log(small.shape); // [1, 3, 112, 112]
+```
+
+## 规范 [#specifications]
+
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `MLGraphBuilder` 操作](https://www.w3.org/TR/webnn/#api-mlgraphbuilder) | 候选推荐草案 |
+
+最新的编辑草案见 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder)。
+
+## 浏览器兼容性 [#browser-compatibility]
+
+> <InfoIcon /> WebNN 正在积极开发中。算子覆盖范围因浏览器、操作系统和硬件后端而异，较新的操作（如 `cumulativeSum()`、`gatherElements()`、`scatterND()`、`reverse()`、`tile()`、`dequantizeLinear()` 和 `quantizeLinear()`）可能并非在所有环境中都可用。请始终在运行时检查 [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits)。
+
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)，以及适用于 [Windows ML](../browser-compatibility/windowsml)、[LiteRT](../browser-compatibility/litert) 和 [Core ML](../browser-compatibility/coreml) 的各后端算子表。
+
+## 参见 [#see-also]
+
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [`MLOperand`](mloperand)
+- [`MLContext.opSupportLimits()`](mlcontext#opsupportlimits)
+- [`MLGraph`](mlgraph)
