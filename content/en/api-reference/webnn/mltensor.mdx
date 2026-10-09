@@ -1,152 +1,175 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
 # MLTensor
 
-The `MLTensor` interface represents a tensor that can be used as input or output to an `MLGraph`.
+> <InfoIcon /> **Experimental:** This is an [experimental technology](../browser-compatibility/api#webnn-apis). Check the browser compatibility table carefully before using it in production.
 
-## MLTensorDescriptor
+The **`MLTensor`** interface of the Web Neural Network (WebNN) API represents a block of memory, owned by an [`MLContext`](mlcontext), that can be used as an input or output of an [`MLGraph`](mlgraph), or as a constant when building one.
 
-Before diving into `MLTensor`, let's understand the `MLTensorDescriptor` dictionary that describes its characteristics.
+Tensor memory is allocated in an implementation-defined way that suits the context's device, for example in GPU or NPU memory, with a particular byte alignment, or in a particular memory pool. Script never accesses this memory directly: data is copied in with [`MLContext.writeTensor()`](mlcontext#writetensor) and copied out with [`MLContext.readTensor()`](mlcontext#readtensor). Keeping data in tensors between calls to [`MLContext.dispatch()`](mlcontext#dispatch) avoids unnecessary copies, for example when the output of one graph is the input of the next.
 
-### Web IDL
+Tensors are created with [`MLContext.createTensor()`](mlcontext#createtensor), [`MLContext.createExportableTensor()`](mlcontext#createexportabletensor), or [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor).
+
+This feature is available only in [secure contexts](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`), and is available in both the main thread and [Web Workers](https://developer.mozilla.org/docs/Web/API/Web_Workers_API).
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLTensorDescriptor : MLOperandDescriptor {
   boolean readable = false;
   boolean writable = false;
 };
-```
 
-### Properties
-
-- `readable` (boolean)
-  - Determines if the tensor's contents can be read using `readTensor(tensor)` or `readTensor(tensor, outputData)`
-  - Default value: `false`
-
-- `writable` (boolean)
-  - Determines if the tensor's contents can be written using `writeTensor()`
-  - Default value: `false`
-
-## MLTensor Interface
-
-### Web IDL
-
-```webidl showLineNumbers filename="web-idl"
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLTensor {
   readonly attribute MLOperandDataType dataType;
   readonly attribute FrozenArray<unsigned long> shape;
   readonly attribute boolean readable;
   readonly attribute boolean writable;
+  readonly attribute boolean constant;
+
   undefined destroy();
+};
+```
+
+## Constructor [#constructor]
+
+None. Use the [`MLContext`](mlcontext) tensor creation methods.
+
+## Instance properties [#instance-properties]
+
+### dataType [#datatype]
+
+A read-only [`MLOperandDataType`](mloperand#mloperanddatatype) string giving the tensor's element type.
+
+### shape [#shape]
+
+A read-only, frozen array of `unsigned long` values giving the tensor's dimensions.
+
+### readable [#readable]
+
+A read-only `boolean` that is `true` if the tensor's contents can be read with [`MLContext.readTensor()`](mlcontext#readtensor).
+
+### writable [#writable]
+
+A read-only `boolean` that is `true` if the tensor's contents can be written with [`MLContext.writeTensor()`](mlcontext#writetensor).
+
+### constant [#constant]
+
+A read-only `boolean` that is `true` if the tensor was created with [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor). A constant tensor is neither readable nor writable and cannot be bound as a `dispatch()` input or output; it can only be used with [`MLGraphBuilder.constant(tensor)`](mlgraphbuilder#constant).
+
+## Instance methods [#instance-methods]
+
+### destroy() [#destroy]
+
+The **`destroy()`** method releases the resources associated with the tensor. It is idempotent: calling it more than once has the same effect as calling it once.
+
+After `destroy()` is called:
+
+- Any pending `readTensor()` promise for the tensor is rejected with an `InvalidStateError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException).
+- Using the tensor with `dispatch()`, `readTensor()`, `writeTensor()`, `exportToGPU()` or `MLGraphBuilder.constant()` fails with a `TypeError`.
+- Work already queued on the context that uses the tensor still completes before the memory is released.
+
+Destroying a constant tensor after the graphs that use it have been built is allowed; those graphs remain valid. Tensors are also destroyed automatically when their context is [lost or destroyed](mlcontext#lost).
+
+#### Syntax [#destroy-syntax]
+
+```js showLineNumbers filename="syntax.js"
+destroy()
+```
+
+#### Parameters [#destroy-parameters]
+
+None.
+
+#### Return value [#destroy-return-value]
+
+None (`undefined`).
+
+## MLTensorDescriptor [#mltensordescriptor]
+
+The **`MLTensorDescriptor`** dictionary extends [`MLOperandDescriptor`](mloperand#mloperanddescriptor) with the capabilities of a tensor. It is passed to [`MLContext.createTensor()`](mlcontext#createtensor) and [`MLContext.createExportableTensor()`](mlcontext#createexportabletensor).
+
+| Member | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dataType` _(required)_ | [`MLOperandDataType`](mloperand#mloperanddatatype) | — | The tensor's data type. |
+| `shape` _(required)_ | `sequence<unsigned long>` | — | The tensor's dimensions. |
+| `readable` | `boolean` | `false` | Whether the contents can be read with `readTensor()`. |
+| `writable` | `boolean` | `false` | Whether the contents can be written with `writeTensor()`. |
+
+Request only the capabilities you need. A tensor that is neither readable nor writable can still be used as a `dispatch()` input or output, for example to pass intermediate results between graphs without copying them to script, and lets the implementation choose the most efficient memory.
+
+## Exporting to WebGPU [#exporting-to-webgpu]
+
+A tensor created with [`createExportableTensor()`](mlcontext#createexportabletensor) can be handed to WebGPU with [`MLContext.exportToGPU()`](mlcontext#exporttogpu), which returns a `GPUBuffer`. While the tensor is **exported**, WebGPU has exclusive access to it and WebNN operations that use it fail with a `TypeError`. Calling `destroy()` on the returned `GPUBuffer` returns the tensor to WebNN.
+
+## Examples [#examples]
+
+### Creating, writing and reading a tensor [#creating-writing-and-reading-a-tensor]
+
+```js showLineNumbers filename="tensor.js"
+const context = await navigator.ml.createContext();
+
+const tensor = await context.createTensor({
+  dataType: 'float32',
+  shape: [2, 2],
+  readable: true,
+  writable: true,
+});
+console.log(tensor.shape, tensor.dataType); // [2, 2] "float32"
+
+context.writeTensor(tensor, new Float32Array([1, 2, 3, 4]));
+const data = new Float32Array(await context.readTensor(tensor));
+console.log(data); // Float32Array [1, 2, 3, 4]
+
+tensor.destroy();
+```
+
+### Chaining graphs without copying to script [#chaining-graphs-without-copying-to-script]
+
+```js showLineNumbers filename="chaining.js"
+const desc = { dataType: 'float32', shape: [1, 1024] };
+
+// An intermediate tensor that never needs to be read or written by script.
+const hidden = await context.createTensor(desc);
+const input = await context.createTensor({ ...desc, writable: true });
+const output = await context.createTensor({ ...desc, readable: true });
+
+context.writeTensor(input, inputData);
+context.dispatch(encoderGraph, { x: input }, { h: hidden });
+context.dispatch(decoderGraph, { h: hidden }, { y: output });
+
+const result = new Float32Array(await context.readTensor(output));
+```
+
+### Handling a non-readable tensor [#handling-a-non-readable-tensor]
+
+```js showLineNumbers filename="non-readable.js"
+const tensor = await context.createTensor({ dataType: 'float32', shape: [4] });
+try {
+  await context.readTensor(tensor);
+} catch (e) {
+  console.log(e.name); // "TypeError" — the tensor was not created with readable: true.
 }
 ```
 
-### Properties
+## Specifications [#specifications]
 
-- `dataType` (readonly)
-  - Returns the tensor's data type as specified in its descriptor
-  - Type: `MLOperandDataType`
+| Specification | Status |
+| --- | --- |
+| [Web Neural Network API — `MLTensor` interface](https://www.w3.org/TR/webnn/#api-mltensor) | Candidate Recommendation Draft |
+| [Web Neural Network API — `MLTensorDescriptor` dictionary](https://www.w3.org/TR/webnn/#api-mltensordescriptor) | Candidate Recommendation Draft |
 
-- `shape` (readonly)
-  - Returns the tensor's dimensions as specified in its descriptor
-  - Type: `FrozenArray<unsigned long>`
+The latest Editor's Draft is available at [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mltensor).
 
-- `readable` (readonly)
-  - Returns whether the tensor's contents can be read
-  - Type: `boolean`
+## Browser compatibility [#browser-compatibility]
 
-- `writable` (readonly)
-  - Returns whether the tensor's contents can be written
-  - Type: `boolean`
+> <InfoIcon /> WebNN is under active development and support varies across browsers, operating systems, and hardware. The `constant` property and exportable tensors are recent additions and may not be implemented yet.
 
-### Methods
+See [Browser Compatibility: WebNN APIs](../browser-compatibility/api#webnn-apis).
 
-#### destroy()
+## See also [#see-also]
 
-Releases the resources associated with the MLTensor.
-
-##### Syntax
-
-```javascript
-tensor.destroy()
-```
-
-##### Return value
-
-- `undefined`
-
-##### Description
-
-The `destroy()` method is idempotent, meaning multiple calls to this method on the same tensor will have the same effect as a single call.
-
-### Memory Allocation
-
-The memory backing an `MLTensor` is allocated according to implementation-defined requirements of the associated `MLContext` and `MLTensorDescriptor`. These requirements may include:
-
-- Specific byte alignment constraints
-- Allocation in particular memory pools
-- Other implementation-specific requirements
-
-## Examples
-
-### Creating and Using an MLTensor
-
-```js showLineNumbers filename="example-1.js"
- async function mlTensor() {
-  // Define tensor descriptor
-  const tensorDescriptor = {
-    dataType: "float32",
-    shape: [1, 28, 28, 1],
-    readable: true,
-    writable: true
-  };
- 
-  try {
-    // Create tensor through MLContext and MLTensorDescriptor
-    const context = await navigator.ml.createContext({
-      deviceType: 'gpu'
-    });
-    const tensor = await context.createTensor(tensorDescriptor);
-
-    // Use the tensor
-    console.log("Tensor shape:", tensor.shape);
-    console.log("Data type:", tensor.dataType);
-    
-    // Clean up when done
-    tensor.destroy();
-  } catch (error) {
-    console.error("Error creating tensor:", error);
-  }
-}
-```
-
-### Reading MLTensor Data
-
-```js showLineNumbers filename="example-2.js"
-async function readTensorData(tensor) {
-  if (tensor.readable) {
-    try {
-      const data = await context.readTensor(tensor);
-      console.log("Tensor data:", data);
-    } catch (error) {
-      console.error("Error reading tensor:", error);
-    }
-  }
-}
-```
-
-## Specifications
-
-| WebNN API | Status |
-|--------------|---------|
-| [`MLTensor` interface](https://webmachinelearning.github.io/webnn/#api-mltensor) | Candidate Recommendation Draft |
-
-## Security Requirements
-
-- This API requires a secure context (`HTTPS` or `localhost`)
-- Available in:
-  - Window context
-  - Dedicated Web Workers
-
-## Browser Compatibility
-
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+- [`MLContext`](mlcontext)
+- [`MLGraphBuilder.constant()`](mlgraphbuilder#constant)
+- [MLTensor explainer](https://github.com/webmachinelearning/webnn/blob/main/mltensor-explainer.md)

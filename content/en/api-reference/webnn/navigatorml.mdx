@@ -2,11 +2,15 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # navigator.ml
 
-The `navigator.ml` property provides access to the WebNN API, allowing web applications to interact with machine learning capabilities in the browser.
+> <InfoIcon /> **Experimental:** This is an [experimental technology](../browser-compatibility/api#webnn-apis). Check the browser compatibility table carefully before using it in production.
 
-## Web IDL
+The read-only **`ml`** property of the [`Navigator`](https://developer.mozilla.org/docs/Web/API/Navigator) and [`WorkerNavigator`](https://developer.mozilla.org/docs/Web/API/WorkerNavigator) interfaces returns an [`ML`](ml) object, which is the entry point to the Web Neural Network (WebNN) API.
 
-```idl showLineNumbers filename="web-idl"
+This feature is available only in [secure contexts](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`), and is available in both the main thread and [Web Workers](https://developer.mozilla.org/docs/Web/API/Web_Workers_API).
+
+## Web IDL [#web-idl]
+
+```webidl showLineNumbers filename="web-idl"
 interface mixin NavigatorML {
   [SecureContext, SameObject] readonly attribute ML ml;
 };
@@ -14,48 +18,89 @@ Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 ```
 
-## Syntax
+## Value [#value]
 
-```js showLineNumbers filename="navigator.ml.js"
-const ml = navigator.ml
+An [`ML`](ml) object. Because the attribute is marked `[SameObject]`, the same `ML` object is returned every time the property is accessed within a given global object.
+
+## Description [#description]
+
+`navigator.ml` gives access to the [`ML`](ml) interface, whose [`createContext()`](ml#createcontext) method creates an [`MLContext`](mlcontext). From the context you can build computational graphs with [`MLGraphBuilder`](mlgraphbuilder), allocate [`MLTensor`](mltensor) objects, and run inference on the CPU, GPU, or NPU of the device.
+
+- **Window:** available as `window.navigator.ml`.
+- **Workers:** available as `self.navigator.ml` through [`WorkerNavigator`](https://developer.mozilla.org/docs/Web/API/WorkerNavigator). Running inference in a worker keeps graph compilation and data transfers off the main thread.
+- **Secure context only:** in an insecure context (for example, a page served over plain HTTP), the `ml` property is not exposed, so `'ml' in navigator` is `false`.
+
+### Permissions Policy [#permissions-policy]
+
+Use of WebNN is controlled by the [Permissions Policy](https://developer.mozilla.org/docs/Web/HTTP/Permissions_Policy) feature identified by the string **`webnn`**. Its default allowlist is `'self'`, so WebNN is available to same-origin documents by default. Cross-origin iframes must be granted access explicitly:
+
+```html showLineNumbers filename="iframe.html"
+<iframe src="https://example.com/inference.html" allow="webnn"></iframe>
 ```
 
-### Value
+When a document is not allowed to use the feature, the `ml` property is still present, but [`ML.createContext()`](ml#createcontext) returns a promise rejected with a `SecurityError` [`DOMException`](https://developer.mozilla.org/docs/Web/API/DOMException), and the [`MLGraphBuilder()`](mlgraphbuilder#constructor) constructor throws a `SecurityError`.
 
-An [`ML`](https://www.w3.org/TR/webnn/#api-navigator-ml) object that provides access to WebNN functionality.
+## Examples [#examples]
 
-## Description
+### Feature detection [#feature-detection]
 
-The `navigator.ml` property returns a read-only reference to an `ML` object, which serves as the entry point for browser-based machine learning operations. This interface is:
-
-- Available in both window and dedicated worker contexts
-- Accessible through the `Navigator` interface in window contexts
-- Accessible through the `WorkerNavigator` interface in dedicated worker contexts
-- Protected by a secure context requirement (HTTPS or localhost)
-
-## Example
-
-```js showLineNumbers filename="example.js"
+```js showLineNumbers filename="feature-detection.js"
 if ('ml' in navigator) {
-  // ML API is supported
-  const mlInstance = navigator.ml;
-  // Use ML functionality here
+  const context = await navigator.ml.createContext();
+  console.log('WebNN is available.');
 } else {
-  console.log('ML API is not supported in this browser');
+  console.log('WebNN is not supported in this browser.');
 }
 ```
-## Specifications
 
-| WebNN API | Status |
-|--------------|---------|
-| [`navigator.ml` interface](https://www.w3.org/TR/webnn/#api-navigator-ml) | Candidate Recommendation Draft |
+### Using WebNN in a worker [#using-webnn-in-a-worker]
 
-## Security Requirements
+```js showLineNumbers filename="main.js"
+const worker = new Worker('worker.js', { type: 'module' });
+worker.postMessage({ a: [1, 2, 3, 4], b: [5, 6, 7, 8] });
+worker.onmessage = (e) => console.log('Result:', e.data); // Float32Array [6, 8, 10, 12]
+```
 
-Access to `navigator.ml` requires a secure context (HTTPS or localhost). Attempting to access this API in a non-secure context will result in an error.
+```js showLineNumbers filename="worker.js"
+self.onmessage = async (e) => {
+  const context = await navigator.ml.createContext();
+  const builder = new MLGraphBuilder(context);
+  const desc = { dataType: 'float32', shape: [4] };
+  const graph = await builder.build({
+    c: builder.add(builder.input('a', desc), builder.input('b', desc)),
+  });
 
-## Browser Compatibility
+  const [a, b, c] = await Promise.all([
+    context.createTensor({ ...desc, writable: true }),
+    context.createTensor({ ...desc, writable: true }),
+    context.createTensor({ ...desc, readable: true }),
+  ]);
+  context.writeTensor(a, new Float32Array(e.data.a));
+  context.writeTensor(b, new Float32Array(e.data.b));
+  context.dispatch(graph, { a, b }, { c });
 
-> <InfoIcon /> The `navigator.ml` interface is experimental and support may vary across browsers.
+  self.postMessage(new Float32Array(await context.readTensor(c)));
+};
+```
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+## Specifications [#specifications]
+
+| Specification | Status |
+| --- | --- |
+| [Web Neural Network API — `navigator.ml`](https://www.w3.org/TR/webnn/#api-navigator-ml) | Candidate Recommendation Draft |
+
+The latest Editor's Draft is available at [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-navigator-ml).
+
+## Browser compatibility [#browser-compatibility]
+
+> <InfoIcon /> WebNN is under active development and support varies across browsers, operating systems, and hardware.
+
+See [Browser Compatibility: WebNN APIs](../browser-compatibility/api#webnn-apis).
+
+## See also [#see-also]
+
+- [`ML`](ml)
+- [`MLContext`](mlcontext)
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [Secure contexts](https://developer.mozilla.org/docs/Web/Security/Secure_Contexts)
+- [Permissions Policy](https://developer.mozilla.org/docs/Web/HTTP/Permissions_Policy)

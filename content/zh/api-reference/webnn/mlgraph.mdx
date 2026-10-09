@@ -2,73 +2,98 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLGraph
 
-The `MLGraph` interface represents a compiled computational graph. Once constructed, a compiled graph is immutable and cannot be subsequently modified.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## Web IDL
+Web 神经网络（WebNN）API 的 **`MLGraph`** 接口表示一个已编译的计算图。图一旦构建完成就是不可变的：其算子、输入、输出和常量权重都无法更改。
+
+`MLGraph` 通过 [`MLGraphBuilder.build()`](mlgraphbuilder#build) 获得，并通过 [`MLContext.dispatch()`](mlcontext#dispatch) 执行。图与创建它的构建器所属的 [`MLContext`](mlcontext) 绑定，只能在该上下文上分派。
+
+此特性仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可使用。
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraph {
   undefined destroy();
 };
 ```
 
-## Constructor
+## 构造函数 [#constructor]
 
-The `MLGraph` interface does not have a constructor. Instances are created through other APIs.
+无。请使用 [`MLGraphBuilder.build()`](mlgraphbuilder#build) 创建 `MLGraph`。
 
-## Properties
+## 实例属性 [#instance-properties]
 
-This interface does not contain any properties.
+无。图的输入和输出的名称及描述符与构建时使用的相同；`dispatch()` 会据此验证你传入的张量。
 
-## Methods
+## 实例方法 [#instance-methods]
 
-### destroy()
+### destroy() [#destroy]
 
-Releases all resources associated with the graph. Once called, the graph is marked as destroyed and cannot be used for further operations.
+**`destroy()`** 方法释放与该图关联的资源。调用之后，该图不能再被分派：[`MLContext.dispatch()`](mlcontext#dispatch) 会抛出 `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)。
 
+已经使用该图分派的工作仍会完成；实现会在这些工作结束后释放图的资源。多次调用 `destroy()` 不会产生额外效果。当图所属的上下文[丢失或被销毁](mlcontext#lost)时，图也会被自动销毁。
 
-#### Syntax
+#### 语法 [#destroy-syntax]
 
-```js showLineNumbers filename="example-1.js"
-graph.destroy()
+```js showLineNumbers filename="syntax.js"
+destroy()
 ```
 
-#### Return Value
+#### 参数 [#destroy-parameters]
 
-- `undefined`
+无。
 
-## Notes
+#### 返回值 [#destroy-return-value]
 
-- The graph is immutable after construction to ensure computational integrity
-- All input and output operands must be properly described through their respective descriptors
-- The implementation details are managed by the User Agent and are not directly accessible
-- After destruction, no further workloads can be enqueued using this graph
-- Implementations can free any additional resource allocations associated with this graph once all previously submitted workloads using it are complete
+无（`undefined`）。
 
-## Best Practices
+## 示例 [#examples]
 
-- Always call `destroy()` when the graph is no longer needed to prevent memory leaks
-- Ensure all operations on the graph are complete before calling `destroy()`
-- Do not attempt to use the graph after calling `destroy()`
+### 构建、运行和销毁图 [#building-running-and-destroying-a-graph]
 
-## Specifications
+```js showLineNumbers filename="graph-lifecycle.js"
+const context = await navigator.ml.createContext();
+const builder = new MLGraphBuilder(context);
 
-| WebNN API | Status |
-|--------------|---------|
-| [`MLGraph` Interface](https://webmachinelearning.github.io/webnn/#mlgraph) | Candidate Recommendation Draft |
+const desc = { dataType: 'float32', shape: [2, 3] };
+const x = builder.input('x', desc);
+const graph = await builder.build({ y: builder.relu(x) });
 
-## Security Requirements
+const input = await context.createTensor({ ...desc, writable: true });
+const output = await context.createTensor({ ...desc, readable: true });
 
-The `MLGraph` interface:
+context.writeTensor(input, new Float32Array([-1, 2, -3, 4, -5, 6]));
+context.dispatch(graph, { x: input }, { y: output });
+console.log(new Float32Array(await context.readTensor(output))); // [0, 2, 0, 4, 0, 6]
 
-1. Requires a secure context (`SecureContext`)
-2. Is exposed only to `Window` and `DedicatedWorker` contexts
-3. Cannot be modified after construction to prevent tampering with computational graphs
-4. Resource cleanup is performed asynchronously to ensure proper memory management
+// 不再需要时释放已编译的图。
+graph.destroy();
+```
 
-## Browser Compatibility
+## 注意事项 [#notes]
 
-> <InfoIcon /> The `Graph` interface is under active development and browser support may vary.
+- 只要数据类型和形状匹配，图就可以被分派任意多次，每次使用不同的输入和输出张量。
+- `build()` 中的编译可能包含*权重预处理*：常量数据会被转换并以设备特定的格式缓存。请重用图，而不是为每次推理重新构建。
+- 对于不再需要的图，尤其是大型模型，请调用 `destroy()`，以便及时释放设备内存，而不是等待垃圾回收。
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+## 规范 [#specifications]
+
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `MLGraph` 接口](https://www.w3.org/TR/webnn/#api-mlgraph) | 候选推荐草案 |
+
+最新的编辑草案可在 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlgraph) 查看。
+
+## 浏览器兼容性 [#browser-compatibility]
+
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。
+
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)。
+
+## 参见 [#see-also]
+
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [`MLContext.dispatch()`](mlcontext#dispatch)
+- [`MLTensor`](mltensor)

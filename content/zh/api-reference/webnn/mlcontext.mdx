@@ -2,9 +2,22 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # MLContext
 
-The `MLContext` interface represents a global state of neural network compute workload and execution processes. Each `MLContext` object has associated `context type`, `MLDeviceType` and `MLPowerPreference`.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## Web IDL
+Web 神经网络（WebNN）API 的 **`MLContext`** 接口表示神经网络计算工作负载及其执行的全局状态。它拥有用于编译和运行 [`MLGraph`](mlgraph) 对象的资源，负责创建以及读写 [`MLTensor`](mltensor) 对象，并报告由实现定义的算子支持情况。
+
+`MLContext` 通过 [`ML.createContext()`](ml#createcontext) 创建。每个上下文都有一个**上下文类型**：
+
+| 上下文类型 | 创建方式 | 描述 |
+| --- | --- | --- |
+| `"default"` | `createContext(options)` | 用户代理根据 [`MLContextOptions`](ml#mlcontextoptions) 中的提示选择计算设备。 |
+| `"webgpu"` | `createContext(gpuDevice)` | 上下文由 WebGPU 的 [`GPUDevice`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUDevice) 创建。 |
+
+所有涉及张量数据的工作（图的执行、张量的写入和读取）都会按顺序排入上下文的**时间线**，因此 `writeTensor()`、`dispatch()` 和 `readTensor()` 等调用可以连续发出，无需逐个等待。
+
+此特性仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可用。
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
 typedef record<USVString, MLTensor> MLNamedTensors;
@@ -13,324 +26,616 @@ dictionary MLContextLostInfo {
   DOMString message;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLContext {
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
 
   Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
+  Promise<MLTensor> createExportableTensor(
+    MLTensorDescriptor descriptor, GPUDevice gpuDevice);
+  Promise<MLTensor> createConstantTensor(
+    MLOperandDescriptor descriptor, AllowSharedBufferSource inputData);
 
   Promise<ArrayBuffer> readTensor(MLTensor tensor);
   Promise<undefined> readTensor(MLTensor tensor, AllowSharedBufferSource outputData);
 
   undefined writeTensor(MLTensor tensor, AllowSharedBufferSource inputData);
 
+  GPUBuffer exportToGPU(MLTensor tensor);
+
   MLOpSupportLimits opSupportLimits();
 
   undefined destroy();
 
+  readonly attribute boolean accelerated;
   readonly attribute Promise<MLContextLostInfo> lost;
 };
 ```
-## Context Types
 
-The context type determines how the execution context manages resources and facilitates neural network graph compilation and execution:
+## 实例属性 [#instance-properties]
 
-- `"default"`: Context created per user preference options
-- `"webgpu"`: Context created from WebGPU device
+### accelerated [#accelerated]
 
-When the `contextType` is set to `default` with the `MLContextOptions.deviceType` set to `"gpu"`, the user agent creates an internal GPU device that operates within the context and can submit ML workloads on behalf of the calling application.
+只读的 `boolean`，表示上下文是否使用大规模并行加速（如 GPU 或 NPU），而不是仅使用 CPU 处理。它反映了创建上下文时所用的 [`accelerated`](ml#mlcontextoptions) 选项（默认为 `true`，对于 `"webgpu"` 上下文始终为 `true`）。
 
-## Properties
-
-### lost (readonly)
-
-Returns a `Promise` that resolves when the context is lost. A context is considered lost when its `lost` `Promise` is settled.
-
-- Type: `Promise<undefined>`
-- Throws: None
-
-## Methods
-
-### dispatch()
-
-Schedules the computational workload of a compiled `MLGraph` on the `MLContext`'s timeline.
-
-#### Syntax
-
-```js showLineNumbers filename="dispatch.js"
-context.dispatch(graph, inputs, outputs)
+```js showLineNumbers filename="accelerated.js"
+const context = await navigator.ml.createContext({ powerPreference: 'low-power' });
+if (!context.accelerated) {
+  console.log('Running on CPU; consider a smaller model.');
+}
 ```
 
-#### Parameters
+### lost [#lost]
 
-- `graph`: An `MLGraph` object representing the computational graph to be executed
-- `inputs`: An `MLNamedTensors` object containing the inputs to the computational graph
-- `outputs`: An `MLNamedTensors` object that will contain the outputs of the computational graph
+只读的 [`Promise`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)，当上下文丢失时（即其底层执行设备不再可用，或调用了 [`destroy()`](#destroy)），它会兑现为一个 [`MLContextLostInfo`](#mlcontextlostinfo) 对象。该 Promise 永远不会被拒绝。
 
-#### Return Value
+当上下文丢失时，由它创建的所有 [`MLGraph`](mlgraph) 和 [`MLTensor`](mltensor) 都会被销毁，待处理的操作会失败，并且对它的新操作会以 `InvalidStateError` 被拒绝。要恢复，请创建新的上下文并重新构建图。
 
-`undefined`
-
-#### Notes
-
-The `dispatch()` method itself provides no signal that graph execution has completed. Callers should `await` the results of reading back the output tensors.
-
-### createTensor()
-
-Creates an `MLTensor` associated with this `MLContext`.
-
-#### Syntax
-
-```js showLineNumbers filename="create-tensor.js"
-context.createTensor(descriptor)
+```js showLineNumbers filename="lost.js"
+context.lost.then((info) => {
+  console.warn('MLContext lost:', info.message);
+  // Recreate the context, rebuild graphs, and reallocate tensors here.
+});
 ```
 
-#### Parameters
+## 实例方法 [#instance-methods]
 
-- `descriptor`: An `MLTensorDescriptor` object
+| 方法 | 描述 |
+| --- | --- |
+| [`dispatch()`](#dispatch) | 使用给定的输入和输出张量，调度已编译图的执行。 |
+| [`createTensor()`](#createtensor) | 创建内容初始化为零的 [`MLTensor`](mltensor)。 |
+| [`createExportableTensor()`](#createexportabletensor) | 创建可导出到 WebGPU `GPUDevice` 的 `MLTensor`。 |
+| [`createConstantTensor()`](#createconstanttensor) | 创建以给定数据初始化的不可变常量 `MLTensor`。 |
+| [`readTensor()`](#readtensor) | 将张量的内容读回脚本。 |
+| [`writeTensor()`](#writetensor) | 向张量写入数据。 |
+| [`exportToGPU()`](#exporttogpu) | 将张量作为 `GPUBuffer` 导出到其关联的 `GPUDevice`。 |
+| [`opSupportLimits()`](#opsupportlimits) | 返回此上下文对每个算子所支持的数据类型和秩。 |
+| [`destroy()`](#destroy) | 释放与上下文关联的所有资源。 |
 
-#### Return Value
+### dispatch() [#dispatch]
 
-Returns a `Promise` that resolves to an `MLTensor`
+**`dispatch()`** 方法在上下文的时间线上调度已编译 [`MLGraph`](mlgraph) 的计算工作负载。
 
-### readTensor()
+`dispatch()` 会立即返回，并且不提供执行已完成的信号。要获取结果，请对输出张量调用 [`readTensor()`](#readtensor) 并 `await` 它；读取会排在先前已调度的工作之后。
 
-There are two variations of this method:
+#### 语法 [#dispatch-syntax]
 
-#### Syntax 1: (tensor)
-
-```js showLineNumbers filename="read-tensor-1.js"
-context.readTensor(tensor)
+```js showLineNumbers filename="syntax.js"
+dispatch(graph, inputs, outputs)
 ```
 
-Reads back the `data` of an `MLTensor` from the `MLContext` timeline to script.
+#### 参数 [#dispatch-parameters]
 
-##### Parameters
+- `graph`
 
-- `tensor`: An `MLTensor` object to be read
+  要执行的 [`MLGraph`](mlgraph)。它必须由与此上下文关联的构建器构建。
+- `inputs`
 
-##### Return Value
+  一个对象（`MLNamedTensors`），将每个图输入名称映射到一个 [`MLTensor`](mltensor)。它必须为每个图输入恰好包含一个张量，并且每个张量的 `dataType` 和 `shape` 必须与对应的输入操作数匹配。
+- `outputs`
 
-Returns a `Promise` that resolves to an `ArrayBuffer` containing the result of the read
+  一个对象（`MLNamedTensors`），将每个图输出名称映射到接收结果的 `MLTensor`。它必须为每个图输出恰好包含一个张量，且 `dataType` 和 `shape` 相匹配。
 
-#### Syntax 2: (tensor, outputData)
+#### 返回值 [#dispatch-return-value]
 
-```js showLineNumbers filename="read-tensor-2.js"
-context.readTensor(tensor, outputData)
+无（`undefined`）。
+
+#### 异常 [#dispatch-exceptions]
+
+- `TypeError`
+
+  如果图或任何张量属于不同的上下文；如果某个张量已被销毁、当前处于[导出](#exporttogpu)状态或是常量张量；如果同一个张量在 `inputs` 和 `outputs` 中出现多次；或者命名的张量与图的输入或输出不完全匹配，则抛出。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果图已被销毁，则抛出。
+
+### createTensor() [#createtensor]
+
+**`createTensor()`** 方法创建一个与此上下文关联的 [`MLTensor`](mltensor)。新张量的所有字节都初始化为零。
+
+#### 语法 [#createtensor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+createTensor(descriptor)
 ```
 
-Bring-your-own-buffer variant that reads back the `data` of an `MLTensor` into the provided buffer.
+#### 参数 [#createtensor-parameters]
 
-##### Parameters
+- `descriptor`
 
-- `tensor`: An `MLTensor` object to be read
-- `outputData`: An `AllowSharedBufferSource` buffer to read the result into
+  一个 [`MLTensorDescriptor`](mltensor#mltensordescriptor)，指定张量的 `dataType` 和 `shape`，以及脚本是否可以读取（`readable`）和/或写入（`writable`）它。
 
-##### Return Value
+#### 返回值 [#createtensor-return-value]
 
-Returns a `Promise` that resolves to `undefined`
+一个 `Promise`，兑现为新的 [`MLTensor`](mltensor)。
 
-### writeTensor()
+#### 异常 [#createtensor-exceptions]
 
-Writes data to the `data` of an `MLTensor` on the `MLContext`'s timeline.
+返回的 Promise 会以如下异常被拒绝：
 
-#### Syntax
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
 
-```js showLineNumbers filename="write-tensor.js"
-context.writeTensor(tensor, inputData)
+  上下文已丢失，或在张量分配之前已丢失。
+- `UnknownError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  无法分配张量内存。
+
+### createExportableTensor() [#createexportabletensor]
+
+**`createExportableTensor()`** 方法创建一个 [`MLTensor`](mltensor)，之后可通过 [`exportToGPU()`](#exporttogpu) 将其导出到给定的 WebGPU [`GPUDevice`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUDevice)。其内容初始化为零。
+
+上下文是否支持导出到特定的 `GPUDevice` 由实现定义，并且可能取决于上下文类型和平台。
+
+#### 语法 [#createexportabletensor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+createExportableTensor(descriptor, gpuDevice)
 ```
 
-#### Parameters
+#### 参数 [#createexportabletensor-parameters]
 
-- `tensor`: An `MLTensor` object to be written to
-- `inputData`: An `AllowSharedBufferSource` buffer whose bytes will be written into the tensor
+- `descriptor`
 
-#### Return Value
+  一个 [`MLTensorDescriptor`](mltensor#mltensordescriptor)。
+- `gpuDevice`
 
-`undefined`
+  张量可导出到的 `GPUDevice`。
 
-#### Notes
+#### 返回值 [#createexportabletensor-return-value]
 
-The `writeTensor()` method itself provides no signal that the write has completed. Callers should `await` the results of reading back the tensor.
+一个 `Promise`，兑现为新的可导出 [`MLTensor`](mltensor)。
 
-### opSupportLimits()
+#### 异常 [#createexportabletensor-exceptions]
 
-Returns information about the level of support that differs across implementations at the operator level.
+返回的 Promise 会以如下异常被拒绝：
 
-#### Syntax
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
 
-```js showLineNumbers filename="op-support-limits.js"
-context.opSupportLimits()
+  上下文已丢失，或 `gpuDevice` 已丢失。
+- `NotSupportedError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  上下文无法将张量导出到 `gpuDevice`。
+- `UnknownError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  无法分配张量内存。
+
+### createConstantTensor() [#createconstanttensor]
+
+**`createConstantTensor()`** 方法创建一个以 `inputData` 的副本初始化的常量 [`MLTensor`](mltensor)。常量张量的 [`constant`](mltensor#constant) 属性为 `true`；它既不可读也不可写，并且不能绑定为 `dispatch()` 的输入或输出。
+
+常量张量旨在传递给 [`MLGraphBuilder.constant(tensor)`](mlgraphbuilder#constant)，这样大型权重只需上传到设备一次，并且可以被多个图共享。在使用该张量的图构建完成后，可以销毁该常量张量。
+
+#### 语法 [#createconstanttensor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+createConstantTensor(descriptor, inputData)
 ```
 
-#### Return Value
+#### 参数 [#createconstanttensor-parameters]
 
-Returns an `MLOpSupportLimits` object containing support information.
+- `descriptor`
 
-#### MLOpSupportLimits Dictionary
+  一个 [`MLOperandDescriptor`](mloperand#mloperanddescriptor)，指定 `dataType` 和 `shape`。
+- `inputData`
+
+  一个 `ArrayBuffer`、`SharedArrayBuffer` 或 `ArrayBufferView`，其字节会被复制到张量中。参见[缓冲区要求](#buffer-requirements)。
+
+#### 返回值 [#createconstanttensor-return-value]
+
+一个 `Promise`，兑现为新的常量 [`MLTensor`](mltensor)。
+
+#### 异常 [#createconstanttensor-exceptions]
+
+返回的 Promise 会以如下异常被拒绝：
+
+- `TypeError`
+
+  描述符的形状无效，或 `inputData` 不满足[缓冲区要求](#buffer-requirements)。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  上下文已丢失。
+- `UnknownError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  无法分配或初始化张量。
+
+### readTensor() [#readtensor]
+
+**`readTensor()`** 方法将 [`MLTensor`](mltensor) 的内容从上下文的时间线读回脚本。读取发生在上下文中所有先前排队的工作之后，因此等待它就是等待 `dispatch()` 完成的方式。
+
+它有两个重载：一个分配并返回新的 `ArrayBuffer`，另一个是自带缓冲区（BYOB）的变体，将数据写入你提供的缓冲区。
+
+#### 语法 [#readtensor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+readTensor(tensor)
+readTensor(tensor, outputData)
+```
+
+#### 参数 [#readtensor-parameters]
+
+- `tensor`
+
+  要读取的 [`MLTensor`](mltensor)。它必须以 `readable: true` 创建。
+- `outputData` _可选_
+
+  接收数据的 `ArrayBuffer`、`SharedArrayBuffer` 或 `ArrayBufferView`。参见[缓冲区要求](#buffer-requirements)。
+
+#### 返回值 [#readtensor-return-value]
+
+- `readTensor(tensor)`：一个 `Promise`，兑现为包含张量数据副本的新 `ArrayBuffer`。
+- `readTensor(tensor, outputData)`：一个 `Promise`，在数据写入 `outputData` 后兑现为 `undefined`。
+
+#### 异常 [#readtensor-exceptions]
+
+返回的 Promise 会以如下异常被拒绝：
+
+- `TypeError`
+
+  张量属于不同的上下文、已被销毁、不是 `readable`，或当前处于导出状态；或者 `outputData` 不满足[缓冲区要求](#buffer-requirements)，或在读取完成前已被分离。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  上下文已丢失，或张量在读取待处理期间被销毁。
+- `UnknownError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  无法读取数据。
+
+### writeTensor() [#writetensor]
+
+**`writeTensor()`** 方法在上下文的时间线上将 `inputData` 的字节复制到 [`MLTensor`](mltensor) 中。数据在调用该方法时同步复制，因此 `inputData` 在之后可以立即重用或修改。
+
+与 `dispatch()` 类似，`writeTensor()` 在写入完成时不提供信号；之后的 `dispatch()` 和 `readTensor()` 调用会排在它之后。
+
+#### 语法 [#writetensor-syntax]
+
+```js showLineNumbers filename="syntax.js"
+writeTensor(tensor, inputData)
+```
+
+#### 参数 [#writetensor-parameters]
+
+- `tensor`
+
+  要写入的 [`MLTensor`](mltensor)。它必须以 `writable: true` 创建。
+- `inputData`
+
+  包含数据的 `ArrayBuffer`、`SharedArrayBuffer` 或 `ArrayBufferView`。参见[缓冲区要求](#buffer-requirements)。
+
+#### 返回值 [#writetensor-return-value]
+
+无（`undefined`）。
+
+#### 异常 [#writetensor-exceptions]
+
+- `TypeError`
+
+  如果张量属于不同的上下文、已被销毁、不是 `writable` 或当前处于导出状态，或者 `inputData` 不满足[缓冲区要求](#buffer-requirements)，则抛出。
+
+### exportToGPU() [#exporttogpu]
+
+**`exportToGPU()`** 方法将可导出的 [`MLTensor`](mltensor)（通过 [`createExportableTensor()`](#createexportabletensor) 创建）导出到其关联的 `GPUDevice`，并返回可供 WebGPU 命令使用的 [`GPUBuffer`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUBuffer)。
+
+张量处于导出状态期间，`GPUDevice` 对其内容拥有独占访问权，使用该张量的 `dispatch()`、`readTensor()` 和 `writeTensor()` 调用会抛出 `TypeError`（或以其拒绝）。对返回的缓冲区调用 [`GPUBuffer.destroy()`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUBuffer/destroy) 会将张量归还给 WebNN，之后即可再次使用。
+
+- 返回的缓冲区的 `size` 等于张量的字节长度，`usage` 为 `GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST`。
+- 对已导出的张量再次调用 `exportToGPU()` 会返回同一个 `GPUBuffer`。
+- 用户代理会正确地排序传输：使用该缓冲区提交的 WebGPU 工作会在张量上待处理的 WebNN 工作之后运行，而 `destroy()` 之后的 WebNN 工作会在缓冲区上待处理的 WebGPU 工作之后运行。无需手动同步。
+- 导出不保证零拷贝；内容可能会被复制到 GPU 内存或从 GPU 内存复制出来。
+- 在导出期间销毁张量或其上下文不会使 `GPUBuffer` 失效。如果 `GPUDevice` 丢失，张量会保持导出状态，直到调用 `GPUBuffer.destroy()`。
+
+#### 语法 [#exporttogpu-syntax]
+
+```js showLineNumbers filename="syntax.js"
+exportToGPU(tensor)
+```
+
+#### 参数 [#exporttogpu-parameters]
+
+- `tensor`
+
+  由此上下文创建的可导出 [`MLTensor`](mltensor)。
+
+#### 返回值 [#exporttogpu-return-value]
+
+与张量的 `GPUDevice` 关联的 [`GPUBuffer`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUBuffer)。
+
+#### 异常 [#exporttogpu-exceptions]
+
+- `TypeError`
+
+  如果张量属于不同的上下文、已被销毁，或不是通过 `createExportableTensor()` 创建的，则抛出。
+- `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
+
+  如果张量的 `GPUDevice` 已丢失，则抛出。
+
+### opSupportLimits() [#opsupportlimits]
+
+**`opSupportLimits()`** 方法返回一个 [`MLOpSupportLimits`](#mlopsupportlimits) 字典，描述此上下文在全局范围内以及针对每个算子所支持的数据类型和张量秩。可用它来选择在当前平台上运行最佳的模型变体（例如 `float16` 与 `float32`，或 `"nchw"` 与 `"nhwc"`）。
+
+每个实现至少支持 [MLGraphBuilder 操作](mlgraphbuilder-ops)中为每个算子列出的*必需*数据类型和秩，并且可以支持更多。
+
+> <InfoIcon /> `opSupportLimits()` 并非旨在增加指纹识别的熵；在当前的实现中，相同的信息可以从操作系统和浏览器版本推断出来。
+
+#### 语法 [#opsupportlimits-syntax]
+
+```js showLineNumbers filename="syntax.js"
+opSupportLimits()
+```
+
+#### 参数 [#opsupportlimits-parameters]
+
+无。
+
+#### 返回值 [#opsupportlimits-return-value]
+
+一个 [`MLOpSupportLimits`](#mlopsupportlimits) 字典。
+
+### destroy() [#destroy]
+
+**`destroy()`** 方法释放与上下文关联的所有资源。它会使上下文丢失：[`lost`](#lost) Promise 会兑现为一条由实现定义的消息，并且由该上下文创建的所有图和张量都会被销毁。未完成的计算请求以及张量创建、读取和写入请求都会失败。对已经丢失的上下文调用 `destroy()` 不会执行任何操作。
+
+#### 语法 [#destroy-syntax]
+
+```js showLineNumbers filename="syntax.js"
+destroy()
+```
+
+#### 返回值 [#destroy-return-value]
+
+无（`undefined`）。
+
+## 缓冲区要求 [#buffer-requirements]
+
+`createConstantTensor()`、`readTensor(tensor, outputData)` 和 `writeTensor()`（以及 [`MLGraphBuilder.constant()`](mlgraphbuilder#constant)）会根据张量描述符验证缓冲区：
+
+1. 缓冲区的字节长度必须等于描述符的字节长度（元素数量 × 元素大小）。
+2. `ArrayBuffer` 或 `SharedArrayBuffer` 始终被接受。
+3. 如果 `ArrayBufferView` 是 `Uint8Array`（通用字节视图，例如 `WebAssembly.Memory` 的切片），或其类型与数据类型匹配，则被接受：
+
+| `MLOperandDataType` | 匹配的 `ArrayBufferView` | 元素大小 |
+| --- | --- | --- |
+| `"float32"` | `Float32Array` | 4 字节 |
+| `"float16"` | `Float16Array` | 2 字节 |
+| `"int64"` | `BigInt64Array` | 8 字节 |
+| `"uint64"` | `BigUint64Array` | 8 字节 |
+| `"int32"` | `Int32Array` | 4 字节 |
+| `"uint32"` | `Uint32Array` | 4 字节 |
+| `"int8"` | `Int8Array` | 1 字节 |
+| `"uint8"` | `Uint8Array` | 1 字节 |
+
+> <InfoIcon /> 在 `Float16Array` 尚不可用的地方，请通过 `Uint16Array` 底层的 `ArrayBuffer`（或 `Uint8Array` 视图）传递原始的 IEEE 754 半精度位。
+
+## 字典 [#dictionaries]
+
+### MLContextLostInfo [#mlcontextlostinfo]
+
+[`lost`](#lost) Promise 所兑现的值。
+
+| 成员 | 类型 | 描述 |
+| --- | --- | --- |
+| `message` | `DOMString` | 一条由实现定义的消息，描述上下文丢失的原因。 |
+
+### MLOpSupportLimits [#mlopsupportlimits]
+
+由 [`opSupportLimits()`](#opsupportlimits) 返回。除了下面的顶层成员外，每个算子还有一个成员，以对应的 [`MLGraphBuilder`](mlgraphbuilder-ops) 方法命名（例如 `conv2d`、`add`、`softmax`），其值描述该算子各操作数的限制。
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLOpSupportLimits {
   MLInputOperandLayout preferredInputLayout;
-  MLSupportLimits input;
-  MLSupportLimits constant;
-  MLSupportLimits output;
+  [EnforceRange] unsigned long long maxTensorByteLength;
+  MLTensorLimits input;
+  MLTensorLimits constant;
+  MLTensorLimits output;
+  // ...plus one member per operator, e.g.:
+  // MLConv2dSupportLimits conv2d;
+  // MLBinarySupportLimits add;
+  // MLSingleInputSupportLimits softmax;
 };
 ```
 
-##### Members
+| 成员 | 类型 | 描述 |
+| --- | --- | --- |
+| `preferredInputLayout` | [`MLInputOperandLayout`](mloperand#mlinputoperandlayout) | 对布局相关算子（如 `conv2d()`）的首选输入布局（`"nchw"` 或 `"nhwc"`）。 |
+| `maxTensorByteLength` | `unsigned long long` | 支持的最大张量大小，以字节为单位。 |
+| `input` | [`MLTensorLimits`](#mltensorlimits) | 图输入操作数的限制。 |
+| `constant` | `MLTensorLimits` | 图常量操作数的限制。 |
+| `output` | `MLTensorLimits` | 图输出操作数的限制。 |
+| _算子名称_ | 特定于算子的字典 | 该算子各操作数的限制，例如 [`MLSingleInputSupportLimits`](#mlsingleinputsupportlimits) 或 [`MLBinarySupportLimits`](#mlbinarysupportlimits)。参见 [MLGraphBuilder 操作](mlgraphbuilder-ops)中的各个算子。 |
 
-- `preferredInputLayout`: Preferred input layout for layout dependent operators like `conv2d()`
-- `input`: Support limits for input `MLOperand`s for an `MLGraph`
-- `constant`: Support limits for constant `MLOperand`s for an `MLGraph`
-- `output`: Support limits for output `MLOperand`s for an `MLGraph`
-
-#### MLSupportLimits Dictionary
+### MLTensorLimits [#mltensorlimits]
 
 ```webidl showLineNumbers filename="web-idl"
-dictionary MLSupportLimits {
-  sequence dataTypes;
+typedef sequence<MLOperandDataType> MLDataTypeList;
+
+dictionary MLTensorLimits {
+  MLDataTypeList dataTypes;
+  MLRankRange rankRange;
 };
 ```
 
-##### Members
+| 成员 | 类型 | 描述 |
+| --- | --- | --- |
+| `dataTypes` | `sequence<MLOperandDataType>` | 支持的数据类型。 |
+| `rankRange` | [`MLRankRange`](#mlrankrange) | 支持的最小和最大秩。 |
 
-- `dataTypes`: Supported data types
-
-#### MLBinarySupportLimits Dictionary
+### MLRankRange [#mlrankrange]
 
 ```webidl showLineNumbers filename="web-idl"
-dictionary MLBinarySupportLimits {
-  MLSupportLimits a;
-  MLSupportLimits b;
-  MLSupportLimits output;
+dictionary MLRankRange {
+  unsigned long min;
+  unsigned long max;
 };
 ```
 
-##### Members
+| 成员 | 类型 | 描述 |
+| --- | --- | --- |
+| `min` | `unsigned long` | 支持的最小秩。 |
+| `max` | `unsigned long` | 支持的最大秩。 |
 
-- `a`: `MLSupportLimits` for a operand
-- `b`: `MLSupportLimits` for b operand
-- `output`: `MLSupportLimits` for output operand
+### MLSingleInputSupportLimits [#mlsingleinputsupportlimits]
 
-#### MLSingleInputSupportLimits Dictionary
+用于只有一个张量输入的算子，例如 `relu()`、`softmax()` 或 `reshape()`。
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLSingleInputSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits output;
 };
 ```
 
-##### Members
+### MLBinarySupportLimits [#mlbinarysupportlimits]
 
-- `input`: `MLSupportLimits` for input operand
-- `output`: `MLSupportLimits` for output operand
+用于有两个张量输入 `a` 和 `b` 的算子，例如 `add()`、`equal()` 或 `matmul()`。
 
-### destroy()
-
-Releases all resources associated with the context. Any pending compute requests and MLTensor operations (creation, read, or write) will fail after this method is called.
-
-#### Syntax
-
-```js showLineNumbers filename="destory.js"
-context.destroy()
+```webidl showLineNumbers filename="web-idl"
+dictionary MLBinarySupportLimits {
+  MLTensorLimits a;
+  MLTensorLimits b;
+  MLTensorLimits output;
+};
 ```
 
-#### Return Value
+其他算子使用专用字典，每个操作数对应一个 `MLTensorLimits` 成员，例如 `MLConv2dSupportLimits` 包含 `input`、`filter`、`bias` 和 `output`。它们与各个算子一起列在 [MLGraphBuilder 操作](mlgraphbuilder-ops)中。
 
-- Type: `undefined`
+## 示例 [#examples]
 
-## Examples
+### 使用 MLTensor 执行图 [#executing-a-graph-with-mltensors]
 
-### Executing an MLGraph using MLTensors
+```js showLineNumbers filename="dispatch.js"
+const descriptor = { dataType: 'float32', shape: [2, 2] };
+const context = await navigator.ml.createContext();
+const builder = new MLGraphBuilder(context);
 
-```js showLineNumbers filename="example-1.js"
-  const mlGraphExecution = async () => {
-    const descriptor = {
-      dataType: 'float32',
-      shape: [2, 2]
-    };
-    const context = await navigator.ml.createContext({
-      deviceType: 'gpu'
-    });
-    const builder = new MLGraphBuilder(context);
+// 1. 创建计算图 'C = 0.2 * A + B'。
+const constant = builder.constant(descriptor, new Float32Array(4).fill(0.2));
+const A = builder.input('A', descriptor);
+const B = builder.input('B', descriptor);
+const C = builder.add(builder.mul(A, constant), B);
 
-    // 1. Create a computational graph 'C = 0.2 * A + B'.
-    const constant = builder.constant(descriptor, new Float32Array(4).fill(0.2));
-    const A = builder.input('A', descriptor);
-    const B = builder.input('B', descriptor);
-    const C = builder.add(builder.mul(A, constant), B);
+// 2. 编译图。
+const graph = await builder.build({ C });
 
-    // 2. Compile the graph.
-    const graph = await builder.build({
-      'C': C
-    });
+// 3. 创建可重用的输入和输出张量。
+const [inputTensorA, inputTensorB, outputTensorC] = await Promise.all([
+  context.createTensor({ dataType: A.dataType, shape: A.shape, writable: true }),
+  context.createTensor({ dataType: B.dataType, shape: B.shape, writable: true }),
+  context.createTensor({ dataType: C.dataType, shape: C.shape, readable: true }),
+]);
 
-    // 3. Create reusable input and output tensors.
-    const [inputTensorA, inputTensorB, outputTensorC] =
-      await Promise.all([
-        context.createTensor({
-          dataType: A.dataType,
-          shape: A.shape,
-          writable: true
-        }),
-        context.createTensor({
-          dataType: B.dataType,
-          shape: B.shape,
-          writable: true
-        }),
-        context.createTensor({
-          dataType: C.dataType,
-          shape: C.shape,
-          readable: true
-        })
-      ]);
+// 4. 初始化输入。
+context.writeTensor(inputTensorA, new Float32Array(4).fill(1.0));
+context.writeTensor(inputTensorB, new Float32Array(4).fill(0.8));
 
-    // 4. Initialize the inputs.
-    context.writeTensor(inputTensorA, new Float32Array(4).fill(1.0));
-    context.writeTensor(inputTensorB, new Float32Array(4).fill(0.8));
+// 5. 执行图。
+context.dispatch(graph, { A: inputTensorA, B: inputTensorB }, { C: outputTensorC });
 
-    // 5. Execute the graph.
-    const inputs = {
-      'A': inputTensorA,
-      'B': inputTensorB
-    };
-    const outputs = {
-      'C': outputTensorC
-    };
-    context.dispatch(graph, inputs, outputs);
-
-    // 6. Read back the computed result.
-    const result = await context.readTensor(outputTensorC);
-    console.log('Output value:', new Float32Array(result));
-  }
-
-  mlGraphExecution();
+// 6. 读回计算结果。
+const result = await context.readTensor(outputTensorC);
+console.log('Output value:', new Float32Array(result)); // [1, 1, 1, 1]
 ```
 
-### Checking Operator Support Limits
+### 读取到现有缓冲区 [#reading-into-an-existing-buffer]
 
-```js showLineNumbers filename="example-2.js"
-  const context = await navigator.ml.createContext();
-  const limits = context.opSupportLimits();
-  console.log('opSupportLimits: ', limits);
+重用输出缓冲区可以避免为每次推理分配新的 `ArrayBuffer`：
+
+```js showLineNumbers filename="read-byob.js"
+const output = new Float32Array(4);
+for (const frame of frames) {
+  context.writeTensor(inputTensor, frame);
+  context.dispatch(graph, { input: inputTensor }, { output: outputTensor });
+  await context.readTensor(outputTensor, output);
+  render(output);
+}
 ```
 
-## Specifications
+### 通过常量张量共享权重 [#sharing-weights-with-a-constant-tensor]
 
-| WebNN API | Status |
-|--------------|---------|
-| [`MLContext` interface](https://www.w3.org/TR/webnn/#mlgraph) | Candidate Recommendation Draft |
+```js showLineNumbers filename="constant-tensor.js"
+const weightDesc = { dataType: 'float32', shape: [4, 4] };
+const weights = await context.createConstantTensor(weightDesc, new Float32Array(16).fill(0.5));
+console.log(weights.constant); // true
 
-## Security Requirements
+async function buildGraph() {
+  const builder = new MLGraphBuilder(context);
+  const x = builder.input('x', { dataType: 'float32', shape: [1, 4] });
+  return builder.build({ y: builder.matmul(x, builder.constant(weights)) });
+}
 
-- Must be used in a secure context
-- Access is restricted to Window and DedicatedWorker contexts
-- Proper handling of shared buffers and tensor data is required to prevent memory leaks and unauthorized access
+// 两个图重用相同的设备端权重。
+const [graphA, graphB] = await Promise.all([buildGraph(), buildGraph()]);
+weights.destroy(); // 图构建完成后即可安全销毁。
+```
 
-## Browser Compatibility
+### 检查算子支持限制 [#checking-operator-support-limits]
 
-> <InfoIcon /> The `MLContext` interface is under active development and browser support may vary.
+```js showLineNumbers filename="op-support-limits.js"
+const context = await navigator.ml.createContext();
+const limits = context.opSupportLimits();
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+console.log('Preferred layout:', limits.preferredInputLayout); // "nchw" or "nhwc"
+console.log('Max tensor size:', limits.maxTensorByteLength, 'bytes');
+
+// 如果 conv2d 在此上下文上支持 float16 输入，则选择 float16 模型。
+const useFp16 = limits.conv2d.input.dataTypes.includes('float16');
+const modelUrl = useFp16 ? 'model-fp16.onnx' : 'model-fp32.onnx';
+
+// 检查 gather() 是否接受 int64 索引。
+const supportsInt64Indices = limits.gather.indices.dataTypes.includes('int64');
+
+// 检查 add() 支持的最大秩。
+console.log('add() max rank:', limits.add.a.rankRange.max);
+```
+
+### 与 WebGPU 互操作 [#interoperating-with-webgpu]
+
+```js showLineNumbers filename="webgpu-interop.js"
+// 1. 创建 WebGPU 和 WebNN 上下文。
+const gpuAdapter = await navigator.gpu.requestAdapter();
+const gpuDevice = await gpuAdapter.requestDevice();
+const context = await navigator.ml.createContext();
+
+// 2. 构建一个简单的图：y = x + 1。
+const builder = new MLGraphBuilder(context);
+const descriptor = { dataType: 'float32', shape: [4] };
+const x = builder.input('x', descriptor);
+const one = builder.constant(descriptor, new Float32Array([1, 1, 1, 1]));
+const graph = await builder.build({ y: builder.add(x, one) });
+
+// 3. 创建可导出的张量并运行 WebNN dispatch。
+const inputTensor = await context.createExportableTensor(
+  { ...descriptor, writable: true }, gpuDevice);
+const outputTensor = await context.createExportableTensor(
+  { ...descriptor, readable: true }, gpuDevice);
+context.writeTensor(inputTensor, new Float32Array([1, 2, 3, 4]));
+context.dispatch(graph, { x: inputTensor }, { y: outputTensor });
+
+// 4. 导出到 WebGPU，并在 GPU 命令中使用该缓冲区。
+const gpuBuffer = context.exportToGPU(outputTensor);
+// ... use gpuBuffer in WebGPU compute or render passes ...
+
+// 5. 将张量归还给 WebNN，然后再次通过 WebNN 读取。
+gpuBuffer.destroy();
+const result = new Float32Array(await context.readTensor(outputTensor));
+console.log(result); // [2, 3, 4, 5]
+```
+
+## 规范 [#specifications]
+
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `MLContext` 接口](https://www.w3.org/TR/webnn/#api-mlcontext) | 候选推荐草案 |
+
+最新的编辑草案见 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mlcontext)。
+
+## 浏览器兼容性 [#browser-compatibility]
+
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。`createExportableTensor()` 和 `exportToGPU()` 是较新的新增功能，可能尚未实现。
+
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)。
+
+## 参见 [#see-also]
+
+- [`ML.createContext()`](ml#createcontext)
+- [`MLGraphBuilder`](mlgraphbuilder)
+- [`MLGraph`](mlgraph)
+- [`MLTensor`](mltensor)
+- [MLTensor 说明文档](https://github.com/webmachinelearning/webnn/blob/main/mltensor-explainer.md)

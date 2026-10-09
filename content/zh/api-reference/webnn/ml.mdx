@@ -2,17 +2,15 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 # ML
 
-The `ML` Interface provides methods for creating and managing machine learning contexts in web applications.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## Web IDL
+Web 神经网络（WebNN）API 的 **`ML`** 接口是创建 [`MLContext`](mlcontext) 对象的入口。`ML` 对象通过 [`navigator.ml`](navigatorml) 属性获得。
 
-```idl showLineNumbers filename="web-idl"
-enum MLDeviceType {
-  "cpu",
-  "gpu",
-  "npu"
-};
+此特性仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可使用。
 
+## Web IDL [#web-idl]
+
+```webidl showLineNumbers filename="web-idl"
 enum MLPowerPreference {
   "default",
   "high-performance",
@@ -20,164 +18,166 @@ enum MLPowerPreference {
 };
 
 dictionary MLContextOptions {
-  MLDeviceType deviceType = "cpu";
   MLPowerPreference powerPreference = "default";
+  boolean accelerated = true;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface ML {
   Promise<MLContext> createContext(optional MLContextOptions options = {});
   Promise<MLContext> createContext(GPUDevice gpuDevice);
 };
 ```
 
-## Methods
+## 实例属性 [#instance-properties]
 
-### createContext()
+无。
 
-#### Syntax
+## 实例方法 [#instance-methods]
 
-```js showLineNumbers filename="create-context.js"
+| 方法 | 描述 |
+| --- | --- |
+| [`createContext()`](#createcontext) | 返回一个 `Promise`，其兑现值为新的 [`MLContext`](mlcontext)，该上下文可通过 `MLContextOptions` 字典或 WebGPU [`GPUDevice`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUDevice) 进行配置。 |
+
+### createContext() [#createcontext]
+
+`ML` 接口的 **`createContext()`** 方法用于创建 [`MLContext`](mlcontext)，它保存图编译和执行的全局状态。
+
+#### 语法 [#createcontext-syntax]
+
+```js showLineNumbers filename="syntax.js"
 createContext()
 createContext(options)
 createContext(gpuDevice)
 ```
 
-#### Parameters
+#### 参数 [#createcontext-parameters]
 
-- `options`: A `MLContextOptions` object providing the application’s preferences
-- `gpuDevice`: A specific `GPUDevice` object to use with the context
+- `options` _可选_
 
-#### Return Value
+  一个 [`MLContextOptions`](#mlcontextoptions) 字典，描述应用程序对上下文的偏好。所得上下文的上下文类型为 `"default"`。
+- `gpuDevice`
 
-A `MLContext`
+  一个 WebGPU [`GPUDevice`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUDevice)。所得上下文的上下文类型为 `"webgpu"`，并与该设备关联，从而实现 WebNN 与 WebGPU 之间的互操作。以这种方式创建的上下文使用 `"default"` 的 `powerPreference` 以及值为 `true` 的 `accelerated`。
 
-## Description
+#### 返回值 [#createcontext-return-value]
 
-The `ML` interface enables creation of machine learning contexts with specific device and power preferences. It provides two methods for creating contexts - one accepting configuration options and another accepting a specific GPU device.
+一个 [`Promise`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)，其兑现值为 [`MLContext`](mlcontext) 对象。
 
-### Device Type Options
+#### 异常 [#createcontext-exceptions]
 
-An enumeration defining supported device types for ML operations:
-- `"cpu"`: CPU-based processing
-- `"gpu"`: GPU-based processing
-- `"npu"`: Neural Processing Unit-based processing
+返回的 Promise 会因以下异常而被拒绝：
 
-#### `"cpu"`
-- Provides maximum compatibility across devices
-- Variable performance based on hardware capabilities
-- Default option if not specified
+- `SecurityError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
 
-#### `"gpu"`
-- Offers highest performance potential
-- May fall back to other devices for certain operations
-- Requires compatible graphics hardware
+  文档不被允许使用 `webnn` [权限策略](navigatorml#permissions-policy)特性。
+- `NotSupportedError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException)
 
-#### `"npu"`
-- Optimized for power efficiency
-- Suitable for sustained workloads
-- May fall back to other devices for unsupported operations
+  用户代理无法创建所请求类型的上下文（例如，平台没有可用的后端，或不支持 WebGPU 互操作）。
 
-### Power Preference Options
+## 字典和枚举 [#dictionaries-and-enumerations]
 
-An enumeration specifying power consumption preferences:
-- `"default"`: System-determined behavior
-- `"high-performance"`: Prioritizes speed over power efficiency
-- `"low-power"`: Prioritizes power efficiency over performance
+### MLContextOptions [#mlcontextoptions]
 
-#### `"default"`
-- Lets the user agent determine optimal behavior
-- Balanced approach to performance and power consumption
+一个提示字典，用户代理使用它来选择底层计算设备和执行模式。这些是**偏好**而非要求：实现会在当前平台上选择最合适的可用匹配项。
 
-#### `"high-performance"`
-- Maximizes execution speed
-- May increase power consumption
-- Suitable for compute-intensive tasks
+| 成员 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `powerPreference` | [`MLPowerPreference`](#mlpowerpreference) | `"default"` | 应用程序与功耗相关的偏好。 |
+| `accelerated` | `boolean` | `true` | 应用程序对大规模并行加速的偏好。为 `true` 时，平台会尝试使用可用的加速器，例如 GPU 或 NPU（同时也会考虑 `powerPreference`）。为 `false` 时，表示应用程序更倾向于 CPU 推理。 |
 
-#### `"low-power"`
-- Minimizes power consumption
-- May reduce performance
-- Ideal for battery-powered devices
+`accelerated` 的优先级低于 `powerPreference`。如果两者相互矛盾（例如 `powerPreference: "high-performance"` 与 `accelerated: false` 同时出现），实现会选择最合适的可用匹配项，例如高性能 CPU 模式，或者忽略 `accelerated`。
 
-### ML Context Options
-A dictionary of configuration options for ML contexts:
+之后可以通过 [`MLContext.accelerated`](mlcontext#accelerated) 属性检查上下文是否确实被加速。
 
-```webidl showLineNumbers filename="web-idl"
-dictionary MLContextOptions {
-  MLDeviceType deviceType = "cpu";
-  MLPowerPreference powerPreference = "default";
-}
-```
+> <InfoIcon /> `MLContextOptions` 正在积极开发中，其设计可能会发生变化。工作组正在考虑针对回退设备、首选设备的有序列表、排除特定设备、错误处理以及量化算子的控制方式。背景信息请参阅[设备选择说明文档](https://github.com/webmachinelearning/webnn/blob/main/device-selection-explainer.md)。
 
-## Examples
+### MLPowerPreference [#mlpowerpreference]
 
-### Creating a Context with Default Options
+| 值 | 描述 |
+| --- | --- |
+| `"default"` | 由用户代理选择最合适的行为。 |
+| `"high-performance"` | 优先考虑执行速度而非功耗。 |
+| `"low-power"` | 优先考虑功耗而非执行速度等其他因素。 |
 
-```js showLineNumbers filename="example-1.js"
+### 从 `deviceType` 迁移 [#migrating-from-devicetype]
+
+规范的早期草案在 `MLContextOptions` 上定义了 `MLDeviceType` 枚举和 `deviceType` 成员（`"cpu"`、`"gpu"`、`"npu"`）。为了让上下文默认与设备无关，这些内容已从规范中**移除**。下列提示可以表达类似的意图，但最终的设备选择始终由实现决定（例如，在某些设备上 NPU 可能比 GPU 更快）：
+
+| 早期代码 | 最接近的当前提示 |
+| --- | --- |
+| `{ deviceType: 'cpu' }` | `{ accelerated: false }` |
+| `{ deviceType: 'gpu' }` | `{ powerPreference: 'high-performance' }` （或传入 `GPUDevice` 以与 WebGPU 共享工作） |
+| `{ deviceType: 'npu' }` | `{ powerPreference: 'low-power' }` |
+
+> <InfoIcon /> 在 API 开发期间，部分浏览器出于兼容性考虑可能仍接受 `deviceType`。新代码应仅依赖 `powerPreference` 和 `accelerated`。参见[浏览器兼容性：设备选择](../browser-compatibility/deviceselection)。
+
+## 示例 [#examples]
+
+### 使用默认选项创建上下文 [#creating-a-context-with-default-options]
+
+```js showLineNumbers filename="default-context.js"
 try {
   const context = await navigator.ml.createContext();
-  // Context ready for use
+  console.log('Accelerated:', context.accelerated);
 } catch (error) {
-  console.error('Failed to create ML context:', error);
+  console.error(`Failed to create an MLContext: ${error.name}: ${error.message}`);
 }
 ```
 
-### Creating a Context with Specific Options
+### 请求功耗偏好 [#requesting-a-power-preference]
 
-```js showLineNumbers filename="example-2.js"
-const options = {
-  deviceType: "gpu",
-  powerPreference: "high-performance"
-};
+```js showLineNumbers filename="power-preference.js"
+// 优先考虑电池续航，例如用于常驻后台的背景模糊效果。
+const lowPowerContext = await navigator.ml.createContext({
+  powerPreference: 'low-power',
+});
 
-try {
-  const context = await navigator.ml.createContext(options);
-  // High-performance GPU context ready
-} catch (error) {
-  console.error('Failed to create GPU context:', error);
-}
+// 优先考虑吞吐量，例如用于交互式图像生成。
+const fastContext = await navigator.ml.createContext({
+  powerPreference: 'high-performance',
+});
 ```
 
-### Using with a Specific GPU Device
+### 倾向于 CPU 推理 [#preferring-cpu-inference]
 
-```js showLineNumbers filename="example-3.js"
-// Assuming we have a GPUDevice instance
-const gpuDevice = await navigator.gpu.requestAdapter()
-  .then(adapter => adapter.requestDevice());
+```js showLineNumbers filename="cpu-context.js"
+const context = await navigator.ml.createContext({ accelerated: false });
+console.log(context.accelerated); // 通常为 false
+```
+
+### 从 WebGPU 设备创建上下文 [#creating-a-context-from-a-webgpu-device]
+
+```js showLineNumbers filename="webgpu-context.js"
+const adapter = await navigator.gpu.requestAdapter();
+const gpuDevice = await adapter.requestDevice();
 
 try {
   const context = await navigator.ml.createContext(gpuDevice);
-  // Context created with specific GPU device
+  // 使用 context.createExportableTensor(descriptor, gpuDevice) 创建的张量
+  // 可以通过 context.exportToGPU(tensor) 与 WebGPU 共享。
 } catch (error) {
-  console.error('Failed to create context with GPU device:', error);
+  console.error('WebNN/WebGPU interop is not available:', error);
 }
 ```
-## Specifications
 
-| WebNN API | Status |
-|--------------|---------|
-| [`ML` interface](https://www.w3.org/TR/webnn/#api-ml) | Candidate Recommendation Draft |
+## 规范 [#specifications]
 
-## Security Requirements
-- Requires a secure context
-- Available in Window and DedicatedWorker contexts
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `ML` 接口](https://www.w3.org/TR/webnn/#api-ml) | 候选推荐草案 |
 
-## Browser Compatibility
+最新的编辑草案可在 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-ml) 查看。
 
-> <InfoIcon /> The `ML` interface is under active development and browser support may vary.
+## 浏览器兼容性 [#browser-compatibility]
 
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。
 
-## Development Status
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)和[设备选择](../browser-compatibility/deviceselection)。
 
-The ML interface and MLContextOptions are actively being developed. Current considerations include:
+## 参见 [#see-also]
 
-- Implementation of fallback device mechanisms
-- Support for multiple devices in preferred order
-- Device exclusion capabilities
-- Enhanced error handling
-- Quantized operator support
-
-## Additional Resources
-
-- [GPUDevice Interface](https://www.w3.org/TR/webgpu/#gpudevice)
+- [`navigator.ml`](navigatorml)
+- [`MLContext`](mlcontext)
+- [设备选择说明文档](https://github.com/webmachinelearning/webnn/blob/main/device-selection-explainer.md)
+- [`GPUDevice`](https://developer.mozilla.org/zh-CN/docs/Web/API/GPUDevice)

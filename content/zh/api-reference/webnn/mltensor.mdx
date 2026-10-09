@@ -1,152 +1,175 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
 # MLTensor
 
-The `MLTensor` interface represents a tensor that can be used as input or output to an `MLGraph`.
+> <InfoIcon /> **实验性：** 这是一项[实验性技术](../browser-compatibility/api#webnn-apis)。在生产环境中使用前，请仔细检查浏览器兼容性表格。
 
-## MLTensorDescriptor
+Web 神经网络（WebNN）API 的 **`MLTensor`** 接口表示一块由 [`MLContext`](mlcontext) 拥有的内存，可用作 [`MLGraph`](mlgraph) 的输入或输出，或在构建图时用作常量。
 
-Before diving into `MLTensor`, let's understand the `MLTensorDescriptor` dictionary that describes its characteristics.
+张量内存以由实现定义的方式分配，以适应上下文的设备，例如位于 GPU 或 NPU 内存中、具有特定的字节对齐，或位于特定的内存池中。脚本从不直接访问这块内存：数据通过 [`MLContext.writeTensor()`](mlcontext#writetensor) 复制进去，并通过 [`MLContext.readTensor()`](mlcontext#readtensor) 复制出来。在多次调用 [`MLContext.dispatch()`](mlcontext#dispatch) 之间将数据保留在张量中可以避免不必要的复制，例如当一个图的输出是下一个图的输入时。
 
-### Web IDL
+张量通过 [`MLContext.createTensor()`](mlcontext#createtensor)、[`MLContext.createExportableTensor()`](mlcontext#createexportabletensor) 或 [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor) 创建。
+
+此特性仅在[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)（HTTPS 或 `localhost`）中可用，并且在主线程和 [Web Worker](https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API) 中均可使用。
+
+## Web IDL [#web-idl]
 
 ```webidl showLineNumbers filename="web-idl"
 dictionary MLTensorDescriptor : MLOperandDescriptor {
   boolean readable = false;
   boolean writable = false;
 };
-```
 
-### Properties
-
-- `readable` (boolean)
-  - Determines if the tensor's contents can be read using `readTensor(tensor)` or `readTensor(tensor, outputData)`
-  - Default value: `false`
-
-- `writable` (boolean)
-  - Determines if the tensor's contents can be written using `writeTensor()`
-  - Default value: `false`
-
-## MLTensor Interface
-
-### Web IDL
-
-```webidl showLineNumbers filename="web-idl"
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLTensor {
   readonly attribute MLOperandDataType dataType;
   readonly attribute FrozenArray<unsigned long> shape;
   readonly attribute boolean readable;
   readonly attribute boolean writable;
+  readonly attribute boolean constant;
+
   undefined destroy();
+};
+```
+
+## 构造函数 [#constructor]
+
+无。请使用 [`MLContext`](mlcontext) 的张量创建方法。
+
+## 实例属性 [#instance-properties]
+
+### dataType [#datatype]
+
+一个只读的 [`MLOperandDataType`](mloperand#mloperanddatatype) 字符串，给出张量的元素类型。
+
+### shape [#shape]
+
+一个只读的冻结数组，由 `unsigned long` 值组成，给出张量的维度。
+
+### readable [#readable]
+
+一个只读的 `boolean`，如果可以使用 [`MLContext.readTensor()`](mlcontext#readtensor) 读取张量的内容，则为 `true`。
+
+### writable [#writable]
+
+一个只读的 `boolean`，如果可以使用 [`MLContext.writeTensor()`](mlcontext#writetensor) 写入张量的内容，则为 `true`。
+
+### constant [#constant]
+
+一个只读的 `boolean`，如果张量是使用 [`MLContext.createConstantTensor()`](mlcontext#createconstanttensor) 创建的，则为 `true`。常量张量既不可读也不可写，不能被绑定为 `dispatch()` 的输入或输出；它只能与 [`MLGraphBuilder.constant(tensor)`](mlgraphbuilder#constant) 一起使用。
+
+## 实例方法 [#instance-methods]
+
+### destroy() [#destroy]
+
+**`destroy()`** 方法释放与该张量关联的资源。它是幂等的：多次调用与调用一次的效果相同。
+
+调用 `destroy()` 之后：
+
+- 该张量任何待处理的 `readTensor()` Promise 都会以 `InvalidStateError` [`DOMException`](https://developer.mozilla.org/zh-CN/docs/Web/API/DOMException) 拒绝。
+- 将该张量用于 `dispatch()`、`readTensor()`、`writeTensor()`、`exportToGPU()` 或 `MLGraphBuilder.constant()` 会因 `TypeError` 而失败。
+- 已在上下文中排队且使用该张量的工作仍会在内存释放之前完成。
+
+在使用常量张量的图构建完成之后销毁该常量张量是允许的；这些图仍然有效。当张量所属的上下文[丢失或被销毁](mlcontext#lost)时，张量也会被自动销毁。
+
+#### 语法 [#destroy-syntax]
+
+```js showLineNumbers filename="syntax.js"
+destroy()
+```
+
+#### 参数 [#destroy-parameters]
+
+无。
+
+#### 返回值 [#destroy-return-value]
+
+无（`undefined`）。
+
+## MLTensorDescriptor [#mltensordescriptor]
+
+**`MLTensorDescriptor`** 字典使用张量的能力扩展了 [`MLOperandDescriptor`](mloperand#mloperanddescriptor)。它会被传递给 [`MLContext.createTensor()`](mlcontext#createtensor) 和 [`MLContext.createExportableTensor()`](mlcontext#createexportabletensor)。
+
+| 成员 | 类型 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `dataType` _（必需）_ | [`MLOperandDataType`](mloperand#mloperanddatatype) | — | 张量的数据类型。 |
+| `shape` _（必需）_ | `sequence<unsigned long>` | — | 张量的维度。 |
+| `readable` | `boolean` | `false` | 是否可以使用 `readTensor()` 读取内容。 |
+| `writable` | `boolean` | `false` | 是否可以使用 `writeTensor()` 写入内容。 |
+
+仅请求你需要的能力。既不可读也不可写的张量仍然可以用作 `dispatch()` 的输入或输出，例如在图之间传递中间结果而无需将其复制到脚本中，并且这样可以让实现选择最高效的内存。
+
+## 导出到 WebGPU [#exporting-to-webgpu]
+
+使用 [`createExportableTensor()`](mlcontext#createexportabletensor) 创建的张量可以通过 [`MLContext.exportToGPU()`](mlcontext#exporttogpu) 交给 WebGPU，该方法返回一个 `GPUBuffer`。当张量处于**已导出**状态时，WebGPU 对其拥有独占访问权，使用它的 WebNN 操作会因 `TypeError` 而失败。对返回的 `GPUBuffer` 调用 `destroy()` 会将张量归还给 WebNN。
+
+## 示例 [#examples]
+
+### 创建、写入和读取张量 [#creating-writing-and-reading-a-tensor]
+
+```js showLineNumbers filename="tensor.js"
+const context = await navigator.ml.createContext();
+
+const tensor = await context.createTensor({
+  dataType: 'float32',
+  shape: [2, 2],
+  readable: true,
+  writable: true,
+});
+console.log(tensor.shape, tensor.dataType); // [2, 2] "float32"
+
+context.writeTensor(tensor, new Float32Array([1, 2, 3, 4]));
+const data = new Float32Array(await context.readTensor(tensor));
+console.log(data); // Float32Array [1, 2, 3, 4]
+
+tensor.destroy();
+```
+
+### 串联多个图而无需复制到脚本 [#chaining-graphs-without-copying-to-script]
+
+```js showLineNumbers filename="chaining.js"
+const desc = { dataType: 'float32', shape: [1, 1024] };
+
+// 一个脚本无需读取或写入的中间张量。
+const hidden = await context.createTensor(desc);
+const input = await context.createTensor({ ...desc, writable: true });
+const output = await context.createTensor({ ...desc, readable: true });
+
+context.writeTensor(input, inputData);
+context.dispatch(encoderGraph, { x: input }, { h: hidden });
+context.dispatch(decoderGraph, { h: hidden }, { y: output });
+
+const result = new Float32Array(await context.readTensor(output));
+```
+
+### 处理不可读的张量 [#handling-a-non-readable-tensor]
+
+```js showLineNumbers filename="non-readable.js"
+const tensor = await context.createTensor({ dataType: 'float32', shape: [4] });
+try {
+  await context.readTensor(tensor);
+} catch (e) {
+  console.log(e.name); // "TypeError" — 该张量不是使用 readable: true 创建的。
 }
 ```
 
-### Properties
+## 规范 [#specifications]
 
-- `dataType` (readonly)
-  - Returns the tensor's data type as specified in its descriptor
-  - Type: `MLOperandDataType`
+| 规范 | 状态 |
+| --- | --- |
+| [Web 神经网络 API — `MLTensor` 接口](https://www.w3.org/TR/webnn/#api-mltensor) | 候选推荐草案 |
+| [Web 神经网络 API — `MLTensorDescriptor` 字典](https://www.w3.org/TR/webnn/#api-mltensordescriptor) | 候选推荐草案 |
 
-- `shape` (readonly)
-  - Returns the tensor's dimensions as specified in its descriptor
-  - Type: `FrozenArray<unsigned long>`
+最新的编辑草案可在 [webmachinelearning.github.io/webnn](https://webmachinelearning.github.io/webnn/#api-mltensor) 查看。
 
-- `readable` (readonly)
-  - Returns whether the tensor's contents can be read
-  - Type: `boolean`
+## 浏览器兼容性 [#browser-compatibility]
 
-- `writable` (readonly)
-  - Returns whether the tensor's contents can be written
-  - Type: `boolean`
+> <InfoIcon /> WebNN 正在积极开发中，不同浏览器、操作系统和硬件的支持情况各不相同。`constant` 属性和可导出张量是较新的新增内容，可能尚未被实现。
 
-### Methods
+参见[浏览器兼容性：WebNN API](../browser-compatibility/api#webnn-apis)。
 
-#### destroy()
+## 参见 [#see-also]
 
-Releases the resources associated with the MLTensor.
-
-##### Syntax
-
-```javascript
-tensor.destroy()
-```
-
-##### Return value
-
-- `undefined`
-
-##### Description
-
-The `destroy()` method is idempotent, meaning multiple calls to this method on the same tensor will have the same effect as a single call.
-
-### Memory Allocation
-
-The memory backing an `MLTensor` is allocated according to implementation-defined requirements of the associated `MLContext` and `MLTensorDescriptor`. These requirements may include:
-
-- Specific byte alignment constraints
-- Allocation in particular memory pools
-- Other implementation-specific requirements
-
-## Examples
-
-### Creating and Using an MLTensor
-
-```js showLineNumbers filename="example-1.js"
- async function mlTensor() {
-  // Define tensor descriptor
-  const tensorDescriptor = {
-    dataType: "float32",
-    shape: [1, 28, 28, 1],
-    readable: true,
-    writable: true
-  };
- 
-  try {
-    // Create tensor through MLContext and MLTensorDescriptor
-    const context = await navigator.ml.createContext({
-      deviceType: 'gpu'
-    });
-    const tensor = await context.createTensor(tensorDescriptor);
-
-    // Use the tensor
-    console.log("Tensor shape:", tensor.shape);
-    console.log("Data type:", tensor.dataType);
-    
-    // Clean up when done
-    tensor.destroy();
-  } catch (error) {
-    console.error("Error creating tensor:", error);
-  }
-}
-```
-
-### Reading MLTensor Data
-
-```js showLineNumbers filename="example-2.js"
-async function readTensorData(tensor) {
-  if (tensor.readable) {
-    try {
-      const data = await context.readTensor(tensor);
-      console.log("Tensor data:", data);
-    } catch (error) {
-      console.error("Error reading tensor:", error);
-    }
-  }
-}
-```
-
-## Specifications
-
-| WebNN API | Status |
-|--------------|---------|
-| [`MLTensor` interface](https://webmachinelearning.github.io/webnn/#api-mltensor) | Candidate Recommendation Draft |
-
-## Security Requirements
-
-- This API requires a secure context (`HTTPS` or `localhost`)
-- Available in:
-  - Window context
-  - Dedicated Web Workers
-
-## Browser Compatibility
-
-See [Browser Compatibility: WebNN API](browser-compatibility#webnn-apis)
+- [`MLContext`](mlcontext)
+- [`MLGraphBuilder.constant()`](mlgraphbuilder#constant)
+- [MLTensor 说明文档](https://github.com/webmachinelearning/webnn/blob/main/mltensor-explainer.md)
