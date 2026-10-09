@@ -1,4 +1,4 @@
-import { Tabs } from "nextra/components";
+import { Tabs, Steps } from "nextra/components";
 import Image from "next/image";
 import TransformersJs from "../../../../../app/_components/icons/transformersjs.jsx";
 import WebNn from "../../../../../app/_components/icons/webnn.jsx";
@@ -10,33 +10,302 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
   <WebNn className="webnn-logo" />
 </div>
 
-[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) provides browser-based machine learning capabilities that mirror the Hugging Face Transformers Python library. It supports a wide range of pretrained models across multiple domains. 
+# Transformers.js
 
-Under the hood, [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) uses ONNX Runtime for model execution in the browser. You can convert existing PyTorch, TensorFlow, or JAX models to ONNX format using the Optimum library.
+[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) 将 Hugging Face 风格的 `pipeline()` API 带到了 JavaScript。你只需指定任务和模型，它就会下载 ONNX 权重，执行前处理、推理和后处理，并返回简洁的结果。它涵盖文本、视觉和音频任务。
 
-```js showLineNumbers filename="example.js"
-import * as transformers from from '@huggingface/transformers';
+在底层，Transformers.js 在浏览器中通过 [ONNX Runtime Web](../onnx-runtime/onnx-runtime) 运行模型。WebNN 是它可以通过 `device` 选项选择的执行提供程序之一。你可以使用 [Optimum](https://huggingface.co/docs/optimum) 库将现有的 PyTorch、TensorFlow 或 JAX 模型转换为 ONNX。
 
-const path = 'xenova/resnet-50';
-const options = {
-  dtype: 'fp16',
-  device: 'webnn-gpu', // 'webnn', 'webnn-cpu', 'webnn-npu'
-  session_options: {
-      freeDimensionOverrides: {
-        batch_size: 1,
-        num_channels: 3,
-        height: 224,
-        width: 224,
-      },
-      context: {},
-  },
-};
+> <InfoIcon /> 本页代码面向 Transformers.js 4.x（`@huggingface/transformers`）。在 config.json 中使用自由维度覆盖需要 3.5.0 或更高版本。WebNN 的支持情况取决于你的浏览器和硬件。
 
-const classifier = await transformers.pipeline('image-classification', path, options);
-let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
+## 何时选择 Transformers.js [#when-to-choose]
+
+| | Transformers.js | [ONNX Runtime Web](../onnx-runtime/onnx-runtime) | [LiteRT.js](../lite-rt/lite-rt) |
+| --- | --- | --- | --- |
+| **模型格式** | 来自 Hugging Face Hub 的 ONNX 模型 | `.onnx` | `.tflite` |
+| **抽象层级** | 任务 pipeline，已包含前处理和后处理 | 前处理和后处理由你编写 | 前处理和后处理由你编写 |
+| **WebNN 选项** | `device: 'webnn-gpu'` 等 | `executionProviders: ['webnn']` | `accelerator: 'webnn'` |
+
+如果 Hub 上已有适合你任务的模型，并且你希望用几行代码得到结果，就可以选择 Transformers.js。
+
+## 前提条件 [#prerequisites]
+
+- 已启用 WebNN 的浏览器。请参见[安装](../../get-started/installation)。
+- [安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)：HTTPS 或 `localhost`。
+- Hugging Face Hub 上的 ONNX 模型，或在本地提供的模型。
+
+## 安装 [#install]
+
+```bash showLineNumbers filename="terminal"
+npm install @huggingface/transformers
 ```
 
-> <InfoIcon /> WebNN does not currently support dynamic shapes and requires [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) to be set.
+或者在模块脚本中通过 CDN 加载：
 
-> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) can be set in sample code above or just in config.json of your models as a field within "transformers.js_config". 
-> When `free_dimension_overrides` is not set, you may experience significant performance degradation.
+```js showLineNumbers filename="cdn.js"
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+```
+
+## 选择设备 [#devices]
+
+将 `device` 传给 `pipeline()`。只有当 `navigator.ml` 存在时，才会接受 WebNN 设备字符串。
+
+| `device` | 执行提供程序 | 说明 |
+| --- | --- | --- |
+| `'webnn-npu'` | WebNN，设备类型 `npu` | 请求使用 NPU。 |
+| `'webnn-gpu'` | WebNN，设备类型 `gpu` | 请求使用 GPU。 |
+| `'webnn-cpu'` | WebNN，设备类型 `cpu` | 请求使用 CPU。 |
+| `'webnn'` | WebNN，设备类型 `cpu` | 与 `'webnn-cpu'` 的映射相同。 |
+| `'webgpu'` | WebGPU | 当 `navigator.gpu` 存在时可用。 |
+| `'wasm'` | WebAssembly | 未设置 `device` 时的浏览器默认值。 |
+| `'auto'` | 按优先级顺序使用所有受支持的设备 | WebNN NPU、GPU、CPU，然后是 WebGPU，最后是 Wasm。 |
+| `'gpu'` | WebGPU 或 WebNN GPU | 从受支持的设备中选择。 |
+
+设备类型只是一个请求，最终由浏览器做出选择，参见 [`ML.createContext()`](../../../api-reference/webnn/ml#createcontext)。
+
+## 选择 dtype [#dtypes]
+
+`dtype` 决定下载哪个模型文件变体，例如 `fp32` 对应 `model.onnx`，`fp16` 对应 `model_fp16.onnx`。
+
+| `dtype` | 文件后缀 | 建议 |
+| --- | --- | --- |
+| `'fp32'` | 无 | 除 `wasm` 外所有设备的默认值。是使用 WebNN 最稳妥的起点。 |
+| `'fp16'` | `_fp16` | 体积更小，在 GPU 和 NPU 上通常更快。需要模型发布了该变体。 |
+| `'q8'`, `'int8'`, `'uint8'` | `_quantized`, `_int8`, `_uint8` | 8 位变体。`q8` 是 `wasm` 的默认值。WebNN 对算子的支持各不相同，请自行测试。 |
+| `'q4'`, `'q4f16'`, `'bnb4'` | `_q4`, `_q4f16`, `_bnb4` | 4 位变体，主要用于大语言模型。 |
+
+具体有哪些变体取决于模型。请查看模型在 Hub 上的 `onnx` 文件夹，或调用 `ModelRegistry.get_available_dtypes()`，参见 [dtypes 指南](https://huggingface.co/docs/transformers.js/en/guides/dtypes)。未知的 dtype 名称会抛出错误。
+
+## 使用 WebNN 运行 pipeline [#run-a-pipeline]
+
+<Steps>
+
+### 检查 WebNN [#step-detect]
+
+```js showLineNumbers filename="detect.js"
+const hasWebNN = typeof navigator !== 'undefined' && 'ml' in navigator;
+console.log({ hasWebNN });
+```
+
+### 创建 pipeline [#step-create]
+
+`pipeline(task, model, options)` 返回一个可调用对象。传入 WebNN 设备、dtype，以及适用于你模型的自由维度覆盖。
+
+```js showLineNumbers filename="pipeline.js"
+import { pipeline } from '@huggingface/transformers';
+
+const classifier = await pipeline('image-classification', 'Xenova/resnet-50', {
+  device: 'webnn-gpu',
+  dtype: 'fp32',
+  session_options: {
+    freeDimensionOverrides: {
+      batch_size: 1,
+      num_channels: 3,
+      height: 224,
+      width: 224,
+    },
+  },
+});
+```
+
+### 运行推理 [#step-run]
+
+```js showLineNumbers filename="run.js"
+const imageUrl = 'https://example.com/cat.jpg';
+const output = await classifier(imageUrl, { top_k: 3 });
+console.log(output); // [{ label, score }, ...]
+```
+
+### 释放资源 [#step-dispose]
+
+```js showLineNumbers filename="dispose.js"
+await classifier.dispose();
+```
+
+</Steps>
+
+> <InfoIcon /> WebNN 目前不支持动态形状，需要设置 [`free_dimension_overrides`](../transformers-js/free-dimension-overrides)。
+
+> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) 可以在上面的示例代码中设置，也可以只在模型的 config.json 中，作为 "transformers.js_config" 内的一个字段来设置。
+> 未设置 `free_dimension_overrides` 时，你可能会遇到明显的性能下降。
+
+## 完整示例：带回退的图像分类 [#image-classification]
+
+Transformers.js 本身不会回退。如果你请求了 WebNN 设备而 `navigator.ml` 不存在，`pipeline()` 会抛出 `Unsupported device`。请自行选择设备并捕获失败。
+
+```js showLineNumbers filename="classify.js"
+import { pipeline } from '@huggingface/transformers';
+
+const MODEL = 'Xenova/resnet-50';
+const OVERRIDES = { batch_size: 1, num_channels: 3, height: 224, width: 224 };
+
+export async function createClassifier(onProgress) {
+  const hasWebNN = typeof navigator !== 'undefined' && 'ml' in navigator;
+  const candidates = hasWebNN ? ['webnn-gpu', 'webnn-npu', 'wasm'] : ['wasm'];
+
+  for (const device of candidates) {
+    try {
+      const classifier = await pipeline('image-classification', MODEL, {
+        device,
+        dtype: 'fp32',
+        session_options: { freeDimensionOverrides: OVERRIDES },
+        progress_callback: onProgress,
+      });
+      console.log(`Using ${device}`);
+      return classifier;
+    } catch (error) {
+      console.warn(`${device} failed, trying the next device`, error);
+    }
+  }
+  throw new Error('No device could load the model.');
+}
+
+export async function classify(classifier, imageUrl) {
+  try {
+    return await classifier(imageUrl, { top_k: 3 });
+  } catch (error) {
+    console.error('Inference failed', error);
+    return [];
+  }
+}
+```
+
+```js showLineNumbers filename="main.js"
+import { createClassifier, classify } from './classify.js';
+
+const classifier = await createClassifier((info) => {
+  if (info.status === 'progress_total') console.log(`Loading ${Math.round(info.progress)}%`);
+});
+console.log(await classify(classifier, 'https://example.com/cat.jpg'));
+await classifier.dispose();
+```
+
+## 第二个示例：文本嵌入向量 [#embeddings]
+
+嵌入模型的输入是文本，因此它们的自由维度通常是批大小和序列长度。将每个输入填充到固定长度，WebNN 就可以使用固定形状。
+
+```js showLineNumbers filename="embeddings.js"
+import { pipeline } from '@huggingface/transformers';
+
+const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+  device: 'webnn-gpu',
+  dtype: 'fp32',
+  session_options: {
+    freeDimensionOverrides: { batch_size: 1, sequence_length: 128 },
+  },
+});
+
+const output = await extractor('WebNN runs this on your GPU.', {
+  pooling: 'mean',
+  normalize: true,
+});
+console.log(output.dims); // [1, 384]
+```
+
+> <InfoIcon /> `freeDimensionOverrides` 中的名称必须与模型 ONNX 文件中的符号维度名称一致。可以使用 [Netron](https://netron.app/) 查看模型来找到它们，参见[自由维度覆盖](../transformers-js/free-dimension-overrides#symbolic-dimension)。上面的名称只是示例，你的模型可能不同。同时请确认分词器填充到你所固定的长度。
+
+## 自由维度覆盖 [#free-dimension-overrides]
+
+Transformers.js 按以下顺序应用覆盖，先找到的优先生效。
+
+1. 代码中的 `session_options.freeDimensionOverrides`。
+2. config.json 中 `transformers.js_config.device_config` 内、针对所选设备的 `free_dimension_overrides`。
+3. config.json 中 `transformers.js_config` 顶层的 `free_dimension_overrides`。
+
+```json showLineNumbers filename="config.json"
+{
+  "transformers.js_config": {
+    "device_config": {
+      "webnn-gpu": {
+        "dtype": "fp16",
+        "free_dimension_overrides": { "batch_size": 1, "height": 224, "width": 224 }
+      }
+    }
+  }
+}
+```
+
+如果在 WebNN 设备上没有找到任何覆盖，Transformers.js 会输出一条警告。详情参见[自由维度覆盖](../transformers-js/free-dimension-overrides)。
+
+## 选项参考 [#options]
+
+以下是本教程中用到的 `pipeline()` 选项。
+
+| 选项 | 描述 |
+| --- | --- |
+| `device` | 来自[上表](#devices)的设备字符串。 |
+| `dtype` | 一个 dtype，或一个把模型文件名映射到 dtype 的对象。 |
+| `session_options` | 传给 ONNX Runtime。包括 `freeDimensionOverrides` 和 `executionProviders`。 |
+| `progress_callback` | 以状态对象调用：`initiate`、`download`、`progress`、`progress_total`、`done`、`ready`。 |
+| `revision` | 模型修订版本，例如分支名或提交哈希。 |
+
+常用的 `env` 设置：`env.allowLocalModels`（浏览器中默认为 `false`）、`env.allowRemoteModels`（默认为 `true`）、`env.remoteHost`、`env.useBrowserCache`（Cache API 存在时默认为 `true`）以及 `env.cacheKey`（默认为 `transformers-cache`）。下载的模型文件由浏览器缓存，因此之后的加载无需再访问网络。
+
+## 在 Web Worker 中运行 Transformers.js [#web-worker]
+
+在 worker 内创建 pipeline，使加载和推理都不占用主线程。通过消息把进度和结果回传。
+
+```js showLineNumbers filename="worker.js"
+import { pipeline } from '@huggingface/transformers';
+
+let classifier;
+
+self.onmessage = async ({ data }) => {
+  if (data.type === 'load') {
+    classifier = await pipeline('image-classification', 'Xenova/resnet-50', {
+      device: 'webnn-gpu',
+      dtype: 'fp32',
+      session_options: {
+        freeDimensionOverrides: { batch_size: 1, num_channels: 3, height: 224, width: 224 },
+      },
+      progress_callback: (info) => self.postMessage({ type: 'progress', info }),
+    });
+    self.postMessage({ type: 'ready' });
+  } else if (data.type === 'classify') {
+    self.postMessage({ type: 'result', result: await classifier(data.url, { top_k: 3 }) });
+  }
+};
+```
+
+```js showLineNumbers filename="main.js"
+const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+worker.postMessage({ type: 'load' });
+```
+
+> <InfoIcon /> worker 中 WebNN 是否可用取决于浏览器。请像回退示例那样，在 worker 内检查 `'ml' in navigator`。
+
+## 验证是否使用了 WebNN [#verify]
+
+- 如果 Transformers.js 输出了 WebNN 需要 `free_dimension_overrides` 的警告，说明没有找到任何覆盖。
+- 使用 `env.logLevel = LogLevel.DEBUG` 提高日志级别，它对应 ONNX Runtime 的详细日志。这些日志在创建会话期间非常嘈杂。
+- 使用[调试](../../get-started/debug)中的浏览器和操作系统工具来确认 GPU 或 NPU 的活动。
+
+```js showLineNumbers filename="logging.js"
+import { env, LogLevel } from '@huggingface/transformers';
+
+env.logLevel = LogLevel.DEBUG;
+```
+
+## 故障排除 [#troubleshooting]
+
+| 现象 | 原因与解决方法 |
+| --- | --- |
+| `Unsupported device: "webnn-gpu"` | `navigator.ml` 不存在。请启用 WebNN，参见[安装](../../get-started/installation)，或选择 `wasm`。 |
+| 警告 WebNN requires `free_dimension_overrides` | 在代码或 config.json 中设置覆盖，参见[上文](#free-dimension-overrides)。 |
+| WebNN 上推理非常慢 | 未设置动态形状对应的覆盖，或不支持的算子在 CPU 上运行。参见[性能问题](../../troubleshooting/performance-issues)。 |
+| `Invalid dtype` | 该 dtype 字符串不是已知值。请使用 [dtype 表](#dtypes)中的值。 |
+| 加载模型文件时出现 404 | 模型没有发布该 dtype 变体。请查看它在 Hub 上的 `onnx` 文件夹。 |
+| 某个模型创建会话失败 | 该模型可能使用了 WebNN 无法运行的算子或动态形状。请尝试其他 dtype、修正覆盖，或回退到 `wasm`。 |
+| 内存不足 | 使用更小的模型或精度更低的 dtype，并对不再需要的 pipeline 调用 `dispose()`。 |
+
+## 限制 [#limitations]
+
+- WebNN 需要固定形状，因此输入必须与你的覆盖一致。可变长度的文本或图像尺寸需要填充、缩放，或为每种形状使用一个 pipeline。
+- 不存在从 WebNN 到其他设备的自动回退，必须由你的代码来选择。
+- 并非每个模型或算子都能在 WebNN 上良好运行。请在你的目标硬件上测试模型。
+
+## 后续步骤 [#next-steps]
+
+- 在[自由维度覆盖](../transformers-js/free-dimension-overrides)中了解更多。
+- 在 [ONNX Runtime Web](../onnx-runtime/onnx-runtime) 中了解底层引擎，或与 [LiteRT.js](../lite-rt/lite-rt) 进行比较。
+- 阅读 [Transformers.js 文档](https://huggingface.co/docs/transformers.js/en/index)和 [dtypes 指南](https://huggingface.co/docs/transformers.js/en/guides/dtypes)。

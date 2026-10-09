@@ -12,9 +12,11 @@ The WebNN (Web Neural Network) API enables neural network operations in web appl
 
 ## Working with Operations and Tensors
 
-The API uses two primary abstractions:
-- `Operand` objects represent tensors (multi-dimensional arrays) that can be inputs, outputs, or constants
-- `MLContext` provides operations for building and executing computational graphs
+The API uses four primary abstractions:
+- [`MLContext`](../../api-reference/webnn/mlcontext) is the execution environment, created with `navigator.ml.createContext()`. It schedules graph execution and creates tensors
+- [`MLGraphBuilder`](../../api-reference/webnn/mlgraphbuilder) builds a computational graph from [operations](../../api-reference/webnn/mlgraphbuilder-ops) such as `add()`, `matmul()` and `conv2d()`
+- [`MLOperand`](../../api-reference/webnn/mloperand) objects represent the nodes of the graph: inputs, constants, and the results of operations. An operand describes a data type and a shape, and holds no data
+- [`MLTensor`](../../api-reference/webnn/mltensor) objects hold the data that flows in and out of a compiled graph. You write input data into a tensor and read results back from a tensor
 
 ## Graph Lifecycle
 
@@ -82,4 +84,8 @@ console.log('Output value:', new Float32Array(result));  // [1, 1, 1, 1]
 
 ## Additional Resources
 
-- [Framework vs Vanilla](../tutorials)
+- [Framework vs Vanilla](../tutorials) to choose between a JavaScript ML framework and vanilla WebNN
+- Run models with a framework: [LiteRT.js](../tutorials/lite-rt/lite-rt), [ONNX Runtime Web](../tutorials/onnx-runtime/onnx-runtime) and [Transformers.js](../tutorials/transformers-js/transformers-js)
+- [Using TypeScript with WebNN API](./using-typescript) for type definitions
+- [WebNN API reference](../../api-reference/webnn/mlcontext) and the [list of operations](../../api-reference/webnn/mlgraphbuilder-ops)
+- [Troubleshooting](../troubleshooting/common-errors) for common WebNN errors

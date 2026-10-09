@@ -1,4 +1,4 @@
-import { Tabs } from "nextra/components";
+import { Tabs, Steps } from "nextra/components";
 import Image from "next/image";
 import TransformersJs from "../../../../../app/_components/icons/transformersjs.jsx";
 import WebNn from "../../../../../app/_components/icons/webnn.jsx";
@@ -10,33 +10,302 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
   <WebNn className="webnn-logo" />
 </div>
 
-[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) provides browser-based machine learning capabilities that mirror the Hugging Face Transformers Python library. It supports a wide range of pretrained models across multiple domains. 
+# Transformers.js
 
-Under the hood, [Transformers.js](https://huggingface.co/docs/transformers.js/en/index) uses ONNX Runtime for model execution in the browser. You can convert existing PyTorch, TensorFlow, or JAX models to ONNX format using the Optimum library.
+[Transformers.js](https://huggingface.co/docs/transformers.js/en/index) brings Hugging Face style `pipeline()` APIs to JavaScript. You name a task and a model, and it downloads the ONNX weights, runs pre-processing, inference and post-processing, and returns plain results. It covers text, vision and audio tasks.
 
-```js showLineNumbers filename="example.js"
-import * as transformers from from '@huggingface/transformers';
+Under the hood, Transformers.js runs models on [ONNX Runtime Web](../onnx-runtime/onnx-runtime) in the browser. WebNN is one of the execution providers it can select, through the `device` option. You can convert existing PyTorch, TensorFlow or JAX models to ONNX with the [Optimum](https://huggingface.co/docs/optimum) library.
 
-const path = 'xenova/resnet-50';
-const options = {
-  dtype: 'fp16',
-  device: 'webnn-gpu', // 'webnn', 'webnn-cpu', 'webnn-npu'
-  session_options: {
-      freeDimensionOverrides: {
-        batch_size: 1,
-        num_channels: 3,
-        height: 224,
-        width: 224,
-      },
-      context: {},
-  },
-};
+> <InfoIcon /> The code on this page targets Transformers.js 4.x (`@huggingface/transformers`). Free dimension overrides in config.json need 3.5.0 or later. WebNN support depends on your browser and hardware.
 
-const classifier = await transformers.pipeline('image-classification', path, options);
-let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
+## When to choose Transformers.js [#when-to-choose]
+
+| | Transformers.js | [ONNX Runtime Web](../onnx-runtime/onnx-runtime) | [LiteRT.js](../lite-rt/lite-rt) |
+| --- | --- | --- | --- |
+| **Model format** | ONNX models from the Hugging Face Hub | `.onnx` | `.tflite` |
+| **Level of abstraction** | Task pipelines, pre- and post-processing included | You write pre- and post-processing | You write pre- and post-processing |
+| **WebNN option** | `device: 'webnn-gpu'` and friends | `executionProviders: ['webnn']` | `accelerator: 'webnn'` |
+
+Choose Transformers.js when a Hub model already exists for your task and you want results in a few lines.
+
+## Prerequisites [#prerequisites]
+
+- A browser with WebNN enabled. Follow [Installation](../../get-started/installation).
+- A [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS or `localhost`.
+- An ONNX model on the Hugging Face Hub, or served locally.
+
+## Install [#install]
+
+```bash showLineNumbers filename="terminal"
+npm install @huggingface/transformers
 ```
+
+Or load it from a CDN in a module script:
+
+```js showLineNumbers filename="cdn.js"
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+```
+
+## Choose a device [#devices]
+
+Pass `device` to `pipeline()`. WebNN device strings are only accepted when `navigator.ml` exists.
+
+| `device` | Execution provider | Notes |
+| --- | --- | --- |
+| `'webnn-npu'` | WebNN, device type `npu` | Requests an NPU. |
+| `'webnn-gpu'` | WebNN, device type `gpu` | Requests a GPU. |
+| `'webnn-cpu'` | WebNN, device type `cpu` | Requests a CPU. |
+| `'webnn'` | WebNN, device type `cpu` | Same mapping as `'webnn-cpu'`. |
+| `'webgpu'` | WebGPU | Available when `navigator.gpu` exists. |
+| `'wasm'` | WebAssembly | Browser default when `device` is not set. |
+| `'auto'` | Every supported device in priority order | WebNN NPU, GPU, CPU, then WebGPU, then Wasm. |
+| `'gpu'` | WebGPU, or WebNN GPU | Picks from the supported devices. |
+
+The device type is a request. The browser makes the final choice, see [`ML.createContext()`](../../../api-reference/webnn/ml#createcontext).
+
+## Choose a dtype [#dtypes]
+
+`dtype` selects which model file variant is downloaded, such as `model.onnx` for `fp32` or `model_fp16.onnx` for `fp16`.
+
+| `dtype` | File suffix | Guidance |
+| --- | --- | --- |
+| `'fp32'` | none | The default for every device except `wasm`. The safest start for WebNN. |
+| `'fp16'` | `_fp16` | Smaller and often faster on GPU and NPU. Needs the model to publish it. |
+| `'q8'`, `'int8'`, `'uint8'` | `_quantized`, `_int8`, `_uint8` | 8-bit variants. `q8` is the default for `wasm`. Operator support on WebNN varies, so test. |
+| `'q4'`, `'q4f16'`, `'bnb4'` | `_q4`, `_q4f16`, `_bnb4` | 4-bit variants, mostly for large language models. |
+
+Which variants exist depends on the model. Check the model's `onnx` folder on the Hub, or call `ModelRegistry.get_available_dtypes()`, see the [dtypes guide](https://huggingface.co/docs/transformers.js/en/guides/dtypes). Unknown dtype names throw an error.
+
+## Run a pipeline with WebNN [#run-a-pipeline]
+
+<Steps>
+
+### Check for WebNN [#step-detect]
+
+```js showLineNumbers filename="detect.js"
+const hasWebNN = typeof navigator !== 'undefined' && 'ml' in navigator;
+console.log({ hasWebNN });
+```
+
+### Create the pipeline [#step-create]
+
+`pipeline(task, model, options)` returns a callable. Pass the WebNN device, a dtype, and the free dimension overrides for your model.
+
+```js showLineNumbers filename="pipeline.js"
+import { pipeline } from '@huggingface/transformers';
+
+const classifier = await pipeline('image-classification', 'Xenova/resnet-50', {
+  device: 'webnn-gpu',
+  dtype: 'fp32',
+  session_options: {
+    freeDimensionOverrides: {
+      batch_size: 1,
+      num_channels: 3,
+      height: 224,
+      width: 224,
+    },
+  },
+});
+```
+
+### Run inference [#step-run]
+
+```js showLineNumbers filename="run.js"
+const imageUrl = 'https://example.com/cat.jpg';
+const output = await classifier(imageUrl, { top_k: 3 });
+console.log(output); // [{ label, score }, ...]
+```
+
+### Release resources [#step-dispose]
+
+```js showLineNumbers filename="dispose.js"
+await classifier.dispose();
+```
+
+</Steps>
 
 > <InfoIcon /> WebNN does not currently support dynamic shapes and requires [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) to be set.
 
-> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) can be set in sample code above or just in config.json of your models as a field within "transformers.js_config". 
+> <InfoIcon /> [`free_dimension_overrides`](../transformers-js/free-dimension-overrides) can be set in sample code above or just in config.json of your models as a field within "transformers.js_config".
 > When `free_dimension_overrides` is not set, you may experience significant performance degradation.
+
+## Complete example: image classification with fallback [#image-classification]
+
+Transformers.js does not fall back by itself. If you request a WebNN device and `navigator.ml` is missing, `pipeline()` throws `Unsupported device`. Choose the device yourself and catch failures.
+
+```js showLineNumbers filename="classify.js"
+import { pipeline } from '@huggingface/transformers';
+
+const MODEL = 'Xenova/resnet-50';
+const OVERRIDES = { batch_size: 1, num_channels: 3, height: 224, width: 224 };
+
+export async function createClassifier(onProgress) {
+  const hasWebNN = typeof navigator !== 'undefined' && 'ml' in navigator;
+  const candidates = hasWebNN ? ['webnn-gpu', 'webnn-npu', 'wasm'] : ['wasm'];
+
+  for (const device of candidates) {
+    try {
+      const classifier = await pipeline('image-classification', MODEL, {
+        device,
+        dtype: 'fp32',
+        session_options: { freeDimensionOverrides: OVERRIDES },
+        progress_callback: onProgress,
+      });
+      console.log(`Using ${device}`);
+      return classifier;
+    } catch (error) {
+      console.warn(`${device} failed, trying the next device`, error);
+    }
+  }
+  throw new Error('No device could load the model.');
+}
+
+export async function classify(classifier, imageUrl) {
+  try {
+    return await classifier(imageUrl, { top_k: 3 });
+  } catch (error) {
+    console.error('Inference failed', error);
+    return [];
+  }
+}
+```
+
+```js showLineNumbers filename="main.js"
+import { createClassifier, classify } from './classify.js';
+
+const classifier = await createClassifier((info) => {
+  if (info.status === 'progress_total') console.log(`Loading ${Math.round(info.progress)}%`);
+});
+console.log(await classify(classifier, 'https://example.com/cat.jpg'));
+await classifier.dispose();
+```
+
+## Second example: text embeddings [#embeddings]
+
+Embedding models take text, so their free dimensions are usually the batch size and sequence length. Padding every input to a fixed length lets WebNN use fixed shapes.
+
+```js showLineNumbers filename="embeddings.js"
+import { pipeline } from '@huggingface/transformers';
+
+const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+  device: 'webnn-gpu',
+  dtype: 'fp32',
+  session_options: {
+    freeDimensionOverrides: { batch_size: 1, sequence_length: 128 },
+  },
+});
+
+const output = await extractor('WebNN runs this on your GPU.', {
+  pooling: 'mean',
+  normalize: true,
+});
+console.log(output.dims); // [1, 384]
+```
+
+> <InfoIcon /> The names in `freeDimensionOverrides` must match the symbolic dimension names in the model's ONNX file. Inspect the model with [Netron](https://netron.app/) to find them, see [Free dimension overrides](../transformers-js/free-dimension-overrides#symbolic-dimension). The names above are examples and may differ for your model. Also check that the tokenizer pads to the length you fix.
+
+## Free dimension overrides [#free-dimension-overrides]
+
+Transformers.js applies overrides in this order. The first one found wins.
+
+1. `session_options.freeDimensionOverrides` in your code.
+2. `free_dimension_overrides` inside `transformers.js_config.device_config` for the selected device in config.json.
+3. `free_dimension_overrides` at the top level of `transformers.js_config` in config.json.
+
+```json showLineNumbers filename="config.json"
+{
+  "transformers.js_config": {
+    "device_config": {
+      "webnn-gpu": {
+        "dtype": "fp16",
+        "free_dimension_overrides": { "batch_size": 1, "height": 224, "width": 224 }
+      }
+    }
+  }
+}
+```
+
+If no overrides are found on a WebNN device, Transformers.js logs a warning. See [Free dimension overrides](../transformers-js/free-dimension-overrides) for details.
+
+## Options reference [#options]
+
+These are `pipeline()` options used in this tutorial.
+
+| Option | Description |
+| --- | --- |
+| `device` | Device string from the [table above](#devices). |
+| `dtype` | One dtype, or an object that maps model file names to dtypes. |
+| `session_options` | Passed to ONNX Runtime. Includes `freeDimensionOverrides` and `executionProviders`. |
+| `progress_callback` | Called with status objects: `initiate`, `download`, `progress`, `progress_total`, `done`, `ready`. |
+| `revision` | Model revision, such as a branch name or commit hash. |
+
+Useful `env` settings: `env.allowLocalModels` (default `false` in browsers), `env.allowRemoteModels` (default `true`), `env.remoteHost`, `env.useBrowserCache` (default `true` when the Cache API exists), and `env.cacheKey` (default `transformers-cache`). Downloaded model files are cached by the browser, so later loads skip the network.
+
+## Run Transformers.js in a Web Worker [#web-worker]
+
+Create the pipeline inside a worker so loading and inference stay off the main thread. Post progress and results back as messages.
+
+```js showLineNumbers filename="worker.js"
+import { pipeline } from '@huggingface/transformers';
+
+let classifier;
+
+self.onmessage = async ({ data }) => {
+  if (data.type === 'load') {
+    classifier = await pipeline('image-classification', 'Xenova/resnet-50', {
+      device: 'webnn-gpu',
+      dtype: 'fp32',
+      session_options: {
+        freeDimensionOverrides: { batch_size: 1, num_channels: 3, height: 224, width: 224 },
+      },
+      progress_callback: (info) => self.postMessage({ type: 'progress', info }),
+    });
+    self.postMessage({ type: 'ready' });
+  } else if (data.type === 'classify') {
+    self.postMessage({ type: 'result', result: await classifier(data.url, { top_k: 3 }) });
+  }
+};
+```
+
+```js showLineNumbers filename="main.js"
+const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+worker.postMessage({ type: 'load' });
+```
+
+> <InfoIcon /> WebNN availability in workers depends on the browser. Check `'ml' in navigator` inside the worker, as in the fallback example.
+
+## Verify that WebNN is used [#verify]
+
+- If Transformers.js logs a warning that WebNN requires `free_dimension_overrides`, no overrides were found.
+- Raise logging with `env.logLevel = LogLevel.DEBUG`, which maps to verbose ONNX Runtime logs. These are very noisy during session creation.
+- Use the browser and OS tools in [Debug](../../get-started/debug) to confirm GPU or NPU activity.
+
+```js showLineNumbers filename="logging.js"
+import { env, LogLevel } from '@huggingface/transformers';
+
+env.logLevel = LogLevel.DEBUG;
+```
+
+## Troubleshooting [#troubleshooting]
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `Unsupported device: "webnn-gpu"` | `navigator.ml` is missing. Enable WebNN, see [Installation](../../get-started/installation), or choose `wasm`. |
+| Warning that WebNN requires `free_dimension_overrides` | Set overrides in code or config.json, see [above](#free-dimension-overrides). |
+| Very slow inference on WebNN | Dynamic shapes are not set, or unsupported operators run on the CPU. See [performance issues](../../troubleshooting/performance-issues). |
+| `Invalid dtype` | The dtype string is not a known value. Use a value from the [dtype table](#dtypes). |
+| 404 when loading a model file | The model does not publish that dtype variant. Check its `onnx` folder on the Hub. |
+| Session creation fails for a model | The model may use operators or dynamic shapes WebNN cannot run. Try another dtype, fix the overrides, or fall back to `wasm`. |
+| Out of memory | Use a smaller model or a lower precision dtype, and call `dispose()` on pipelines you no longer need. |
+
+## Limitations [#limitations]
+
+- WebNN requires fixed shapes, so inputs must match your overrides. Variable length text or image sizes need padding, resizing or one pipeline per shape.
+- There is no automatic fallback from WebNN to another device. Your code must choose.
+- Not every model or operator runs well on WebNN. Test your model on your target hardware.
+
+## Next steps [#next-steps]
+
+- Learn more in [Free dimension overrides](../transformers-js/free-dimension-overrides).
+- Understand the engine in [ONNX Runtime Web](../onnx-runtime/onnx-runtime), or compare with [LiteRT.js](../lite-rt/lite-rt).
+- Read the [Transformers.js documentation](https://huggingface.co/docs/transformers.js/en/index) and the [dtypes guide](https://huggingface.co/docs/transformers.js/en/guides/dtypes).

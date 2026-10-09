@@ -2,103 +2,103 @@ import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 # WebNNUtils/OnnxConverter
 
-[WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/) is a WebNN compiler for producing pure JavaScript (JS) models from .onnx models, enabling machine learning inference in web browsers using the WebNN API without framework overhead.
+[WebNNUtils/OnnxConverter](https://github.com/MicrosoftEdge/WebNNUtils/) 是一个 WebNN 编译器，可将 .onnx 模型编译为纯 JavaScript（JS）模型，使用 WebNN API 在网页浏览器中进行机器学习推理，且没有框架开销。
 
-## Overview
+## 概述
 
-While JS ML frameworks can evaluate models in the browser, they involve shipping a framework and expensive load time preprocessing that impacts latency. During preprocessing, frameworks determine input shapes for operators, partition operators between CPU and accelerated execution, and optimize the model graph.
+虽然 JS 机器学习框架可以在浏览器中评估模型，但它们需要分发框架本身，并在加载时进行昂贵的预处理，从而影响延迟。在预处理期间，框架会确定算子的输入形状，在 CPU 与加速执行之间划分算子，并优化模型图。
 
-With OnnxConverter there is no such overhead. At compile time, OnnxConverter takes a static .onnx file and emits JS code that will build an equivalent WebNN graph. The resulting JS code can be used directly in the browser without any additional framework dependencies.
+使用 OnnxConverter 则没有这样的开销。在编译时，OnnxConverter 接收固定形状的 .onnx 文件，并生成用于构建等效 WebNN 图的 JS 代码。生成的 JS 代码可以直接在浏览器中使用，无需任何额外的框架依赖项。
 
-## Privacy and Security
+## 隐私和安全
 
-**🔒 Client-Side Processing Only**
+**🔒 仅客户端处理**
 
-All model conversion and JavaScript generation operations run exclusively in your local environment. No model data, weights, or intellectual property is transmitted to or stored on any external servers. This makes the tool safe for:
+所有模型转换和 JavaScript 生成操作都只在你的本地环境中运行。任何模型数据、权重或知识产权都不会传输到任何外部服务器，也不会存储在外部服务器上。这使得该工具适用于：
 
-- Proprietary models
-- Sensitive intellectual property
-- Enterprise environments with strict data governance
-- Any scenario requiring complete data privacy
+- 专有模型
+- 敏感的知识产权
+- 具有严格数据治理要求的企业环境
+- 任何需要完全数据隐私的场景
 
-## Generated Output
+## 生成的输出
 
-OnnxConverter generates several files:
-- A JavaScript file (`.js`) containing the WebNN graph building function
-- One or more binary files (`.bin`) containing the model weights
-- Optional JSON metadata files for debugging
+OnnxConverter 会生成多个文件：
+- 一个 JavaScript 文件（`.js`），包含 WebNN 图构建函数
+- 一个或多个二进制文件（`.bin`），包含模型权重
+- 可选的 JSON 元数据文件，用于调试
 
-The core output is a JavaScript function with the following signature:
+核心输出是一个具有以下签名的 JavaScript 函数：
 
 ```javascript
 function loadModelGraph(operand_input, weights_buffers, builder) {
-    // Generated WebNN graph building code
+    // 生成的 WebNN 图构建代码
     return output_operand; // or {output1: operand1, output2: operand2}
 }
 ```
 
-Where:
-- `operand_input` - Input operands for the model
-- `weights_buffers` - Array of ArrayBuffers containing model weights
-- `builder` - MLGraphBuilder WebNN object
+其中：
+- `operand_input` - 模型的输入操作数
+- `weights_buffers` - 包含模型权重的 ArrayBuffer 数组
+- `builder` - MLGraphBuilder WebNN 对象
 
-## Installation
+## 安装
 
-Install the required Python dependencies:
+安装所需的 Python 依赖项：
 
 ```bash
 pip install -U onnx protobuf numpy
 ```
 
-## Command-Line Interface
+## 命令行接口
 
-### Syntax
+### 语法
 
 ```bash
 python OnnxConverter.py MODEL_FILE [OPTIONS]
 ```
 
-### Required Arguments
+### 必需参数
 
 | Argument | Description |
 |----------|-------------|
-| `model_file` | Path to the input ONNX model file (`.onnx`) |
+| `model_file` | 输入 ONNX 模型文件的路径（`.onnx`） |
 
-### Optional Arguments
+### 可选参数
 
 | Argument | Description |
 |----------|-------------|
-| `--weights_file` | Path to the output weights file (default: `weights.bin`) |
-| `--output_file` | Path to the output JavaScript file (default: `model.js`) |
-| `--max_weights_size` | Maximum size of a single weights file in MB (default: 1024) |
+| `--weights_file` | 输出权重文件的路径（默认值：`weights.bin`） |
+| `--output_file` | 输出 JavaScript 文件的路径（默认值：`model.js`） |
+| `--max_weights_size` | 单个权重文件的最大大小，单位为 MB（默认值：1024） |
 
-## Basic Usage
+## 基本使用方法
 
-### Step 1: Convert the Model
+### 步骤 1：转换模型
 
 ```bash
 python OnnxConverter.py mobilenetv2-12.onnx --output_file mobilenet/mobilenet.js --weights_file mobilenet/weights.bin
 ```
 
-This command generates:
-- `mobilenet/mobilenet.js` - WebNN graph building function
-- `mobilenet/weights0.bin` - Model weights (may be split into multiple files)
+此命令会生成：
+- `mobilenet/mobilenet.js` - WebNN 图构建函数
+- `mobilenet/weights0.bin` - 模型权重（可能会拆分为多个文件）
 
-### Step 2: Post-Processing (Required)
+### 步骤 2：后处理（必需）
 
-The generated JavaScript requires post-processing to handle code ordering and CPU/GPU partitioning:
+生成的 JavaScript 需要经过后处理，以处理代码顺序和 CPU/GPU 划分：
 
 ```bash
-# Reorder operations to ensure proper dependency resolution
+# 重新排序操作，以确保正确解析依赖关系
 python ReorderModel.py mobilenet/mobilenet.js
 
-# Partition operations between CPU and GPU execution
+# 在 CPU 与 GPU 执行之间划分操作
 python CPUGraphPartitioner.py mobilenet/mobilenet.js
 ```
 
-### Step 3: Load Weights in Browser
+### 步骤 3：在浏览器中加载权重
 
-Load the weights file(s) and pass them to your WebNN model:
+加载权重文件并将其传递给你的 WebNN 模型：
 
 ```javascript
 const weights_file = 'weights0.bin';
@@ -110,61 +110,63 @@ if (!weights_response) {
 }
 const weights_buffer = await weights_response.arrayBuffer();
 
-// Create WebNN context and builder
-const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+// 创建 WebNN 上下文和构建器
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
 const builder = new MLGraphBuilder(context);
 
-// Install CPU operations polyfill
+// 安装 CPU 操作 polyfill
 InstallCpuOps(builder);
 
-// Load the model graph
+// 加载模型图
 const model_output = loadModelGraph(input_operand, [weights_buffer], builder);
 ```
 
-## Architecture and Processing Pipeline
+> <InfoIcon /> `deviceType` 选项已从 WebNN 规范的 `MLContextOptions` 中移除，因此当前的浏览器会忽略它。请改用 `powerPreference` 和 `accelerated` 提示，参见 [Migrating from deviceType](../../../api-reference/webnn/ml#migrating-from-devicetype)。
 
-### Shape Inference Handling
+## 架构和处理流水线
 
-OnnxConverter does not perform traditional shape inference. Instead, it generates WebNN graph nodes that handle dynamic shapes at runtime. The WebNN graph builder is augmented with polyfilled methods that can work with JavaScript numbers (not just tensors).
+### 形状推断处理
 
-For example, an ONNX graph with shape operations:
+OnnxConverter 不执行传统的形状推断。相反，它会生成在运行时处理动态形状的 WebNN 图节点。WebNN 图构建器通过 polyfill 方法进行了扩展，这些方法可以处理 JavaScript 数字（而不仅仅是张量）。
+
+例如，包含形状操作的 ONNX 图：
 ```javascript
-// Pseudocode
+// 伪代码
 a = tensor.shape();
 b = a * 2;
 ```
 
-Generates WebNN nodes that call `shape()` and `mul()` operations, where `mul` is polyfilled to handle JavaScript numbers returned by `shape()`.
+会生成调用 `shape()` 和 `mul()` 操作的 WebNN 节点，其中 `mul` 通过 polyfill 实现，以处理 `shape()` 返回的 JavaScript 数字。
 
-### CPU Operations Polyfill
+### CPU 操作 polyfill
 
-Before calling `loadModelGraph`, install the CPU operations polyfill:
+在调用 `loadModelGraph` 之前，请安装 CPU 操作 polyfill：
 
 ```javascript
-const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
 const builder = new MLGraphBuilder(context);
 InstallCpuOps(builder);
 ```
 
-The polyfill (defined in `CpuOps.js`) augments `MLGraphBuilder` with operators that work on JavaScript numbers, enabling operations like shape manipulation and constant folding.
+该 polyfill（定义于 `CpuOps.js`）为 `MLGraphBuilder` 扩展了可处理 JavaScript 数字的算子，从而支持形状操作和常量折叠等操作。
 
-### Processing Pipeline
+### 处理流水线
 
-The complete conversion process involves three stages:
+完整的转换过程包括三个阶段：
 
-1. **OnnxConverter.py** - Main compiler that emits JS graph building code
-2. **ReorderModel.py** - Fixes code generation where input operands are computed after being needed
-3. **CPUGraphPartitioner.py** - Annotates operations that need CPU execution with `cpu_` prefix
+1. **OnnxConverter.py** - 主编译器，生成 JS 图构建代码
+2. **ReorderModel.py** - 修复代码生成中输入操作数在被需要之后才计算的问题
+3. **CPUGraphPartitioner.py** - 为需要在 CPU 上执行的操作添加 `cpu_` 前缀标注
 
-## Multi-File Weight Support
+## 多文件权重支持
 
-For large models, weights can be automatically split across multiple files:
+对于大型模型，权重可以自动拆分为多个文件：
 
 ```bash
 python OnnxConverter.py large_model.onnx --max_weights_size 512
 ```
 
-This creates multiple weight files (`weights0.bin`, `weights1.bin`, etc.) that must all be loaded:
+这会创建多个权重文件（`weights0.bin`、`weights1.bin` 等），它们必须全部加载：
 
 ```javascript
 const weight_files = ['weights0.bin', 'weights1.bin'];
@@ -178,37 +180,37 @@ for (const file of weight_files) {
 const model_output = loadModelGraph(input_operand, weights_buffers, builder);
 ```
 
-## Supported ONNX Operations
+## 支持的 ONNX 操作
 
-OnnxConverter supports a comprehensive set of ONNX operations including:
+OnnxConverter 支持一整套 ONNX 操作，包括：
 
-### Core Operations
-- **Convolution**: Conv (with groups, padding, strides, dilations)
-- **Activation**: Relu, Sigmoid, Softmax, LeakyRelu
-- **Pooling**: GlobalAveragePool
-- **Arithmetic**: Add, Sub, Mul, Div, Pow, Sqrt
+### 核心操作
+- **卷积**：Conv（支持 groups、padding、strides、dilations）
+- **激活**：Relu、Sigmoid、Softmax、LeakyRelu
+- **池化**：GlobalAveragePool
+- **算术**：Add、Sub、Mul、Div、Pow、Sqrt
 
-### Tensor Operations
-- **Shape Manipulation**: Reshape, Transpose, Unsqueeze, Squeeze
-- **Data Movement**: Concat, Gather, Slice, Expand
-- **Comparison**: Equal, Less, Where
+### 张量操作
+- **形状操作**：Reshape、Transpose、Unsqueeze、Squeeze
+- **数据移动**：Concat、Gather、Slice、Expand
+- **比较**：Equal、Less、Where
 
-### Advanced Operations
-- **Quantization**: DequantizeLinear, DynamicQuantizeLinear, MatMulInteger
-- **Matrix Operations**: MatMul
-- **Specialized**: DepthToSpace, ConstantOfShape, ReduceMean
+### 高级操作
+- **量化**：DequantizeLinear、DynamicQuantizeLinear、MatMulInteger
+- **矩阵操作**：MatMul
+- **专用操作**：DepthToSpace、ConstantOfShape、ReduceMean
 
-### Software-Implemented Operations
-Some operations are implemented in JavaScript rather than native WebNN:
-- **Slice**: Limited implementation for constant slicing
-- **Squeeze**: Dynamic axis squeezing
-- **Range**: Sequence generation
+### 软件实现的操作
+有些操作是用 JavaScript 实现的，而不是原生 WebNN：
+- **Slice**：仅对常量切片提供有限的实现
+- **Squeeze**：动态轴压缩
+- **Range**：序列生成
 
-## Debugging and Analysis
+## 调试和分析
 
-### Code Generation Issues
+### 代码生成问题
 
-If the generated code has dependency issues, use the processing pipeline:
+如果生成的代码存在依赖问题，请使用处理流水线：
 
 ```bash
 python OnnxConverter.py model.onnx --output_file model.js
@@ -216,29 +218,29 @@ python ReorderModel.py model.js
 python CPUGraphPartitioner.py model.js
 ```
 
-### Understanding Generated Code
+### 理解生成的代码
 
-The generated JavaScript contains:
-- Constant definitions for model weights
-- WebNN operation calls building the computation graph
-- Input/output handling for the model
+生成的 JavaScript 包含：
+- 模型权重的常量定义
+- 构建计算图的 WebNN 操作调用
+- 模型的输入/输出处理
 
-## Best Practices
+## 最佳实践
 
-1. **Always Post-Process**: Run ReorderModel.py and CPUGraphPartitioner.py on generated code
-2. **Install Polyfills**: Use InstallCpuOps() before loading models
-3. **Handle Multiple Weights**: Account for split weight files in large models
-4. **Cache Weights**: Use browser caching for weight files to improve loading performance
-5. **Test Locally**: Serve files from HTTP server for proper loading behavior
+1. **始终进行后处理**：对生成的代码运行 ReorderModel.py 和 CPUGraphPartitioner.py
+2. **安装 Polyfill**：在加载模型之前使用 InstallCpuOps()
+3. **处理多个权重文件**：为大型模型中拆分的权重文件做好处理
+4. **缓存权重**：对权重文件使用浏览器缓存，以提升加载性能
+5. **本地测试**：通过 HTTP 服务器提供文件，以获得正确的加载行为
 
-## Limitations
+## 限制
 
-- No dynamic shape inference (shapes resolved at runtime)
-- Requires post-processing pipeline for complex models
-- Limited support for some ONNX operations
-- CPU fallback required for certain operation types
+- 不支持动态形状推断（形状在运行时解析）
+- 复杂模型需要后处理流水线
+- 对部分 ONNX 操作的支持有限
+- 某些操作类型需要 CPU 回退
 
-## Related APIs
+## 相关 API
 
 - [WebNN API Specification](https://www.w3.org/TR/webnn/)
 - [ONNX Specification](https://onnx.ai/onnx/)

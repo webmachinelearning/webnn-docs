@@ -1,2 +1,244 @@
-# Common Errors
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
+# 常见错误
+
+以下是您直接调用 WebNN API，或通过使用它的框架时最可能遇到的错误。每个条目都会指出错误名称，说明触发原因，并给出修复方法。有关每个方法可能抛出的全部异常，请参阅 [WebNN API 参考](../../api-reference/webnn/ml)。
+
+> <InfoIcon /> 来自 [ONNX Runtime Web 和 LiteRT.js](./framework-errors) 的错误有单独的页面，而源自浏览器 WebNN 后端的错误请参阅[后端错误](./backend-errors)。
+
+## 可用性错误
+
+### `navigator.ml` is undefined
+
+#### 问题
+
+`navigator.ml` 为 `undefined`，或者 `'ml' in navigator` 为 `false`，因此根本无法使用 WebNN。
+
+#### 解决方法
+
+- 在受支持的浏览器中启用 WebNN 并重新启动浏览器，请参阅[安装](../get-started/installation)。
+- 通过[安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)提供您的页面，即 HTTPS 或 `localhost`。在非安全上下文中不会公开 `ml` 属性。
+- 使用前先进行特性检测，并保留回退方案：
+
+```js showLineNumbers filename="detect.js"
+if (!('ml' in navigator)) {
+  // Fall back to WebAssembly or WebGPU based inference.
+}
+```
+
+请参阅 [`navigator.ml`](../../api-reference/webnn/navigatorml)。
+
+### 创建上下文或图构建器时出现 `SecurityError`
+
+#### 问题
+
+`navigator.ml.createContext()` 被拒绝，或者 `new MLGraphBuilder(context)` 抛出 `SecurityError`。
+
+#### 解决方法
+
+该文档不被允许使用 `webnn` [权限策略](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Permissions_Policy)功能。其默认允许列表为 `'self'`，因此通常发生在跨源的 `<iframe>` 中。请显式授予访问权限：
+
+```html showLineNumbers filename="iframe.html"
+<iframe src="https://example.com/inference.html" allow="webnn"></iframe>
+```
+
+请参阅[权限策略](../../api-reference/webnn/navigatorml#permissions-policy)。
+
+### `createContext()` 出现 `NotSupportedError`
+
+#### 问题
+
+`navigator.ml.createContext()` 被拒绝并返回 `NotSupportedError`。浏览器无法创建您所请求类型的上下文。
+
+#### 解决方法
+
+- 确认浏览器、操作系统和驱动程序支持 WebNN，请参阅[安装](../get-started/installation)和[浏览器兼容性表](../../api-reference/browser-compatibility/api#webnn-apis)。
+- 减少约束后重试。`powerPreference` 和 `accelerated` 等提示只是偏好，但是通过 WebGPU `GPUDevice` 创建的上下文还要求 WebNN 能够与该设备配合工作：
+
+```js showLineNumbers filename="create-context.js"
+let context;
+try {
+  context = await navigator.ml.createContext({ accelerated: true });
+} catch (error) {
+  console.warn(`Could not create an accelerated context: ${error.name}`);
+  context = await navigator.ml.createContext({ accelerated: false });
+}
+```
+
+- 如果第二次尝试也失败，则说明这台机器上没有可用的 WebNN 后端。请使用其他推理路径。
+
+请参阅 [`ML.createContext()`](../../api-reference/webnn/ml#createcontext)。
+
+### 使用 `deviceType` 的代码没有效果
+
+#### 问题
+
+您向 `navigator.ml.createContext()` 传入 `deviceType: 'gpu'` 或 `deviceType: 'npu'`，但设备选择没有变化，或者较早的示例在您的浏览器中表现不同。
+
+#### 解决方法
+
+`deviceType` 已从规范的 `MLContextOptions` 中移除，因此当前的浏览器会忽略它。请使用保留下来的提示 `powerPreference` 和 `accelerated`。请参阅[从 deviceType 迁移](../../api-reference/webnn/ml#migrating-from-devicetype)。框架仍然可以提供自己的设备选项，例如 ONNX Runtime Web WebNN 执行提供程序的 `deviceType` 选项，并为您将其映射到 WebNN API。
+
+## 图构建错误
+
+### 构建图时出现 `TypeError`
+
+#### 问题
+
+`builder.add()`、`builder.conv2d()` 或 `builder.input()` 等调用在您调用 `build()` 之前就抛出 `TypeError`。
+
+#### 解决方法
+
+操作在调用时会立即进行验证。最常见的原因有：
+
+- 操作数的数据类型不被该操作允许。每个操作允许的数据类型都列在 [MLGraphBuilder 操作](../../api-reference/webnn/mlgraphbuilder-ops#data-types-and-ranks)中。
+- 形状不匹配：形状无法广播、矩阵维度不匹配、`axis` 超出有效范围，或者秩不被该操作接受。
+- 操作数由另一个 `MLGraphBuilder` 创建。操作数不能在构建器之间共享。
+- 输入的名称为空，或者与另一个输入同名。
+
+在构建图时打印 `operand.shape` 和 `operand.dataType` 以找到第一个不匹配之处，并为您的操作添加 `label`，使错误消息指向正确的操作：
+
+```js showLineNumbers filename="debug-shapes.js"
+const projected = builder.matmul(a, b, { label: 'decoder.proj' });
+console.log(projected.dataType, projected.shape);
+```
+
+请参阅 [`MLOperand`](../../api-reference/webnn/mloperand) 和[通用行为](../../api-reference/webnn/mlgraphbuilder-ops#common-behavior)。
+
+### 构建器出现 `InvalidStateError`
+
+#### 问题
+
+构建器方法或 `build()` 抛出 `InvalidStateError`，或以其拒绝。
+
+#### 解决方法
+
+`MLGraphBuilder` 只能构建一次，并且只能在其上下文未丢失时构建。调用 `build()` 之后，请为下一个图创建新的构建器。如果上下文已丢失，请先创建新的上下文。
+
+```js showLineNumbers filename="one-builder-per-graph.js"
+const graphA = await new MLGraphBuilder(context).build({ y: makeOutputA() });
+const graphB = await new MLGraphBuilder(context).build({ y: makeOutputB() });
+```
+
+请参阅 [`build()`](../../api-reference/webnn/mlgraphbuilder#build)。
+
+### `build()` 以 `TypeError` 被拒绝
+
+#### 问题
+
+`builder.build()` 以 `TypeError` 被拒绝。
+
+#### 解决方法
+
+您传入的 `outputs` 无效。它们不能为空，每个输出都需要非空的名称，每个操作数都必须来自此构建器，并且输入或常量操作数不能作为图的输出。若要公开其中之一，请使用 [`identity()`](../../api-reference/webnn/mlgraphbuilder-ops#identity) 进行包装。
+
+### `build()` 以 `OperationError` 被拒绝
+
+#### 问题
+
+`builder.build()` 以 `OperationError` 被拒绝。图是有效的，但浏览器的后端无法编译它。
+
+#### 解决方法
+
+后端不支持您图中的某些内容，例如某个操作、数据类型或张量的秩。请检查当前上下文支持什么，并相应调整模型：
+
+```js showLineNumbers filename="support-limits.js"
+const limits = context.opSupportLimits();
+console.log(limits.conv2d.input.dataTypes); // for example ['float32', 'float16']
+console.log(limits.maxTensorByteLength);
+```
+
+如果无法判断是哪个操作导致的问题，请开启后端的详细日志，请参阅[后端错误](./backend-errors)。另请参阅 [`opSupportLimits()`](../../api-reference/webnn/mlcontext#opsupportlimits)。
+
+## 执行错误
+
+### `dispatch()` 出现 `TypeError`
+
+#### 问题
+
+`context.dispatch(graph, inputs, outputs)` 抛出 `TypeError`。
+
+#### 解决方法
+
+`dispatch()` 会在调度任何工作之前，对照图检查您的张量。请确保：
+
+- 图和每个张量都属于同一个 `MLContext`。
+- `inputs` 为每个图输入名称恰好提供一个张量，`outputs` 为每个图输出名称恰好提供一个张量。这些名称就是您在 `input()` 和 `build()` 中使用的名称。
+- 每个张量的 `dataType` 和 `shape` 与其绑定的操作数相同。
+- 没有张量出现两次、已被销毁、是常量张量，或者当前已导出到 WebGPU。
+
+请参阅 [`dispatch()`](../../api-reference/webnn/mlcontext#dispatch)。
+
+### `readTensor()` 或 `writeTensor()` 出现 `TypeError`
+
+#### 问题
+
+`context.readTensor()` 被拒绝，或者 `context.writeTensor()` 抛出 `TypeError`。
+
+#### 解决方法
+
+- 只有使用 `readable: true` 创建的张量才能被读取，只有使用 `writable: true` 创建的张量才能被写入。
+- 缓冲区的字节长度必须等于张量的字节长度，即元素数量乘以元素大小。类型化数组必须与张量的数据类型匹配，或者是 `Uint8Array`。请参阅[缓冲区要求](../../api-reference/webnn/mlcontext#buffer-requirements)。
+- 张量不能已被销毁，并且此时不能已导出到 WebGPU。
+
+```js showLineNumbers filename="tensors.js"
+const input = await context.createTensor({ dataType: 'float32', shape: [2, 2], writable: true });
+const output = await context.createTensor({ dataType: 'float32', shape: [2, 2], readable: true });
+```
+
+### 结果缺失或已过时
+
+#### 问题
+
+您在 `dispatch()` 之后立即读取输出，得到的是零或旧值。
+
+#### 解决方法
+
+`dispatch()` 和 `writeTensor()` 会立即返回。它们只是将工作排入上下文的时间线，并且在完成时不会给出任何信号。请使用 `await context.readTensor(output)` 读取结果，它会排在您此前排入队列的工作之后。
+
+```js showLineNumbers filename="dispatch-then-read.js"
+context.writeTensor(inputTensor, inputData);
+context.dispatch(graph, { x: inputTensor }, { y: outputTensor });
+const result = new Float32Array(await context.readTensor(outputTensor));
+```
+
+### 因上下文丢失而出现 `InvalidStateError`
+
+#### 问题
+
+图构建、张量创建或读取在此前正常工作之后开始出现 `InvalidStateError` 失败。上下文已丢失，例如因为底层设备被移除，或者调用了 `context.destroy()`。
+
+#### 解决方法
+
+上下文丢失也会销毁由它创建的所有图和张量。请监听丢失事件并重新构建：
+
+```js showLineNumbers filename="context-lost.js"
+context.lost.then(async (info) => {
+  console.warn('WebNN context lost:', info.message);
+  // Create a new context, rebuild the graphs and allocate the tensors again.
+});
+```
+
+请参阅 [`lost`](../../api-reference/webnn/mlcontext#lost)。
+
+## 模型错误
+
+### 模型具有动态形状
+
+#### 问题
+
+模型可以运行，但非常慢或回退到 CPU，或者编译失败。它具有符号维度或动态维度，例如 `batch_size`、`height` 或 `width`。
+
+#### 解决方法
+
+WebNN 图具有固定的张量形状。在 WebNN 上运行模型之前，请将每个维度固定为具体的值。对于 ONNX Runtime Web 和 Transformers.js，请使用 [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides)。对于 LiteRT.js 或您自己的图，请使用固定的输入形状导出或构建模型。
+
+### 不支持某个操作或数据类型
+
+#### 问题
+
+模型的一部分在 CPU 上运行，或者模型编译失败，原因是后端不支持某个操作或数据类型。
+
+#### 解决方法
+
+查询 [`opSupportLimits()`](../../api-reference/webnn/mlcontext#opsupportlimits) 以了解当前上下文支持什么。优先使用每个实现都必须支持的数据类型（`float32`、`float16`、`int32`，以及为每个操作列出的其他必需类型），或者用受支持操作的组合来替换不受支持的操作。框架会对不受支持的部分回退到 WebAssembly，相关内容请参阅[性能问题](./performance-issues)。

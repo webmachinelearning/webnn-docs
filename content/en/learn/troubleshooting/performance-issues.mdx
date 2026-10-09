@@ -24,4 +24,58 @@ DirectML metacommands execution is disabled by default on Intel GPUs between dri
 
 Note: This flag only affects GPU inference and has no impact on NPU operations.
 
-## LiteRT
+## Transformers.js [#transformers-js]
+
+### Why is my Transformers.js pipeline slow on WebNN?
+
+Transformers.js runs on ONNX Runtime Web, so the same cause applies: WebNN needs fixed shapes, and without `free_dimension_overrides` Transformers.js prints a warning and you may see significant performance degradation. Set the overrides in `session_options.freeDimensionOverrides`, or in the model's `config.json` under `transformers.js_config`. See [Free dimension overrides](../tutorials/transformers-js/free-dimension-overrides) and the [Transformers.js tutorial](../tutorials/transformers-js/transformers-js#free-dimension-overrides).
+
+## LiteRT.js [#litert-js]
+
+### Why is my LiteRT.js model slow with WebNN?
+
+#### Check how much of the model runs on WebNN
+
+WebNN does not run every operation of every model. Operations that WebNN cannot run execute on WebAssembly, and each hand-off between WebNN and WebAssembly costs time. A model that is split into many parts can be slower than running entirely on the CPU.
+
+- Read `model.isFullyAccelerated` after `loadAndCompile()`. When it is `false`, the model is only partly delegated, and LiteRT.js logs `Model not fully compiled for webnn` to the console.
+- Look for `not delegatable` messages in the console, which name the operations that were rejected.
+- Run the model in the [`@litertjs/model-tester`](https://www.npmjs.com/package/@litertjs/model-tester), which compares the CPU, WebGPU and WebNN accelerators, shows how much of the model is delegated, and reports the numerical difference from the CPU result.
+
+#### Compare the accelerators on your hardware
+
+Measure the same model with each accelerator instead of assuming that one is faster:
+
+```js showLineNumbers filename="compare-accelerators.js"
+// Assumes that loadLiteRt() has already finished.
+import { loadAndCompile, Tensor } from '@litertjs/core';
+
+const bytes = new Uint8Array(await (await fetch('/models/model.tflite')).arrayBuffer());
+
+for (const accelerator of ['wasm', 'webgpu', 'webnn']) {
+  const model = await loadAndCompile(bytes, { accelerator });
+  const input = new Tensor(new Float32Array(1 * 3 * 224 * 224), [1, 3, 224, 224]);
+
+  (await model.run(input)).forEach((tensor) => tensor.delete()); // warm up
+
+  const start = performance.now();
+  for (let i = 0; i < 20; i++) {
+    (await model.run(input)).forEach((tensor) => tensor.delete());
+  }
+  console.log(accelerator, 'fully accelerated:', model.isFullyAccelerated,
+    `${((performance.now() - start) / 20).toFixed(1)} ms per run`);
+
+  input.delete();
+  model.delete();
+}
+```
+
+#### Things that help
+
+- **Use fixed input shapes** when you convert the model, because WebNN compiles graphs with fixed shapes.
+- **Try `webNNOptions.precision: 'fp16'`** when the model and the device support it. It can be faster and use less memory, at some cost in accuracy, so compare the outputs.
+- **Set `devicePreference` and `powerPreference`** to the device you want to target, for example `'npu'` and `'low-power'`. They are hints, and the browser makes the final choice.
+- **Compile once.** `loadAndCompile()` does the expensive work, so create the model once and reuse it for every `run()`.
+- **Quantize large models** to reduce size and memory pressure, for example with the AI Edge Quantizer.
+
+See the [LiteRT.js tutorial](../tutorials/lite-rt/lite-rt) for the options.

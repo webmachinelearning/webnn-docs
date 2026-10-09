@@ -7,15 +7,15 @@ import LiteRTIcon from '../../../../app/_components/icons/litert.jsx'
 import WebNNIcon from '../../../../app/_components/icons/webnn.jsx'
 import ArchitectureDiagram from '../../../../app/_components/architecture/architecture.jsx'
 
-# JavaScript ML Frameworks vs Vanilla JavaScript
+# JavaScript 机器学习框架与原生 JavaScript
 
-WebNN can be used either through supported JavaScript machine learning frameworks or directly via vanilla JavaScript. Choose the approach that best suits your needs.
+你可以通过受支持的 JavaScript 机器学习框架使用 WebNN，也可以直接使用原生 JavaScript。请选择最适合你需求的方式。
 
 <ArchitectureDiagram />
 
-# JavaScript ML Frameworks
+# JavaScript 机器学习框架
 
-WebNN API is integrating into major JavaScript machine learning frameworks like ONNX Runtime Web, Transformers.js, and LiteRT. This enables web developers to build AI applications using these high-level frameworks with less codes while leveraging WebNN's efficient, low-level neural network operations.
+WebNN API 正在集成到主流的 JavaScript 机器学习框架中，例如 ONNX Runtime Web、Transformers.js 和 LiteRT.js。这使 Web 开发者能够使用这些高层框架，以更少的代码构建 AI 应用，同时利用 WebNN 高效的底层神经网络算子。
 
 <Cards className="quick-start-card">
   <Cards.Card
@@ -30,22 +30,30 @@ WebNN API is integrating into major JavaScript machine learning frameworks like 
   />
   <Cards.Card
     icon={<LiteRTIcon />}
-    title="Lite RT"
+    title="LiteRT.js"
     href="./tutorials/lite-rt/lite-rt"
   />
 </Cards>
 
-# Vanilla JavaScript
+| 框架 | 模型格式 | 适用场景 | 启用 WebNN 的方式 |
+| --- | --- | --- | --- |
+| [Transformers.js](./tutorials/transformers-js/transformers-js) | 来自 Hugging Face Hub 的 ONNX 模型 | 内置前后处理的任务流水线，只需几行代码 | `device: 'webnn-gpu'` |
+| [ONNX Runtime Web](./tutorials/onnx-runtime/onnx-runtime) | `.onnx` | 完全控制会话、形状和张量 | `executionProviders: ['webnn']` |
+| [LiteRT.js](./tutorials/lite-rt/lite-rt) | `.tflite` | 来自 LiteRT 或从 PyTorch 转换的模型，以及 NPU 路径 | `accelerator: 'webnn'` |
 
-Use the WebNN API directly to create custom computational graphs and neural network models with greater flexibility in your AI applications. However, building models with the raw WebNN API requires more complex code compared to using mature solutions like ONNX and TFLite.
+无论选择哪种框架，WebNN 都需要固定的张量形状，因此请计划设置[自由维度覆盖](./tutorials/onnx-runtime/free-dimension-overrides)或导出静态形状的模型，并为不支持 WebNN 的浏览器保留 `wasm` 回退。如果出现问题，请参阅[故障排除](./troubleshooting/framework-errors)。
 
-Using the WebNN JavaScript API directly instead of a ML framework reduces application size by eliminating framework distributions overhead.
+# 原生 JavaScript
+
+直接使用 WebNN API 创建自定义计算图和神经网络模型，可以让你的 AI 应用更加灵活。不过，与使用 ONNX 和 TFLite 等成熟方案相比，使用原生 WebNN API 构建模型需要编写更复杂的代码。
+
+直接使用 WebNN JavaScript API 而不是机器学习框架，可以省去框架分发包的开销，从而减小应用体积。
 
 <Cards className="quick-start-card">
   <Cards.Card
     icon={<WebNNIcon />}
     title="Vanilla JavaScript"
-    href="./tutorials/webnn/webnn"
+    href="./tutorials/webnn/vanillajs"
   />
 </Cards>
  

@@ -83,7 +83,7 @@ Once configured, the WebNN types are globally available in your project. You don
 async function runInference() {
   // TypeScript will recognize these types
   const ml:ML = navigator.ml;
-  const context:MLContext = navigator.ml.createContext();
+  const context:MLContext = await ml.createContext();
   const builder:MLGraphBuilder = new MLGraphBuilder(context);
 
   const input:MLOperand = builder.input('input', {dataType: 'float32', shape: [1, 3, 224, 224]});

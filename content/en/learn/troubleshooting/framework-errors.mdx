@@ -1,5 +1,303 @@
 # JavaScript ML Framework Errors
 
-## ONNX Runtime Web Errors
+These are the errors and warnings you may meet when you run WebNN through a JavaScript machine learning framework. Each entry shows the message, what causes it, and how to fix it. Errors from the WebNN API itself are in [Common Errors](./common-errors).
 
-## LiteRT Web Errors
+## ONNX Runtime Web Errors [#onnx-runtime-web-errors]
+
+For setup and options, see the [ONNX Runtime tutorial](../tutorials/onnx-runtime/onnx-runtime).
+
+### WebNN is not supported in current environment [#webnn-not-supported]
+
+#### Problem
+
+ORT Web checks `navigator.ml` before it initializes the WebNN backend and throws `WebNN is not supported in current environment` when it is missing. Typical causes are an unsupported browser, the WebNN flag being off, an insecure (non-HTTPS) page, or code running in a context without `navigator.ml`.
+
+#### Solution
+
+Use a recent Chrome or Edge with the "Enables WebNN API" flag turned on, serve the page from HTTPS or localhost, and feature-detect before creating the session. See [Installation](../get-started/installation) and [`ml.createContext()`](../../api-reference/webnn/ml#createcontext) for the exceptions a context request can raise.
+
+```js showLineNumbers filename="detect-webnn.js"
+const eps = 'ml' in navigator ? ['webnn', 'wasm'] : ['wasm'];
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: eps,
+});
+```
+
+### Session creation fails with no available backend found [#no-available-backend]
+
+#### Problem
+
+When every requested execution provider fails to initialize, ORT Web throws `no available backend found. ERR: ...` and appends one `[name] reason` entry per backend. The WebNN reason, if any, is the real cause.
+
+#### Solution
+
+Read the appended `ERR:` text to see which backend failed and why, then fix that first. Make sure you import the build that contains WebNN (`onnxruntime-web/all`, or `ort.all.min.js` in a script tag) and name the provider explicitly with `executionProviders: ['webnn']`. Listing `'wasm'` after `'webnn'` as a fallback keeps the page working while you debug. See the [ONNX Runtime tutorial](../tutorials/onnx-runtime/onnx-runtime).
+
+### Dynamic shape is not supported, nodes fall back to Wasm [#dynamic-shape]
+
+#### Problem
+
+WebNN needs static shapes. For a node input with a symbolic dimension, the WebNN EP logs `Dynamic shape is not supported, use sessionOptions.FreeDimensionOverrides to set a fixed shape` at verbose level and leaves the node to the Wasm EP. The model still runs, but slowly, with graph partitions copying data back and forth.
+
+#### Solution
+
+Pin every free dimension with `freeDimensionOverrides` using the exact names from the model. See [Free dimension overrides](../tutorials/onnx-runtime/free-dimension-overrides) and the [performance issues](./performance-issues) page.
+
+```js showLineNumbers filename="free-dimensions.js"
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: ['webnn'],
+  freeDimensionOverrides: { batch_size: 1, sequence_length: 128 },
+});
+```
+
+### Model runs slowly and the log shows several WebNN partitions [#multiple-partitions]
+
+#### Problem
+
+Operators or data types that the WebNN backend does not support fall back to the Wasm EP. When the graph splits into more than one WebNN partition, the EP prints a warning such as `WebNNExecutionProvider::GetCapability, number of partitions supported by WebNN: ... number of nodes in the graph: ... number of nodes supported by WebNN: ...`. With a single partition the same line is only logged at info level.
+
+#### Solution
+
+Turn on verbose logging, find the nodes that were rejected (shape, data type, unsupported op, op parameter), and change the model or export settings so they become supported. Fixing dynamic shapes first usually removes most partitions. See [Debugging](../get-started/debug) for the `--webnn-ort-logging-level=VERBOSE` Chrome flag.
+
+```js showLineNumbers filename="verbose.js"
+ort.env.logLevel = 'verbose';
+```
+
+### Unsupported or unexpected data types [#data-types]
+
+#### Problem
+
+The WebNN EP checks tensor types against what the context reports through `opSupportLimits()`. Unsupported tensor types are logged as `WebNN backend does not support data type: ...`, and an unsupported graph input or initializer type returns `The input of graph has unsupported type, name: ...` or `The initializer of graph has unsupported type, name: ...`. The EP converts int64 initializers to int32 when the backend lacks int64.
+
+#### Solution
+
+Re-export the model with float32 or float16 (and int32 where possible) tensors, and avoid operators that need types the target device does not support. GPU and NPU backends accept fewer types than CPU. Check the verbose log to see which node and type were rejected.
+
+### Failed to create WebNN context or builder [#context-creation-failed]
+
+#### Problem
+
+If the Wasm module has no current `MLContext`, the EP throws `Failed to create WebNN context.`. If the builder cannot be created it throws `Failed to create WebNN builder.`. Both usually mean the browser could not create a context for the requested `deviceType` or `powerPreference` on this machine.
+
+#### Solution
+
+Retry with a different `deviceType` (`'cpu'`, `'gpu'` or `'npu'`) and check the driver and flag requirements in [Hardware errors](./hardware-errors). To see the browser's own exception (for example `NotSupportedError`), create the `MLContext` yourself and pass it in as the `context` option, together with a `deviceType`.
+
+```js showLineNumbers filename="context.js"
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: [{ name: 'webnn', deviceType: 'gpu', context }],
+});
+```
+
+### Failed to build WebNN graph [#build-graph-failed]
+
+#### Problem
+
+After the nodes are accepted, compiling the graph can still fail in the browser, and the EP returns `Failed to build WebNN graph.`. The underlying cause (an invalid operand, a shape or type the backend rejects, or a driver problem) is usually reported by the browser, not by this message.
+
+#### Solution
+
+Check the DevTools console and the verbose WebNN log for the real reason, then try another `deviceType`, or simplify the model by fixing shapes and avoiding the offending operator. See [Debugging](../get-started/debug) and the build errors in the [`MLGraphBuilder` reference](../../api-reference/webnn/mlgraphbuilder).
+
+### Wasm file or worker fails to load [#wasm-loading]
+
+#### Problem
+
+ORT Web fetches its `.wasm` and `.mjs` files at startup. If they cannot be found you get load errors, and some setups report `Failed to load proxy worker: cannot determine the script source URL.` or `WebAssembly backend initializing failed due to timeout: ...ms` when `env.wasm.initTimeout` is exceeded. Bundlers often move the files without copying them.
+
+#### Solution
+
+Serve the files from your site and point to them with `env.wasm.wasmPaths`, either as a URL prefix or as an object with the exact `wasm` file URL. Set it before the first session is created.
+
+```js showLineNumbers filename="wasm-paths.js"
+ort.env.wasm.wasmPaths = '/assets/ort/';
+```
+
+### WebAssembly SIMD or proxy options are not supported [#wasm-environment]
+
+#### Problem
+
+Initialization throws `WebAssembly SIMD is not supported in the current environment.` (or the Relaxed SIMD or JSPI variants) when the browser lacks that feature. With `env.wasm.proxy` enabled, some options are rejected, for example `input tensor on GPU is not supported for proxy.` and `session option "preferredOutputLocation" is not supported for proxy.`.
+
+#### Solution
+
+Update the browser, or set `ort.env.wasm.simd = false` to skip the check. If you use `preferredOutputLocation` (for example `'ml-tensor'`) or pre-allocated tensors, keep `env.wasm.proxy` set to `false`.
+
+### Running with ML tensors fails [#ml-tensor-errors]
+
+#### Problem
+
+IO binding errors include `Tensor location "ml-tensor" is not supported without using WebNN.` when the session was not created with the WebNN EP. A pre-allocated output whose shape does not match makes `run()` fail, and a destroyed `MLTensor` makes the run fail as well.
+
+#### Solution
+
+Create the session with a WebNN entry in `executionProviders` that includes a shared `context`, keep every user-created `MLTensor` alive until inference ends, and call `destroy()` only afterwards.
+
+## Transformers.js Errors [#transformers-js-errors]
+
+Transformers.js runs on ONNX Runtime Web, so the [ONNX Runtime Web errors](#onnx-runtime-web-errors) above can also appear. For setup and options, see the [Transformers.js tutorial](../tutorials/transformers-js/transformers-js).
+
+### Unsupported device [#transformersjs-unsupported-device]
+
+#### Problem
+
+`pipeline()` throws `Unsupported device: "webnn-gpu". Should be one of: ...`
+
+#### Solution
+
+Transformers.js accepts WebNN device names only when `navigator.ml` exists, so the browser does not expose WebNN. Enable it, see [Installation](../get-started/installation), or choose another device. Transformers.js does not fall back by itself, so pick the device in your code:
+
+```js showLineNumbers filename="device.js"
+const device = 'ml' in navigator ? 'webnn-gpu' : 'wasm';
+const classifier = await pipeline('image-classification', 'Xenova/resnet-50', { device });
+```
+
+### WebNN requires `free_dimension_overrides` [#transformersjs-free-dimension-overrides]
+
+#### Problem
+
+The console shows the warning `WebNN does not currently support dynamic shapes and requires 'free_dimension_overrides' to be set in config.json ...`, and inference is very slow.
+
+#### Solution
+
+No free dimension overrides were found for the model. Pass them in `session_options.freeDimensionOverrides`, or add them to the model's `config.json` under `transformers.js_config`. See [Free dimension overrides](../tutorials/transformers-js/free-dimension-overrides) and the [tutorial section](../tutorials/transformers-js/transformers-js#free-dimension-overrides).
+
+### Invalid dtype [#transformersjs-invalid-dtype]
+
+#### Problem
+
+Loading a model throws `Invalid dtype: NAME. Should be one of: ...`
+
+#### Solution
+
+The `dtype` you passed is not one that Transformers.js knows. Use a value from the [dtype table](../tutorials/transformers-js/transformers-js#dtypes), and check that the model publishes that variant in its `onnx` folder on the Hub.
+
+## LiteRT.js Errors [#litert-js-errors]
+
+For setup and options, see the [LiteRT.js tutorial](../tutorials/lite-rt/lite-rt).
+
+### LiteRT is not initialized yet [#litert-not-initialized]
+
+#### Problem
+
+A LiteRT.js function throws `LiteRT is not initialized yet. Please call loadLiteRt() and wait for its promise to resolve to load the LiteRT WASM module.`
+
+#### Solution
+
+`loadLiteRt()` has to finish before you call `loadAndCompile()`, create a `Tensor`, or use any other LiteRT.js function. Await it once, at startup:
+
+```js showLineNumbers filename="init.js"
+await loadLiteRt('/litert/wasm/', { jspi: true });
+const model = await loadAndCompile('/models/model.tflite', { accelerator: 'webnn' });
+```
+
+### LiteRT is already loading or loaded [#litert-already-loaded]
+
+#### Problem
+
+`loadLiteRt()` throws `LiteRT is already loading / loaded.`
+
+#### Solution
+
+The runtime can be loaded only once per page, and it is loaded for one Wasm build, for example the JSPI build. Call `loadLiteRt()` once. If you really need a different build, call `unloadLiteRt()` first, which invalidates every model and tensor created so far.
+
+### JSPI is not supported [#litert-jspi]
+
+#### Problem
+
+`loadLiteRt(path, { jspi: true })` throws `JSPI is not supported`.
+
+#### Solution
+
+The browser does not support WebAssembly JavaScript Promise Integration, which the `webnn` accelerator needs. Check `await supportsFeature('jspi')` first. When it is `false`, call `loadLiteRt()` without `jspi` and compile for `wasm`, or for `webgpu` where the whole model can be delegated.
+
+### Threads and JSPI options conflict, or relaxed SIMD is missing [#litert-threads]
+
+#### Problem
+
+`loadLiteRt()` throws `The threads and jspi options are mutually exclusive.` or `Threads are only supported with relaxed SIMD, and the current browser does not support relaxed SIMD.`
+
+#### Solution
+
+Pass `threads` or `jspi`, not both. The multi-threaded build and the JSPI build are separate Wasm files, so a page that needs WebNN uses the JSPI build and a single-threaded CPU runtime. The threaded build also requires relaxed SIMD in the browser, which you can check with `await supportsFeature('relaxedSimd')`.
+
+### Model not fully compiled for WebNN [#litert-not-fully-compiled]
+
+#### Problem
+
+The console shows `Model not fully compiled for webnn. Partially delegating to WASM execution.` or `Model not fully compiled for webnn on non-JSPI browser. Falling back to WASM execution.`
+
+#### Solution
+
+This is a warning, not an exception. WebNN cannot run every operation of the model in this browser. With JSPI, the remaining operations run on WebAssembly and `model.isFullyAccelerated` is `false`. Without JSPI, LiteRT.js compiles the whole model again for `wasm`. Look for `not delegatable` messages in the console, or run the model in the LiteRT.js Model Tester, to find the operations that were rejected, and see [Performance Issues](./performance-issues#litert-js) for what to do about it.
+
+### WebGPU was requested but no device is available [#litert-webgpu-device]
+
+#### Problem
+
+`loadAndCompile()` throws `WebGPU was requested but no WebGPU device is set in the environment.`
+
+#### Solution
+
+You asked for `accelerator: 'webgpu'`, but LiteRT.js could not create a WebGPU device when the runtime loaded, and logged a warning instead. Check `isWebGPUSupported()` before you ask for `webgpu`, and fall back to `webnn` or `wasm`.
+
+### `run()` rejects the input tensors [#litert-input-mismatch]
+
+#### Problem
+
+`model.run()` throws one of these errors:
+
+- `run() called with N inputs, but signature expects M inputs`
+- `run() called with a single tensor, but signature expects N inputs`
+- `run() called with input record that is missing input NAME with index I`
+- `TensorBuffer ranked tensor type ... does not match expected ranked tensor type float32[1, 3, 224, 224]`
+
+#### Solution
+
+The tensors you pass do not match the model signature. Print `model.getInputDetails()`, which lists every input with its name, shape and data type, and compare. The `Tensor` constructor infers the data type from the typed array, so pass a `Float32Array` for `float32` inputs and an `Int32Array` for `int32` inputs. When a model has several inputs, pass an array in the same order, or an object keyed by input name.
+
+### A tensor or model was already deleted [#litert-deleted]
+
+#### Problem
+
+You see `Tensor is deleted and cannot be used.`, `CompiledModel is deleted and cannot be used.` or `CompiledModelSignatureRunner is deleted and cannot be used.`
+
+#### Solution
+
+LiteRT.js uses manual memory management. After `delete()` an object cannot be used again, and deleting a `CompiledModel` also deletes its signature runners. Create tensors again for every `run()` call, or keep them alive and delete them only when you are done. Deleting the same object twice is safe.
+
+### No signature with that name [#litert-signature]
+
+#### Problem
+
+`model.run('name', inputs)` throws `No signature named name found in model.`
+
+#### Solution
+
+A model can expose several named signatures, and `run()` without a name uses the first. List the available names with `Object.keys(model.signatures)` and pass one of them.
+
+### The model is too large [#litert-model-too-large]
+
+#### Problem
+
+Loading fails with `Model is too large (> 2000000000 bytes).` or `Failed to allocate N bytes of Wasm memory for the model.`
+
+#### Solution
+
+LiteRT.js reads models of up to about 2 GB, and the WebAssembly memory of the CPU runtime is limited to 2 GB. Quantize the model, for example with the AI Edge Quantizer, or use a smaller one.
+
+### The Wasm files or the worker fail to load [#litert-wasm-files]
+
+#### Problem
+
+`loadLiteRt()` fails to fetch the `.wasm` or `.js` files, or loading inside a Web Worker fails because `importScripts()` is not available.
+
+#### Solution
+
+- Serve the whole `node_modules/@litertjs/core/wasm/` folder, or use the jsDelivr URL, and pass a **directory** path to `loadLiteRt()` so that it can choose the right file for the browser.
+- Create the worker as a classic worker, without `{ type: 'module' }`, because LiteRT.js's loader calls `importScripts()`.
+- If the worker script is served from a different location than the Wasm files, set `self.Module = { locateFile }` before calling `loadLiteRt()`.
+
+See [Run LiteRT.js in a Web Worker](../tutorials/lite-rt/lite-rt#web-worker).

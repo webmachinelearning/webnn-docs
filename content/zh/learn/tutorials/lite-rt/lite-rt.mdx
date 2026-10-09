@@ -1,10 +1,390 @@
+import { Steps } from 'nextra/components'
 import Image from "next/image";
 import LiteRt from '../../../../../app/_components/icons/litert.jsx'
 import WebNn from "../../../../../app/_components/icons/webnn.jsx";
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 <div className="mt-6 grid grid-cols-2 gap-4 items-center justify-items-center tutorials-title">
   <LiteRt className="litert-logo" />
   <WebNn className="webnn-logo" />
 </div>
 
-Lite RT
+# LiteRT.js
+
+[LiteRT.js](https://developers.google.com/edge/litert/web) 是 Google 面向 Web 的运行时，用于运行 [LiteRT](https://ai.google.dev/edge/litert)（前身为 TensorFlow Lite）。它可以直接在浏览器中运行 `.tflite` 模型，并能在三种硬件上执行：
+
+- **CPU**：通过编译为 WebAssembly 的 [XNNPack](https://github.com/google/XNNPACK)，适用于任何浏览器。
+- **GPU**：通过 WebGPU，适用于受支持的浏览器。
+- **NPU 及其他操作系统级加速器**：通过 WebNN，这也是本教程重点介绍的路径。
+
+你只需用一个选项 `accelerator: 'webnn'` 即可为每个模型选择硬件。随后 LiteRT.js 会把模型中 WebNN 能够运行的部分交给浏览器的 WebNN 实现，其余部分仍保留在 WebAssembly 上。
+
+> <InfoIcon /> LiteRT.js 中的 `webnn` 加速器是**实验性**的，WebNN 本身也仍在 Chrome 和 Edge 中逐步推出。请将此处描述的 API 接口和性能特征视为可能变化，并始终保留 `wasm` 或 `webgpu` 作为回退。
+
+## 何时选择 LiteRT.js [#when-to-choose]
+
+| | LiteRT.js | [ONNX Runtime Web](../onnx-runtime/onnx-runtime) | [Transformers.js](../transformers-js/transformers-js) |
+| --- | --- | --- | --- |
+| **模型格式** | `.tflite` | `.onnx` | 来自 Hugging Face Hub 的 ONNX 模型 |
+| **抽象层级** | 运行模型，前处理和后处理由你编写 | 运行模型，前处理和后处理由你编写 | 任务流水线，已包含前处理和后处理 |
+| **典型来源** | 使用 LiteRT 转换器转换的 PyTorch、JAX 或 TensorFlow 模型，Kaggle，Hugging Face | 导出为 ONNX 的 PyTorch、TensorFlow 或 scikit-learn 模型 | 面向文本、视觉和音频任务的预训练模型 |
+| **WebNN 选项** | `accelerator: 'webnn'` | `executionProviders: ['webnn']` | `device: 'webnn-gpu'` 等 |
+
+如果你已经拥有或想要生成 `.tflite` 模型，例如来自基于 LiteRT 的 Android 或 iOS 流水线，或是使用 [`litert-torch`](https://github.com/google-ai-edge/litert-torch) 转换的 PyTorch 模型，就可以选择 LiteRT.js。
+
+## WebNN 加速器的工作原理 [#how-it-works]
+
+当你使用 `accelerator: 'webnn'` 调用 `loadAndCompile()` 时：
+
+1. LiteRT.js 将 `.tflite` 模型加载到其 WebAssembly 运行时中。
+2. WebNN 委托将模型图划分为 WebNN 支持的算子和不支持的算子两个分区。
+3. 受支持的分区通过 WebNN 运行，使用浏览器的后端以及它所选择的 CPU、GPU 或 NPU（参见 [`ML.createContext()`](../../../api-reference/webnn/ml#createcontext)）。
+4. WebNN 无法运行的算子由 WebAssembly CPU 运行时逐个执行。
+
+由于 WebNN 的 API 是异步的，而 WebAssembly 运行时是同步的，二者混合使用需要 **JSPI（JavaScript Promise Integration）**。这就是 `webnn` 加速器需要 LiteRT.js Wasm 文件的 JSPI 构建版本的原因。
+
+你在 JavaScript 中创建和读取的张量位于 WebAssembly 内存中。WebNN 加速器是在编译模型时做出的选择，而不是单独的张量类型：你的输入和输出代码与 `wasm` 加速器完全相同。
+
+## 加速器对比 [#accelerators]
+
+| `accelerator` | 运行于 | 所需 Wasm 构建 | 说明 |
+| --- | --- | --- | --- |
+| `'wasm'` | CPU（XNNPack） | 标准版、多线程版或兼容版 | 适用于所有环境。多线程版增加了多线程支持。 |
+| `'webgpu'` | GPU | 建议使用 JSPI 构建 | 没有 JSPI 时，无法完全委派的模型会整体回退到 Wasm。 |
+| `'webnn'` | NPU、GPU 或 CPU，由浏览器选择 | **必须使用 JSPI 构建** | 实验性。不支持的算子在 Wasm 上运行。 |
+
+如果你没有设置 `accelerator`，LiteRT.js 会在 WebGPU 设备可用时使用 `'webgpu'`，否则使用 `'wasm'`。
+
+## 前提条件 [#prerequisites]
+
+- 已启用 WebNN 的浏览器。请按照[安装](../../get-started/installation)安装驱动并开启相关标志，详情参见 [WebNN 标志](../../../api-reference/browser-compatibility/chrome-flags)。
+- 支持 [WebAssembly JSPI](https://github.com/WebAssembly/js-promise-integration) 的浏览器。你可以在运行时检查，如下所示。
+- [安全上下文](https://developer.mozilla.org/zh-CN/docs/Web/Security/Secure_Contexts)：HTTPS 或 `localhost`。
+- 一个 `.tflite` 模型。预训练模型可在 [Kaggle](https://www.kaggle.com/models?framework=tfLite) 和 [Hugging Face Hub](https://huggingface.co/models?library=tflite&sort=trending) 获取，也可以[转换你自己的模型](#convert-a-model)。
+
+## 安装 LiteRT.js [#install]
+
+```bash showLineNumbers filename="terminal"
+npm install @litertjs/core
+```
+
+LiteRT.js 在运行时需要其 WebAssembly 文件。它们随包一同发布，位于 `node_modules/@litertjs/core/wasm/`。请从你的站点提供整个文件夹，例如在构建时将其复制到 `public/` 目录，或让 LiteRT.js 指向 jsDelivr 上的副本：
+
+```text
+https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/
+```
+
+LiteRT.js 会根据浏览器的功能从该文件夹中选取合适的文件：不含 relaxed SIMD 的兼容构建、标准构建、多线程构建或 JSPI 构建。
+
+> <InfoIcon /> 在生产环境中请固定版本，例如在 CDN URL 中使用 `@litertjs/core@2.5.3`，以确保 JavaScript 包与 Wasm 文件始终匹配。
+
+## 使用 WebNN 运行模型 [#run-a-model]
+
+<Steps>
+
+### 检查功能支持 [#step-support]
+
+`supportsFeature()` 会报告浏览器是否支持 LiteRT.js 所依赖的某项功能。`'webnn'` 检查会查找 `navigator.ml`，`'jspi'` 检查会查找 JSPI 支持。
+
+```js showLineNumbers filename="support.js"
+import { supportsFeature } from '@litertjs/core';
+
+const hasJspi = await supportsFeature('jspi');
+const hasWebNN = await supportsFeature('webnn');
+console.log({ hasJspi, hasWebNN });
+```
+
+### 加载运行时 [#step-load]
+
+在调用任何其他 LiteRT.js 函数之前，先调用一次 `loadLiteRt()`。传入 `{ jspi: true }` 以加载 JSPI 构建，这是 `webnn` 加速器所必需的。
+
+```js showLineNumbers filename="load.js"
+import { loadLiteRt } from '@litertjs/core';
+
+await loadLiteRt('/litert/wasm/', { jspi: true });
+```
+
+> <InfoIcon /> 每个页面只能调用一次 `loadLiteRt()`。第二次调用会抛出 `LiteRT is already loading / loaded.`。如果确实需要重新加载运行时，请先调用 `unloadLiteRt()`。`threads` 和 `jspi` 选项互斥，因此 JSPI 构建不是多线程 Wasm 构建。
+
+### 为 WebNN 编译模型 [#step-compile]
+
+`loadAndCompile()` 接受 URL、`URL` 对象、模型字节的 `Uint8Array` 或流读取器，并返回一个 `CompiledModel`。
+
+```js showLineNumbers filename="compile.js"
+import { loadAndCompile } from '@litertjs/core';
+
+const model = await loadAndCompile('/models/mobilenet_v2.tflite', {
+  accelerator: 'webnn',
+  webNNOptions: {
+    devicePreference: 'npu',
+    powerPreference: 'low-power',
+  },
+});
+
+console.log('Fully accelerated by WebNN:', model.isFullyAccelerated);
+console.log('Inputs:', model.getInputDetails());
+console.log('Outputs:', model.getOutputDetails());
+```
+
+只有当模型中的每个算子都已委派时，`isFullyAccelerated` 才为 `true`。参见[部分加速与回退](#partial-acceleration)。
+
+### 创建输入张量并运行 [#step-run]
+
+根据类型化数组和形状创建 `Tensor`，然后调用 `model.run()`。输入可以是单个张量、张量数组，或以输入名称为键的对象。
+
+```js showLineNumbers filename="run.js"
+import { Tensor } from '@litertjs/core';
+
+const input = new Tensor(new Float32Array(1 * 3 * 224 * 224), [1, 3, 224, 224]);
+const outputs = await model.run(input);
+
+const scores = await outputs[0].data(); // a Float32Array
+console.log('Number of scores:', scores.length);
+```
+
+`Tensor` 构造函数会根据类型化数组推断数据类型：`Float32Array` 创建 `float32` 张量，`Int32Array` 创建 `int32` 张量。请使用与 `model.getInputDetails()` 相匹配的类型化数组，否则 `run()` 会因类型不匹配而失败。
+
+### 释放内存 [#step-cleanup]
+
+LiteRT.js 使用手动内存管理。请对你创建或接收的每个张量调用 `delete()`，并在不再需要模型时对模型调用 `delete()`。
+
+```js showLineNumbers filename="cleanup.js"
+input.delete();
+outputs.forEach((tensor) => tensor.delete());
+model.delete(); // when the model is no longer needed
+```
+
+</Steps>
+
+## 完整示例：图像分类 [#image-classification]
+
+此示例使用 MobileNetV2 `.tflite` 模型对图像进行分类，该模型的输入为 `float32` 类型的 `[1, 3, 224, 224]`，并使用 ImageNet 均值和标准差进行归一化。它先尝试 WebNN，然后是 WebGPU，最后是 CPU，并清理其张量。请根据你自己的模型调整尺寸、归一化和布局。
+
+```js showLineNumbers filename="classify.js"
+import {
+  loadLiteRt,
+  loadAndCompile,
+  supportsFeature,
+  isWebGPUSupported,
+  Tensor,
+} from '@litertjs/core';
+
+const WASM_DIR = '/litert/wasm/';
+const SIZE = 224;
+const MEAN = [0.485, 0.456, 0.406];
+const STD = [0.229, 0.224, 0.225];
+
+// 加载一次运行时，然后为最佳可用加速器编译模型。
+export async function createModel(modelUrl) {
+  const hasJspi = await supportsFeature('jspi');
+  await loadLiteRt(WASM_DIR, hasJspi ? { jspi: true } : undefined);
+
+  const candidates = [];
+  if (hasJspi && (await supportsFeature('webnn'))) {
+    candidates.push({
+      accelerator: 'webnn',
+      webNNOptions: { devicePreference: 'npu', powerPreference: 'low-power' },
+    });
+  }
+  if (isWebGPUSupported()) {
+    candidates.push({ accelerator: 'webgpu' });
+  }
+  candidates.push({ accelerator: 'wasm' });
+
+  // 只下载一次模型，并在每次尝试中复用这些字节。
+  const bytes = new Uint8Array(await (await fetch(modelUrl)).arrayBuffer());
+
+  for (const options of candidates) {
+    try {
+      const model = await loadAndCompile(bytes, options);
+      console.log(
+        `Using ${options.accelerator}, fully accelerated: ${model.isFullyAccelerated}`,
+      );
+      return model;
+    } catch (error) {
+      console.warn(`${options.accelerator} is not available, trying the next one`, error);
+    }
+  }
+  throw new Error('No LiteRT.js accelerator could compile this model.');
+}
+
+// 将图像（HTMLImageElement、ImageBitmap、canvas）转换为归一化的 NCHW 张量。
+function preprocess(image) {
+  const canvas = new OffscreenCanvas(SIZE, SIZE);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0, SIZE, SIZE);
+  const { data } = context.getImageData(0, 0, SIZE, SIZE); // RGBA，逐行排列
+
+  const chw = new Float32Array(3 * SIZE * SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    for (let channel = 0; channel < 3; channel++) {
+      chw[channel * SIZE * SIZE + i] = (data[i * 4 + channel] / 255 - MEAN[channel]) / STD[channel];
+    }
+  }
+  return new Tensor(chw, [1, 3, SIZE, SIZE]);
+}
+
+// 对原始分数做 softmax，然后返回概率最高的 k 个标签。
+function topK(scores, labels, k = 5) {
+  const max = Math.max(...scores);
+  const exps = Array.from(scores, (score) => Math.exp(score - max));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  return exps
+    .map((value, index) => ({ label: labels[index], probability: value / sum }))
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, k);
+}
+
+export async function classify(model, image, labels) {
+  const input = preprocess(image);
+  let outputs;
+  try {
+    outputs = await model.run(input);
+    const scores = await outputs[0].data();
+    return topK(scores, labels);
+  } finally {
+    input.delete();
+    outputs?.forEach((tensor) => tensor.delete());
+  }
+}
+```
+
+```js showLineNumbers filename="main.js"
+import { createModel, classify } from './classify.js';
+
+const labels = await (await fetch('/models/imagenet_labels.json')).json();
+const model = await createModel('/models/mobilenet_v2.tflite');
+
+const image = document.querySelector('img');
+console.table(await classify(model, image, labels));
+```
+
+## 编译选项 [#compile-options]
+
+这些选项作为 `loadAndCompile()` 的第二个参数传入。
+
+| 选项 | 取值 | 默认值 | 描述 |
+| --- | --- | --- | --- |
+| `accelerator` | `'wasm'`, `'webgpu'`, `'webnn'` | 存在 WebGPU 设备时为 `'webgpu'`，否则为 `'wasm'` | 用于运行模型的硬件路径。 |
+| `webNNOptions.devicePreference` | `'cpu'`, `'gpu'`, `'npu'` | 无 | WebNN 上下文应当面向的设备提示。 |
+| `webNNOptions.powerPreference` | `'default'`, `'high-performance'`, `'low-power'` | 无 | 对功耗与性能权衡的提示，类似 WebNN API 中的 [`MLPowerPreference`](../../../api-reference/webnn/ml#mlpowerpreference)。 |
+| `webNNOptions.precision` | `'fp32'`, `'fp16'` | 无 | 在受支持时用于计算的数值精度。`'fp16'` 可能更快且占用更少内存，但会在一定程度上损失准确度。 |
+| `gpuOptions.precision` | `'fp32'`, `'fp16'` | 无 | WebGPU 加速器的相同选择。 |
+| `cpuOptions.numThreads` | number | 运行时的默认值 | 多线程 Wasm 构建所使用的线程数。 |
+
+这些只是提示。最终的设备选择由浏览器决定，可能与你的偏好不同。关于浏览器如何选择设备，参见 [`MLContextOptions`](../../../api-reference/webnn/ml#mlcontextoptions) 和[设备选择示意图](../../../api-reference/browser-compatibility/deviceselection)。
+
+## 部分加速与回退 [#partial-acceleration]
+
+并非模型中的每个算子都保证在每个浏览器和设备上受 WebNN 支持。LiteRT.js 根据是否有 JSPI，以两种方式之一处理这种情况：
+
+- **有 JSPI：** WebNN 无法运行的算子在 WebAssembly 上逐个算子执行。`loadAndCompile()` 仍会成功，`model.isFullyAccelerated` 为 `false`，并向控制台写入一条警告。
+- **没有 JSPI：** 无法进行逐个算子的混合执行。如果模型无法完全委派，LiteRT.js 会针对 `wasm` 重新编译整个模型，并记录一条警告。
+
+WebNN 与 WebAssembly 之间频繁的切换，其开销可能超过收益。如果 `isFullyAccelerated` 为 `false`，请在决定采用 `webnn` 之前先进行测量，并在同一模型上与 `wasm` 和 `webgpu` 进行比较。
+
+```js showLineNumbers filename="check-delegation.js"
+const model = await loadAndCompile(bytes, { accelerator: 'webnn' });
+
+if (!model.isFullyAccelerated) {
+  console.warn('Some operations run on WebAssembly. Benchmark before choosing WebNN.');
+}
+```
+
+## 在 Web Worker 中运行 LiteRT.js [#web-worker]
+
+在 Worker 中运行推理可以使编译和执行脱离主线程。有两个细节需要注意：
+
+- LiteRT.js 的 WebAssembly 加载器在内部使用 `importScripts()`，而模块（module）Worker 不支持它。请将 Worker 创建为**经典（classic）** Worker，不要使用 `{ type: 'module' }`。
+- 如果 Worker 脚本与 Wasm 文件不在同一位置提供，例如 Wasm 文件来自 CDN，加载器会在 Worker 旁边查找 `.wasm` 文件。请在调用 `loadLiteRt()` 之前设置 `Module.locateFile` 来重定向。
+
+```js showLineNumbers filename="main.js"
+const worker = new Worker('/inference-worker.js'); // classic worker
+worker.postMessage({ type: 'init' });
+```
+
+```js showLineNumbers filename="inference-worker.js"
+const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/';
+let litert;
+
+async function init() {
+  // 经典 Worker 不能使用静态导入，因此使用动态导入。
+  litert = await import('https://esm.sh/@litertjs/core');
+
+  // 告诉 Emscripten 加载器 Wasm 文件的位置。
+  self.Module = { locateFile: (path) => WASM_BASE + path };
+  try {
+    await litert.loadLiteRt(WASM_BASE, { jspi: true });
+  } finally {
+    self.Module = undefined;
+  }
+  self.postMessage({ type: 'ready' });
+}
+
+self.onmessage = async (event) => {
+  if (event.data.type === 'init') await init();
+};
+```
+
+## 转换模型 [#convert-a-model]
+
+LiteRT.js 运行 `.tflite` 文件，因此来自其他框架的模型必须先进行转换。
+
+- **PyTorch：** 使用 [`litert-torch`](https://github.com/google-ai-edge/litert-torch)。
+- **TensorFlow 和 JAX：** 参见 [LiteRT 转换指南](https://developers.google.com/edge/litert/conversion/overview)。
+- **Ultralytics YOLO：** 使用 Ultralytics 工具导出为 LiteRT。
+
+```python showLineNumbers filename="convert.py"
+import torch
+import torchvision
+import litert_torch
+
+model = torchvision.models.resnet18(
+    torchvision.models.ResNet18_Weights.IMAGENET1K_V1
+).eval()
+sample_inputs = (torch.randn(1, 3, 224, 224),)
+
+edge_model = litert_torch.convert(model, sample_inputs)
+edge_model.export("resnet18.tflite")
+```
+
+WebNN 使用固定形状的张量来编译图，因此请使用具体的输入形状（例如 `[1, 3, 224, 224]`）导出模型，而不是使用动态维度。为了减小体积并提升速度，你可以使用 [AI Edge Quantizer](https://github.com/google-ai-edge/ai-edge-quantizer) 对模型进行量化。
+
+## 验证 WebNN 确实被使用 [#verify]
+
+成功编译的模型不一定运行在你的 NPU 或 GPU 上。可以通过三种方式检查：
+
+1. **`model.isFullyAccelerated`** 告诉你是否所有算子都已委派。
+2. **控制台。** LiteRT.js 会记录委派的详细信息，包括 WebNN 支持多少个图节点，以及哪些算子被报告为 `not delegatable`。具体措辞可能在不同版本之间变化。
+3. **LiteRT.js Model Tester**，即 [`@litertjs/model-tester`](https://www.npmjs.com/package/@litertjs/model-tester)，会在 CPU、WebGPU 和 WebNN 加速器上运行你的模型，显示模型被委派的比例，并报告与 CPU 结果之间的数值差异。
+
+若要确认硬件本身处于工作状态，请使用[调试](../../get-started/debug)和[硬件错误](../../troubleshooting/hardware-errors)中介绍的浏览器和操作系统工具。如需一个涵盖 CPU、GPU 和 NPU 后端的现成基准测试，可以使用 [Web AI Run](https://github.com/ibelem/web-ai-run)。
+
+## 故障排除 [#troubleshooting]
+
+| 现象 | 原因与解决方法 |
+| --- | --- |
+| 使用 `{ jspi: true }` 调用 `loadLiteRt()` 时出现 `JSPI is not supported` | 浏览器不支持 JSPI。请使用支持它的浏览器，或不带 `jspi` 调用 `loadLiteRt()` 并使用 `wasm` 或 `webgpu` 加速器。 |
+| `supportsFeature('webnn')` 返回 `false` | 缺少 `navigator.ml`，WebNN 不可用。在这种情况下 LiteRT.js 不会抛出异常，因此需要自行检查返回值并选择其他加速器。启用 WebNN 并重新启动浏览器的方法，参见[安装](../../get-started/installation)。 |
+| `LiteRT is already loading / loaded.` | `loadLiteRt()` 被调用了多次。请只调用一次，或先调用 `unloadLiteRt()`。 |
+| `The threads and jspi options are mutually exclusive.` | 只向 `loadLiteRt()` 传入 `threads` 和 `jspi` 中的一个。WebNN 加速器需要 `jspi`。 |
+| 警告：`Model not fully compiled for webnn` | 此浏览器中的 WebNN 不支持某些算子。有 JSPI 时它们会在 Wasm 上运行。请在控制台中查找 `not delegatable` 消息，或使用 Model Tester。 |
+| `WebGPU was requested but no WebGPU device is set in the environment.` | 你请求了 `webgpu`，但无法创建 WebGPU 设备。请改用 `webnn` 或 `wasm`。 |
+| `run()` 抛出 `TensorBuffer ranked tensor type ... does not match expected ranked tensor type float32[1, 3, 224, 224]`，或 `run() called with N inputs, but signature expects M inputs` | 输入张量与模型不匹配。请与 `model.getInputDetails()` 对比，并使用正确的类型化数组、形状和输入数量。 |
+| `Model is too large (> 2000000000 bytes).` 或 `Failed to allocate N bytes of Wasm memory for the model.` | 模型无法放入内存。WebAssembly CPU 运行时的内存限制为 2 GB。请对模型进行量化或使用更小的模型。 |
+
+## 限制 [#limitations]
+
+- WebNN 支持在 LiteRT.js 中是**实验性**的，且仅在浏览器提供 WebNN 时可用。
+- 大型模型可能加载失败，因为运行时的 WebAssembly 内存限制为 2 GB。
+- LiteRT.js 只负责运行模型。前处理和后处理（例如图像缩放和输出解码）由你的代码或某个库完成。
+- 在 Model Tester 中，WebNN 加速器不支持带有外部化权重的模型。
+- 生成式 AI 和大语言模型由独立的 LiteRT-LM.js 项目负责，而不是 LiteRT.js。
+
+## 后续步骤 [#next-steps]
+
+- 在[快速入门](../../get-started/quickstart)和 [WebNN API 参考](../../../api-reference/webnn/mlcontext)中了解 WebNN 如何构建和运行图。
+- 与其他框架比较：[ONNX Runtime Web](../onnx-runtime/onnx-runtime) 和 [Transformers.js](../transformers-js/transformers-js)。
+- 完全跳过框架，使用[原生 JavaScript](../webnn/vanillajs) 生成精简的 WebNN 代码。
+- 阅读官方 [LiteRT.js 文档](https://developers.google.com/edge/litert/web)和发布公告 [LiteRT.js: Google's high performance web AI inference](https://developers.googleblog.com/litertjs-googles-high-performance-web-ai-inference/)。
+- 浏览 [GitHub 上的 LiteRT.js 源码](https://github.com/google-ai-edge/LiteRT/tree/main/litert/js)，以及软件包 [`@litertjs/core`](https://www.npmjs.com/package/@litertjs/core) 和 [`@litertjs/tfjs-interop`](https://www.npmjs.com/package/@litertjs/tfjs-interop)。

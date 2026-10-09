@@ -110,8 +110,8 @@ python onnx2webnn.py -if ../sample_models/mobilenetv2-12-static.onnx -oj mobilen
 Use the WebNN API to detect the backend's preferred layout and load the appropriate model:
 
 ```javascript
-const deviceType = 'gpu'; // or 'cpu', 'npu'
-const context = await navigator.ml.createContext({deviceType});
+const deviceType = 'gpu'; // or 'cpu', 'npu', the option of the generated model
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
 const layout = context.opSupportLimits().preferredInputLayout;
 
 let webnnModel;
@@ -124,6 +124,8 @@ if (layout === 'nhwc') {
 // Initialize the model
 await webnnModel.build({deviceType});
 ```
+
+> <InfoIcon /> The `deviceType` option was removed from `MLContextOptions` in the WebNN specification, so current browsers ignore it. Use the `powerPreference` and `accelerated` hints instead, see [Migrating from deviceType](../../../api-reference/webnn/ml#migrating-from-devicetype).
 
 ## Generate QDQ WebNN Models
 

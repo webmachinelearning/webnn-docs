@@ -1,10 +1,377 @@
 import Image from "next/image";
 import OnnxRuntime from '../../../../../app/_components/icons/onnxruntime.jsx'
 import WebNn from "../../../../../app/_components/icons/webnn.jsx";
+import { Steps } from 'nextra/components'
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 <div className="mt-6 grid grid-cols-2 gap-4 items-center justify-items-center tutorials-title">
   <OnnxRuntime className="onnx-runtime-logo" />
   <WebNn className="webnn-logo" />
 </div>
 
-[ONNX Runtime Web](https://onnxruntime.ai/) enables running machine learning models directly in the browser. This allows web applications to perform ML inference client-side, eliminating the need for additional software installation while maintaining user privacy and security.
+# ONNX Runtime Web
+
+[ONNX Runtime Web](https://onnxruntime.ai/docs/get-started/with-javascript/web.html) runs `.onnx` models in the browser. Its WebNN execution provider (EP) hands the parts of a model that WebNN can run to the browser's WebNN implementation, which can use the CPU, GPU or NPU. Operators that WebNN cannot run fall back to the WebAssembly CPU EP, so most models still run.
+
+You select the WebNN EP with `executionProviders: ['webnn']` when you create an `InferenceSession`. Everything else, such as tensors, inputs and outputs, works the same as for the `wasm` EP.
+
+> <InfoIcon /> The WebNN API and its browser support are still evolving. Always keep `'wasm'` as a fallback, and see [Installation](../../get-started/installation) for the browser setup.
+
+## When to choose ONNX Runtime Web [#when-to-choose]
+
+| | [LiteRT.js](../lite-rt/lite-rt) | ONNX Runtime Web | [Transformers.js](../transformers-js/transformers-js) |
+| --- | --- | --- | --- |
+| **Model format** | `.tflite` | `.onnx` | ONNX models from the Hugging Face Hub |
+| **Level of abstraction** | Run models, you write pre- and post-processing | Run models, you write pre- and post-processing | Task pipelines, pre- and post-processing included |
+| **WebNN option** | `accelerator: 'webnn'` | `executionProviders: ['webnn']` | `device: 'webnn-gpu'` and friends |
+
+Choose ONNX Runtime Web when you have an ONNX model and want direct control over sessions, shapes and tensors. Transformers.js uses ONNX Runtime Web underneath, so what this page says about shapes and the WebNN EP also applies there.
+
+## How the WebNN EP works [#how-it-works]
+
+When a session is created with the `webnn` EP:
+
+1. ONNX Runtime Web creates an [`MLContext`](../../../api-reference/webnn/mlcontext) with `navigator.ml.createContext()`, using your `deviceType` and `powerPreference`.
+2. The EP reads the operator and data type limits of that context, and marks the nodes it can build.
+3. The graph is split into partitions. Each partition of supported nodes is compiled into a WebNN graph. Everything else stays on the Wasm CPU EP.
+4. On each `run()`, partitions execute through WebNN and the remaining nodes execute on Wasm.
+
+Every hand-off between WebNN and Wasm costs time. A model split into many partitions can run slower than on `wasm` alone, so check the partition count, see [Verify that WebNN is used](#verify).
+
+## Prerequisites [#prerequisites]
+
+- A browser with WebNN enabled. Follow [Installation](../../get-started/installation).
+- A [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS or `localhost`.
+- An `.onnx` model, preferably with fixed input shapes, see [Static shapes](#static-shapes).
+
+## Install [#install]
+
+```bash showLineNumbers filename="terminal"
+npm install onnxruntime-web
+```
+
+The package exposes several entry points in its `package.json` exports. For WebNN, the ONNX Runtime documentation uses `onnxruntime-web/all`, and a JSPI build is available as `onnxruntime-web/jspi`.
+
+| Import | Use |
+| --- | --- |
+| `onnxruntime-web/all` | The bundle used in the [ONNX Runtime WebNN guide](https://onnxruntime.ai/docs/tutorials/web/ep-webnn.html). Start here. |
+| `onnxruntime-web/jspi` | The JSPI build, which loads `ort-wasm-simd-threaded.jspi.wasm`. Needs a browser with WebAssembly JSPI. |
+
+With a script tag, load `ort.all.min.js` instead of `ort.min.js`:
+
+```html showLineNumbers filename="index.html"
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.all.min.js"></script>
+```
+
+> <InfoIcon /> Pin the version in production, for example `onnxruntime-web@<version>` with the exact version you tested, so that the JavaScript bundle and the Wasm files always match. The nightly `onnxruntime-web@dev` build can have newer WebNN fixes.
+
+## Use the WebNN EP [#use-webnn]
+
+<Steps>
+
+### Import ONNX Runtime Web [#step-import]
+
+```js showLineNumbers filename="session.js"
+import * as ort from 'onnxruntime-web/all';
+```
+
+If the Wasm files are not served next to your bundle, point ONNX Runtime Web at them. `env.wasm.wasmPaths` takes a URL prefix, or an object with `wasm` and `mjs` overrides.
+
+```js showLineNumbers filename="env.js"
+ort.env.wasm.wasmPaths = '/ort/';
+```
+
+### Create a session [#step-session]
+
+```js showLineNumbers filename="session.js"
+const session = await ort.InferenceSession.create('/models/mobilenetv2-12.onnx', {
+  executionProviders: [
+    { name: 'webnn', deviceType: 'gpu', powerPreference: 'default' },
+    'wasm',
+  ],
+  // The key must match the free dimension name stored in your model.
+  freeDimensionOverrides: { batch_size: 1 },
+});
+
+console.log('Inputs:', session.inputNames, 'Outputs:', session.outputNames);
+```
+
+`create()` accepts a URL or a `Uint8Array` of model bytes. EPs are tried in order, so `'wasm'` after `webnn` is the safety net. Option details are in [Execution provider options](#options).
+
+### Run inference [#step-run]
+
+Create an `ort.Tensor` from a typed array and a shape, and pass it by input name.
+
+```js showLineNumbers filename="run.js"
+const data = new Float32Array(1 * 3 * 224 * 224);
+const input = new ort.Tensor('float32', data, [1, 3, 224, 224]);
+
+const results = await session.run({ [session.inputNames[0]]: input });
+const scores = results[session.outputNames[0]].data; // a Float32Array
+console.log('Number of scores:', scores.length);
+```
+
+### Release the session [#step-release]
+
+```js showLineNumbers filename="release.js"
+await session.release();
+```
+
+</Steps>
+
+## Execution provider options [#options]
+
+These are ONNX Runtime Web options, passed in the `webnn` entry of `executionProviders`. They are not the same as the WebNN API's [`MLContextOptions`](../../../api-reference/webnn/ml#createcontext), which no longer has `deviceType`. ONNX Runtime Web uses `deviceType` to configure the graph builders and to request the context.
+
+| Option | Values | Description |
+| --- | --- | --- |
+| `deviceType` | `'cpu'`, `'gpu'`, `'npu'` | The device the context should target. The WebNN EP throws `Unknown WebNN deviceType.` for any other string. |
+| `powerPreference` | `'default'`, `'low-power'`, `'high-performance'` | A hint for the power and performance trade-off. |
+| `context` | an `MLContext` | Use a context you created yourself. `deviceType` is then required, so the EP can choose the preferred layout. |
+| `gpuDevice` | a `GPUDevice` | Create the `MLContext` from this WebGPU device. |
+
+The string form, `'webnn'`, creates the context with default options. `numThreads` also appears in the option type, but the session code in the sources does not use it, so do not rely on it.
+
+> <InfoIcon /> These are hints. The browser makes the final device choice, which can differ from your preference. See the [device selection diagram](../../../api-reference/browser-compatibility/deviceselection).
+
+Two session options also matter for WebNN:
+
+| Session option | Description |
+| --- | --- |
+| `freeDimensionOverrides` | Fixes named free dimensions to numbers. See [Static shapes](#static-shapes). |
+| `preferredOutputLocation` | Where outputs stay after `run()`, for example `'ml-tensor'`. See [MLTensor and IO binding](#mltensor). |
+
+## Static shapes [#static-shapes]
+
+WebNN compiles graphs with fixed tensor shapes. The WebNN EP rejects a node whose tensors have a free dimension, and logs, at verbose level, `Dynamic shape is not supported, use sessionOptions.FreeDimensionOverrides to set a fixed shape`. That node, and often most of the graph, then runs on Wasm.
+
+Fix this by giving each free dimension a number with `freeDimensionOverrides`. The key is the dimension name stored in the ONNX model, such as `batch_size`:
+
+```js showLineNumbers filename="static-shapes.js"
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: ['webnn'],
+  freeDimensionOverrides: { batch_size: 1, sequence_length: 128 },
+});
+```
+
+Look up the dimension names in the model with a viewer such as [Netron](https://netron.app). See [Free Dimension Overrides](./free-dimension-overrides) for a full walkthrough, and [Performance issues](../../troubleshooting/performance-issues) if a model is slower than expected.
+
+## Complete example: image classification [#image-classification]
+
+This example classifies an image with an ONNX MobileNet whose input is `[1, 3, 224, 224]` in `float32`, normalized with the ImageNet mean and standard deviation. It tries WebNN on the GPU, then the NPU, then falls back to Wasm. Adjust the model URL, size and normalization to match your model.
+
+```js showLineNumbers filename="classify.js"
+import * as ort from 'onnxruntime-web/all';
+
+const SIZE = 224;
+const MEAN = [0.485, 0.456, 0.406];
+const STD = [0.229, 0.224, 0.225];
+
+ort.env.wasm.wasmPaths = '/ort/';
+
+// Try each execution provider list in turn until a session can be created.
+export async function createSession(modelUrl) {
+  const bytes = new Uint8Array(await (await fetch(modelUrl)).arrayBuffer());
+  const candidates = [
+    [{ name: 'webnn', deviceType: 'gpu' }],
+    [{ name: 'webnn', deviceType: 'npu' }],
+    ['wasm'],
+  ];
+
+  for (const executionProviders of candidates) {
+    try {
+      const session = await ort.InferenceSession.create(bytes, {
+        executionProviders,
+        freeDimensionOverrides: { batch_size: 1 },
+      });
+      console.log('Session created with', JSON.stringify(executionProviders));
+      return session;
+    } catch (error) {
+      console.warn('Could not use', JSON.stringify(executionProviders), error);
+    }
+  }
+  throw new Error('No execution provider could create a session.');
+}
+
+// Convert an image (HTMLImageElement, ImageBitmap, canvas) to a normalized NCHW tensor.
+function preprocess(image) {
+  const canvas = new OffscreenCanvas(SIZE, SIZE);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0, SIZE, SIZE);
+  const { data } = context.getImageData(0, 0, SIZE, SIZE); // RGBA, row by row
+
+  const chw = new Float32Array(3 * SIZE * SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    for (let channel = 0; channel < 3; channel++) {
+      chw[channel * SIZE * SIZE + i] = (data[i * 4 + channel] / 255 - MEAN[channel]) / STD[channel];
+    }
+  }
+  return new ort.Tensor('float32', chw, [1, 3, SIZE, SIZE]);
+}
+
+// Softmax over the raw scores, then return the k most likely labels.
+function topK(scores, labels, k = 5) {
+  const max = Math.max(...scores);
+  const exps = Array.from(scores, (score) => Math.exp(score - max));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  return exps
+    .map((value, index) => ({ label: labels[index], probability: value / sum }))
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, k);
+}
+
+export async function classify(session, image, labels) {
+  const input = preprocess(image);
+  const results = await session.run({ [session.inputNames[0]]: input });
+  return topK(results[session.outputNames[0]].data, labels);
+}
+```
+
+```js showLineNumbers filename="main.js"
+import { createSession, classify } from './classify.js';
+
+const labels = await (await fetch('/models/imagenet_labels.json')).json();
+const session = await createSession('/models/mobilenetv2-12.onnx');
+
+const image = document.querySelector('img');
+console.table(await classify(session, image, labels));
+```
+
+For a full walkthrough, including the page setup, see [Image Classification](./image-classification).
+
+## Fallback behavior [#fallback]
+
+There are two levels of fallback:
+
+- **Per operator.** Nodes that WebNN cannot build, for example an unsupported operator, data type or shape on this device, run on the Wasm CPU EP. The session is still created.
+- **Per session.** If `InferenceSession.create()` throws, for example because WebNN is not available, retry with `executionProviders: ['wasm']`, as the example above does.
+
+Quantized models are handled specially: with the `webnn` EP, ONNX Runtime Web turns off QDQ fusion and QDQ constant folding, so `DequantizeLinear` and `QuantizeLinear` nodes reach the WebNN EP as individual operators.
+
+## MLTensor and IO binding [#mltensor]
+
+By default, inputs and outputs live in CPU memory, and with `gpu` or `npu` the data is copied to the device and back on every run. With [`MLTensor`](../../../api-reference/webnn/mltensor), data can stay on the device. This helps most when outputs are fed back as inputs, for example in transformer decoding loops. The sources confirm `ort.Tensor.fromMLTensor()` and the `'ml-tensor'` output location.
+
+Per the ONNX Runtime guide, IO binding needs one shared `MLContext`, created up front and passed as the `context` option of the EP together with `deviceType`.
+
+```js showLineNumbers filename="io-binding.js"
+// ONNX Runtime Web still needs a deviceType next to the context.
+const deviceType = 'gpu';
+const mlContext = await navigator.ml.createContext({ powerPreference: 'high-performance' });
+
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: [{ name: 'webnn', context: mlContext, deviceType }],
+  freeDimensionOverrides: { batch_size: 1 },
+  preferredOutputLocation: 'ml-tensor',
+});
+
+// An input that already lives on an MLTensor
+const mlTensor = await mlContext.createTensor({
+  dataType: 'float32',
+  shape: [1, 3, 224, 224],
+  writable: true,
+});
+mlContext.writeTensor(mlTensor, new Float32Array(1 * 3 * 224 * 224));
+const input = ort.Tensor.fromMLTensor(mlTensor, { dataType: 'float32', dims: [1, 3, 224, 224] });
+
+const results = await session.run({ [session.inputNames[0]]: input });
+const output = results[session.outputNames[0]];
+const values = await output.getData(); // downloads from the MLTensor to the CPU
+console.log('Number of values:', values.length);
+
+output.dispose(); // ONNX Runtime created this MLTensor, so release it
+mlTensor.destroy(); // you created this one, so you destroy it
+```
+
+`preferredOutputLocation` also accepts an object keyed by output name, for example `{ output_0: 'cpu', output_1: 'ml-tensor' }`.
+
+- A tensor from `Tensor.fromMLTensor()` is owned by you. Keep it valid during `run()` and destroy the `MLTensor` when done. Running with a destroyed `MLTensor` fails.
+- An output that ONNX Runtime created owns its `MLTensor`. Read it with `getData()` and release it with `dispose()`.
+- The `MLTensor` part of WebNN is still changing, so check your browser version if this path fails.
+
+## Useful ort.env flags [#env-flags]
+
+Set these before creating the first session. They are defined in the `env` type of ONNX Runtime Web.
+
+| Flag | Description |
+| --- | --- |
+| `env.wasm.wasmPaths` | URL prefix, or an object with `wasm` and `mjs` paths, for the Wasm runtime files. |
+| `env.wasm.numThreads` | Threads for the Wasm runtime. `0` or unset lets the system decide, and `1` spawns no worker threads. |
+| `env.wasm.proxy` | Runs the Wasm runtime in a worker thread. Default `false`. |
+| `env.wasm.simd` | Controls SIMD feature detection. Default `true`. |
+| `env.wasm.initTimeout` | Timeout for runtime initialization, in milliseconds. Default `0`, no timeout. |
+| `env.logLevel` | `'verbose'`, `'info'`, `'warning'`, `'error'` or `'fatal'`. |
+
+> <InfoIcon /> `numThreads` and `proxy` configure the Wasm runtime and the fallback nodes. They do not change what runs on WebNN. Tensors on the `'ml-tensor'` location are not serializable across the proxy worker, so avoid combining `env.wasm.proxy` with IO binding.
+
+## Run in a Web Worker [#web-worker]
+
+Running inference in a worker keeps session creation and execution off the main thread. The [Web AI Run](https://github.com/ibelem/web-ai-run) inference worker, which runs ONNX Runtime Web with WebNN, uses this pattern:
+
+- It is a classic worker, not a module worker, because the Wasm loader calls `importScripts()`, which module workers do not have.
+- It loads the JSPI bundle `ort.jspi.min.mjs` with a dynamic `import()`, then sets `ort.env.wasm.wasmPaths` to the folder that holds the Wasm files.
+
+```js showLineNumbers filename="inference-worker.js"
+// Pin an exact version in production instead of 'latest'.
+const BASE = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@latest/dist/';
+let session;
+
+self.onmessage = async (event) => {
+  if (event.data.type === 'init') {
+    const ort = await import(BASE + 'ort.jspi.min.mjs');
+    ort.env.wasm.wasmPaths = BASE;
+
+    session = await ort.InferenceSession.create(event.data.modelUrl, {
+      executionProviders: [{ name: 'webnn', deviceType: 'gpu' }, 'wasm'],
+      freeDimensionOverrides: event.data.freeDimensionOverrides,
+    });
+    self.postMessage({ type: 'ready' });
+  }
+};
+```
+
+Replace `latest` with the exact version you use, and create the worker with `new Worker('/inference-worker.js')`, without `{ type: 'module' }`.
+
+## Verify that WebNN is used [#verify]
+
+A session that is created is not necessarily running on your GPU or NPU. Check it like this:
+
+1. Set `ort.env.logLevel = 'verbose'` before creating the session.
+2. Find the line from the WebNN EP, `WebNNExecutionProvider::GetCapability, number of partitions supported by WebNN: ... number of nodes in the graph: ... number of nodes supported by WebNN: ...`. One partition that covers nearly all nodes means the model is almost fully on WebNN. The EP writes this line as a warning when there is more than one partition, and as info otherwise.
+3. Look for verbose messages about unsupported shapes or data types, such as the dynamic-shape message above.
+
+To confirm that the hardware is busy, use the browser and OS tools described in [Debug](../../get-started/debug).
+
+## Supported operators and data types [#supported-ops]
+
+The WebNN EP builds ONNX operators with the builders in [`onnxruntime/core/providers/webnn/builders`](https://github.com/microsoft/onnxruntime/tree/main/onnxruntime/core/providers/webnn/builders). Support also depends on the browser, because the EP reads the supported data types and limits from the context at run time. The maintained operator list is [webnn-operators.md](https://github.com/microsoft/onnxruntime/blob/main/js/web/docs/webnn-operators.md).
+
+## Troubleshooting [#troubleshooting]
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `WebNN is not supported in current environment` | `navigator.ml` is missing. Enable WebNN and use a secure context, see [Installation](../../get-started/installation). |
+| `Failed to create WebNN context.` | The EP has no `MLContext`. Try another `deviceType`, or see [Hardware errors](../../troubleshooting/hardware-errors). |
+| `Unknown WebNN deviceType.` | `deviceType` must be `'cpu'`, `'gpu'` or `'npu'`. |
+| `WebAssembly JSPI is not supported in the current environment.` | You use the JSPI build in a browser without JSPI. Use `onnxruntime-web/all`, or a browser with JSPI. |
+| Verbose log: `Dynamic shape is not supported` | The model has free dimensions. Set `freeDimensionOverrides`, see [Static shapes](#static-shapes). |
+| Many partitions, slow inference | Unsupported operators split the graph. Check the supported node count, change the model, or compare against `wasm`. |
+| `Tensor location "ml-tensor" is not supported without using WebNN.` | You used an `MLTensor` input or `preferredOutputLocation: 'ml-tensor'` without the `webnn` EP. |
+| The Wasm files fail to load | Set `env.wasm.wasmPaths`, and serve the files with the correct MIME type. |
+
+For more, see [Common errors](../../troubleshooting/common-errors), [Framework errors](../../troubleshooting/framework-errors) and [Backend errors](../../troubleshooting/backend-errors).
+
+## Limitations [#limitations]
+
+- Shapes must be static for WebNN. Models with dynamic shapes need `freeDimensionOverrides`.
+- Operator and data type support depends on the browser and device. Unsupported nodes run on Wasm.
+- ONNX Runtime Web runs the model only. Pre- and post-processing is your code.
+- WebNN and `MLTensor` are not available in every browser yet.
+
+## Next steps [#next-steps]
+
+- Follow the end-to-end [Image Classification](./image-classification) tutorial.
+- Learn about [Free Dimension Overrides](./free-dimension-overrides).
+- Compare with [LiteRT.js](../lite-rt/lite-rt) and [Transformers.js](../transformers-js/transformers-js).
+- Read the [WebNN API reference](../../../api-reference/webnn/mlcontext).
+- Official docs: [Get started with ONNX Runtime Web](https://onnxruntime.ai/docs/get-started/with-javascript/web.html), [Using the WebNN EP](https://onnxruntime.ai/docs/tutorials/web/ep-webnn.html), and [env flags and session options](https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html).

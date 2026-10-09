@@ -3,35 +3,35 @@ import { Cards } from 'nextra/components'
 import Image from 'next/image'
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# Using TypeScript with WebNN API
+# 在 WebNN API 中使用 TypeScript
 
-TypeScript provides strong typing capabilities for JavaScript projects, enhancing developer productivity with features like code completion and compile-time error checking. This guide explains how to integrate TypeScript type definitions for the WebNN API in your projects.
+TypeScript（TS）为 JavaScript 项目提供强大的类型能力，通过代码补全和编译时错误检查等功能提升开发效率。本指南介绍如何在项目中集成 WebNN API 的 TypeScript 类型定义。
 
-## Overview
+## 概述
 
-The [@webnn/types](https://www.npmjs.com/package/@webnn/types) package contains TypeScript declaration files (`.d.ts`) for the WebNN API, providing type information for methods, properties, and return values used in the WebNN specification.
+[@webnn/types](https://www.npmjs.com/package/@webnn/types) 包包含 WebNN API 的 TypeScript 声明文件（`.d.ts`），为 WebNN 规范中使用的方法、属性和返回值提供类型信息。
 
-> **Note:** You don't need to use `@webnn/types` if you're working with JavaScript ML libraries like [Transformers.js](https://huggingface.co/docs/transformers.js/index) or [ONNX Runtime Web](https://onnxruntime.ai/docs/api/js/index.html), which includes their own type definitions.
+> **注意：** 如果您使用的是 [Transformers.js](https://huggingface.co/docs/transformers.js/index) 或 [ONNX Runtime Web](https://onnxruntime.ai/docs/api/js/index.html) 等 JavaScript 机器学习库，则无需使用 `@webnn/types`，因为它们自带类型定义。
 
-## Why Use Type Definitions?
+## 为什么要使用类型定义？
 
-Without type definitions, TypeScript will treat WebNN API objects and methods as having `unknown` type:
+没有类型定义时，TypeScript 会将 WebNN API 对象和方法视为 `unknown` 类型：
 
-<div className="text-center flex justify-center">
+<div className="text-center flex justify-center mt-2">
   <div className="w-[500px]">![WebNN without TypeScript type definitions](/learn/get-started/typescript/1.png)</div>
 </div>
-<div className="text-center text-sm">Figure 1: Type unknown errors appear when no type definitions are available</div>
+<div className="text-center text-sm">图 1：没有类型定义时出现 unknown 类型错误</div>
 
-With proper type definitions, TypeScript can provide code completion, parameter validation, and type checking:
+有了合适的类型定义，TypeScript 就能提供代码补全、参数校验和类型检查：
 
-<div className="text-center flex justify-center mt-4">
+<div className="text-center flex justify-center mt-2">
   <div className="w-[500px]">![WebNN with TypeScript type definitions](/learn/get-started/typescript/2.png)</div>
 </div>
-<div className="text-center text-sm">Figure 2: Type checking works correctly when definitions are available</div>
+<div className="text-center text-sm">图 2：有类型定义时类型检查正常工作</div>
 
-## Installation
+## 安装
 
-Install the type definitions as a development dependency using your preferred package manager:
+使用您偏好的包管理器，将类型定义安装为开发依赖：
 
 ```bash
 # npm
@@ -42,11 +42,11 @@ yarn add --dev @webnn/types
 pnpm add -D @webnn/types
 ```
 
-## Configuration
+## 配置
 
-Since `@webnn/types` is outside of DefinitelyTyped [(@types)](https://github.com/DefinitelyTyped/DefinitelyTyped), you need to explicitly configure TypeScript to recognize these types. You have two options:
+由于 `@webnn/types` 不在 DefinitelyTyped [(@types)](https://github.com/DefinitelyTyped/DefinitelyTyped) 之内，您需要显式配置 TypeScript 来识别这些类型。您有两种选项：
 
-### Option 1: Using `types` in `tsconfig.json`
+### 选项 1：在 `tsconfig.json` 中使用 `types`
 
 ```json filename="tsconfig.json"
 {
@@ -56,7 +56,7 @@ Since `@webnn/types` is outside of DefinitelyTyped [(@types)](https://github.com
 }
 ```
 
-### Option 2: Using `typeRoots` in `tsconfig.json`
+### 选项 2：在 `tsconfig.json` 中使用 `typeRoots`
 
 ```json filename="tsconfig.json"
 {
@@ -72,24 +72,24 @@ Since `@webnn/types` is outside of DefinitelyTyped [(@types)](https://github.com
 <div className="text-center flex justify-center mt-4">
   <div className="w-[400px]">![WebNN / TypeScript type definitions](/learn/get-started/typescript/3.png)</div>
 </div>
-<div className="text-center text-sm">Figure 3: Configuration in tsconfig.json</div>
+<div className="text-center text-sm">图 3：tsconfig.json 中的配置</div>
 
-## Global Types
+## 全局类型
 
-Once configured, the WebNN types are globally available in your project. You don't need to import them explicitly - TypeScript will automatically recognize WebNN interfaces like `navigator.ml` and `MLGraphBuilder`.
+配置完成后，WebNN 类型即可在项目中全局使用。您无需显式导入它们，TypeScript 会自动识别 `navigator.ml` 和 `MLGraphBuilder` 等 WebNN 接口。
 
 ```typescript
-// No need to import WebNN types - they're globally available
+// 无需导入 WebNN 类型，它们是全局可用的
 async function runInference() {
-  // TypeScript will recognize these types
+  // TypeScript 将识别这些类型
   const ml:ML = navigator.ml;
-  const context:MLContext = navigator.ml.createContext();
+  const context:MLContext = await ml.createContext();
   const builder:MLGraphBuilder = new MLGraphBuilder(context);
 
   const input:MLOperand = builder.input('input', {dataType: 'float32', shape: [1, 3, 224, 224]});
   const weights:MLOperand = builder.constant({dataType: 'float32', shape: [16, 3, 3, 3]}, new Float32Array(432));
 
-  // Types for convolution parameters
+  // 卷积参数的类型
   const options:MLConv2dOptions = {
     padding: [1, 1, 1, 1],
     strides: [1, 1],
@@ -100,24 +100,24 @@ async function runInference() {
   const conv:MLOperand = builder.conv2d(input, weights, options);
   const graph:MLGraph = await builder.build({output: conv});
   
-  // Rest of the inference code...
+  // 其余推理代码...
 }
 ```
-## TypeScript Vanilla Example
+## TypeScript 原生示例
 
-For a complete working example, refer to the [WebNN TypeScript Vanilla Example](https://github.com/ibelem/webnn-typescript-vanilla-example/) repository, which demonstrates:
+如需完整的可运行示例，请参阅 [WebNN TypeScript Vanilla Example](https://github.com/ibelem/webnn-typescript-vanilla-example/) 仓库，其中演示了：
 
-- [tsconfig.json configuration](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/tsconfig.json#L9)
-- [WebNN TypeScript implementation](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/src/webnn.ts#L7)
+- [tsconfig.json 配置](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/tsconfig.json#L9)
+- [WebNN TypeScript 实现](https://github.com/ibelem/webnn-typescript-vanilla-example/blob/main/src/webnn.ts#L7)
 
-## Tips for WebNN TS Development
+## WebNN TS 开发提示
 
-- Use TypeScript's autocompletion to discover available methods and properties
-- Leverage parameter type checking to avoid common WebNN API usage errors
-- TypeScript interfaces will help you conform to the expected shapes of WebNN options objects
-- VSCode and other modern editors will show documentation tooltips for WebNN API methods when properly typed
+- 使用 TypeScript 的自动补全来发现可用的方法和属性
+- 利用参数类型检查来避免常见的 WebNN API 使用错误
+- TypeScript 接口将帮助您符合 WebNN 选项对象的预期结构
+- 类型正确时，VSCode 和其他现代编辑器会为 WebNN API 方法显示文档提示
 
-## Additional Resources
+## 其他资源
 
-- [NPM @webnn/types package](https://www.npmjs.com/package/@webnn/types)
-- [WebNN Types GitHub repository](https://github.com/webmachinelearning/webnn-types#readme)
+- [NPM @webnn/types 包](https://www.npmjs.com/package/@webnn/types)
+- [WebNN Types GitHub 仓库](https://github.com/webmachinelearning/webnn-types#readme)

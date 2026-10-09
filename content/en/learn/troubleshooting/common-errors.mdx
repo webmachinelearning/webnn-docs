@@ -1,2 +1,244 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
 # Common Errors
 
+These are the errors you are most likely to meet when you call the WebNN API directly, or through a framework that uses it. Each entry names the error, explains what triggers it, and shows how to fix it. For the full list of exceptions each method can throw, see the [WebNN API reference](../../api-reference/webnn/ml).
+
+> <InfoIcon /> Errors from [ONNX Runtime Web and LiteRT.js](./framework-errors) have their own page, and errors that originate in the browser's WebNN backend are covered in [Backend Errors](./backend-errors).
+
+## Availability Errors
+
+### `navigator.ml` is undefined
+
+#### Problem
+
+`navigator.ml` is `undefined`, or `'ml' in navigator` is `false`, so WebNN cannot be used at all.
+
+#### Solution
+
+- Enable WebNN in a supported browser and relaunch it, see [Installation](../get-started/installation).
+- Serve your page from a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts), which means HTTPS or `localhost`. The `ml` property is not exposed in an insecure context.
+- Feature-detect before you use it, and keep a fallback:
+
+```js showLineNumbers filename="detect.js"
+if (!('ml' in navigator)) {
+  // Fall back to WebAssembly or WebGPU based inference.
+}
+```
+
+See [`navigator.ml`](../../api-reference/webnn/navigatorml).
+
+### `SecurityError` when creating a context or a graph builder
+
+#### Problem
+
+`navigator.ml.createContext()` rejects, or `new MLGraphBuilder(context)` throws, with a `SecurityError`.
+
+#### Solution
+
+The document is not allowed to use the `webnn` [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) feature. Its default allowlist is `'self'`, so this typically happens inside a cross-origin `<iframe>`. Grant access explicitly:
+
+```html showLineNumbers filename="iframe.html"
+<iframe src="https://example.com/inference.html" allow="webnn"></iframe>
+```
+
+See [Permissions Policy](../../api-reference/webnn/navigatorml#permissions-policy).
+
+### `NotSupportedError` from `createContext()`
+
+#### Problem
+
+`navigator.ml.createContext()` rejects with a `NotSupportedError`. The browser could not create a context of the type you asked for.
+
+#### Solution
+
+- Confirm that the browser, operating system and drivers support WebNN, see [Installation](../get-started/installation) and the [browser compatibility tables](../../api-reference/browser-compatibility/api#webnn-apis).
+- Try again with fewer constraints. Hints such as `powerPreference` and `accelerated` are preferences, but a context created from a WebGPU `GPUDevice` also requires that WebNN can work with that device:
+
+```js showLineNumbers filename="create-context.js"
+let context;
+try {
+  context = await navigator.ml.createContext({ accelerated: true });
+} catch (error) {
+  console.warn(`Could not create an accelerated context: ${error.name}`);
+  context = await navigator.ml.createContext({ accelerated: false });
+}
+```
+
+- If the second attempt fails as well, there is no usable WebNN backend on this machine. Use another inference path.
+
+See [`ML.createContext()`](../../api-reference/webnn/ml#createcontext).
+
+### Code using `deviceType` has no effect
+
+#### Problem
+
+You pass `deviceType: 'gpu'` or `deviceType: 'npu'` to `navigator.ml.createContext()`, but the choice of device does not change, or older examples behave differently from your browser.
+
+#### Solution
+
+`deviceType` was removed from `MLContextOptions` in the specification, so a current browser ignores it. Use the hints that remain, `powerPreference` and `accelerated`. See [Migrating from deviceType](../../api-reference/webnn/ml#migrating-from-devicetype). Frameworks can still expose their own device options, for example the `deviceType` option of the ONNX Runtime Web WebNN execution provider, and map them to the WebNN API for you.
+
+## Graph Building Errors
+
+### `TypeError` while building a graph
+
+#### Problem
+
+A call such as `builder.add()`, `builder.conv2d()` or `builder.input()` throws a `TypeError`, before you even call `build()`.
+
+#### Solution
+
+Operations are validated as soon as you call them. The most common causes are:
+
+- An operand's data type is not allowed for the operation. Each operation lists its allowed data types in [MLGraphBuilder operations](../../api-reference/webnn/mlgraphbuilder-ops#data-types-and-ranks).
+- The shapes do not fit: shapes that cannot be broadcast, mismatching matrix dimensions, an `axis` outside the valid range, or a rank the operation does not accept.
+- An operand was created by a different `MLGraphBuilder`. Operands cannot be shared between builders.
+- An input has an empty name, or the same name as another input.
+
+Print `operand.shape` and `operand.dataType` while you build the graph to find the first mismatch, and add a `label` to your operations so that error messages point at the right one:
+
+```js showLineNumbers filename="debug-shapes.js"
+const projected = builder.matmul(a, b, { label: 'decoder.proj' });
+console.log(projected.dataType, projected.shape);
+```
+
+See [`MLOperand`](../../api-reference/webnn/mloperand) and [Common behavior](../../api-reference/webnn/mlgraphbuilder-ops#common-behavior).
+
+### `InvalidStateError` from the builder
+
+#### Problem
+
+A builder method or `build()` throws, or rejects with, an `InvalidStateError`.
+
+#### Solution
+
+An `MLGraphBuilder` can build only once, and only while its context is not lost. After you call `build()`, create a new builder for the next graph. If the context was lost, create a new context first.
+
+```js showLineNumbers filename="one-builder-per-graph.js"
+const graphA = await new MLGraphBuilder(context).build({ y: makeOutputA() });
+const graphB = await new MLGraphBuilder(context).build({ y: makeOutputB() });
+```
+
+See [`build()`](../../api-reference/webnn/mlgraphbuilder#build).
+
+### `build()` rejects with a `TypeError`
+
+#### Problem
+
+`builder.build()` rejects with a `TypeError`.
+
+#### Solution
+
+The `outputs` you passed are not valid. They must not be empty, every output needs a non-empty name, every operand must come from this builder, and an input or constant operand cannot be a graph output. To expose one of those, wrap it with [`identity()`](../../api-reference/webnn/mlgraphbuilder-ops#identity).
+
+### `build()` rejects with an `OperationError`
+
+#### Problem
+
+`builder.build()` rejects with an `OperationError`. The graph was valid, but the browser's backend could not compile it.
+
+#### Solution
+
+The backend does not support something in your graph, for example an operation, a data type or a tensor rank. Check what the current context supports and adjust the model:
+
+```js showLineNumbers filename="support-limits.js"
+const limits = context.opSupportLimits();
+console.log(limits.conv2d.input.dataTypes); // for example ['float32', 'float16']
+console.log(limits.maxTensorByteLength);
+```
+
+If you cannot tell which operation is the cause, turn on the backend's verbose logging, see [Backend Errors](./backend-errors). See also [`opSupportLimits()`](../../api-reference/webnn/mlcontext#opsupportlimits).
+
+## Execution Errors
+
+### `TypeError` from `dispatch()`
+
+#### Problem
+
+`context.dispatch(graph, inputs, outputs)` throws a `TypeError`.
+
+#### Solution
+
+`dispatch()` checks your tensors against the graph before it schedules any work. Make sure that:
+
+- The graph and every tensor belong to the same `MLContext`.
+- `inputs` has exactly one tensor for each graph input name, and `outputs` exactly one for each graph output name. The names are the ones you used in `input()` and `build()`.
+- Each tensor has the same `dataType` and `shape` as the operand it is bound to.
+- No tensor appears twice, has been destroyed, is a constant tensor, or is currently exported to WebGPU.
+
+See [`dispatch()`](../../api-reference/webnn/mlcontext#dispatch).
+
+### `TypeError` from `readTensor()` or `writeTensor()`
+
+#### Problem
+
+`context.readTensor()` rejects, or `context.writeTensor()` throws, with a `TypeError`.
+
+#### Solution
+
+- A tensor can be read only if it was created with `readable: true`, and written only if it was created with `writable: true`.
+- The buffer byte length must equal the tensor's byte length, which is the number of elements multiplied by the element size. A typed array must match the tensor data type, or be a `Uint8Array`. See [Buffer requirements](../../api-reference/webnn/mlcontext#buffer-requirements).
+- The tensor must not be destroyed, and must not be exported to WebGPU at that moment.
+
+```js showLineNumbers filename="tensors.js"
+const input = await context.createTensor({ dataType: 'float32', shape: [2, 2], writable: true });
+const output = await context.createTensor({ dataType: 'float32', shape: [2, 2], readable: true });
+```
+
+### Results are missing or stale
+
+#### Problem
+
+You read an output right after `dispatch()` and get zeros or old values.
+
+#### Solution
+
+`dispatch()` and `writeTensor()` return immediately. They only queue work on the context's timeline, and give no signal when they finish. Read the result with `await context.readTensor(output)`, which is ordered after the work you queued before it.
+
+```js showLineNumbers filename="dispatch-then-read.js"
+context.writeTensor(inputTensor, inputData);
+context.dispatch(graph, { x: inputTensor }, { y: outputTensor });
+const result = new Float32Array(await context.readTensor(outputTensor));
+```
+
+### `InvalidStateError` because the context was lost
+
+#### Problem
+
+Graph builds, tensor creation or reads start failing with an `InvalidStateError` after they worked before. The context was lost, for example because the underlying device was removed or `context.destroy()` was called.
+
+#### Solution
+
+A lost context also destroys every graph and tensor created from it. Listen for the loss and rebuild:
+
+```js showLineNumbers filename="context-lost.js"
+context.lost.then(async (info) => {
+  console.warn('WebNN context lost:', info.message);
+  // Create a new context, rebuild the graphs and allocate the tensors again.
+});
+```
+
+See [`lost`](../../api-reference/webnn/mlcontext#lost).
+
+## Model Errors
+
+### The model has dynamic shapes
+
+#### Problem
+
+The model works, but is very slow or falls back to the CPU, or fails to compile. It has symbolic or dynamic dimensions such as `batch_size`, `height` or `width`.
+
+#### Solution
+
+WebNN graphs have fixed tensor shapes. Fix every dimension to a concrete value before you run the model on WebNN. With ONNX Runtime Web and Transformers.js, use [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides). With LiteRT.js or your own graphs, export or build the model with fixed input shapes.
+
+### An operation or data type is not supported
+
+#### Problem
+
+Part of the model runs on the CPU, or the model fails to compile, because the backend does not support an operation or data type.
+
+#### Solution
+
+Query [`opSupportLimits()`](../../api-reference/webnn/mlcontext#opsupportlimits) to see what the current context supports. Prefer data types that every implementation must support (`float32`, `float16`, `int32`, and the other required types listed for each operation), or replace the unsupported operation with a combination of supported ones. Frameworks fall back to WebAssembly for the unsupported parts, which is covered in [Performance Issues](./performance-issues).

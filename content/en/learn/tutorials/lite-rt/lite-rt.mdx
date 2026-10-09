@@ -1,10 +1,390 @@
+import { Steps } from 'nextra/components'
 import Image from "next/image";
 import LiteRt from '../../../../../app/_components/icons/litert.jsx'
 import WebNn from "../../../../../app/_components/icons/webnn.jsx";
+import InfoIcon from '../../../../../app/_components/icons/info.jsx'
 
 <div className="mt-6 grid grid-cols-2 gap-4 items-center justify-items-center tutorials-title">
   <LiteRt className="litert-logo" />
   <WebNn className="webnn-logo" />
 </div>
 
-Lite RT
+# LiteRT.js
+
+[LiteRT.js](https://developers.google.com/edge/litert/web) is Google's web runtime for [LiteRT](https://ai.google.dev/edge/litert) (previously TensorFlow Lite). It runs `.tflite` models directly in the browser and can execute them on three kinds of hardware:
+
+- **CPU** through [XNNPack](https://github.com/google/XNNPACK) compiled to WebAssembly, on any browser.
+- **GPU** through WebGPU, on supported browsers.
+- **NPU and other OS-level accelerators** through WebNN, which is the path this tutorial focuses on.
+
+You pick the hardware per model with a single option, `accelerator: 'webnn'`. LiteRT.js then hands the parts of your model that WebNN can run to the browser's WebNN implementation, and keeps everything else on WebAssembly.
+
+> <InfoIcon /> The `webnn` accelerator in LiteRT.js is **experimental**, and WebNN itself is still rolling out in Chrome and Edge. Treat the API surface and the performance characteristics described here as subject to change, and always keep a `wasm` or `webgpu` fallback.
+
+## When to choose LiteRT.js [#when-to-choose]
+
+| | LiteRT.js | [ONNX Runtime Web](../onnx-runtime/onnx-runtime) | [Transformers.js](../transformers-js/transformers-js) |
+| --- | --- | --- | --- |
+| **Model format** | `.tflite` | `.onnx` | ONNX models from the Hugging Face Hub |
+| **Level of abstraction** | Run models, you write pre- and post-processing | Run models, you write pre- and post-processing | Task pipelines, pre- and post-processing included |
+| **Typical source** | PyTorch, JAX or TensorFlow converted with LiteRT converters, Kaggle, Hugging Face | PyTorch, TensorFlow or scikit-learn exported to ONNX | Pretrained models for text, vision and audio tasks |
+| **WebNN option** | `accelerator: 'webnn'` | `executionProviders: ['webnn']` | `device: 'webnn-gpu'` and friends |
+
+Choose LiteRT.js when you already have, or want to produce, `.tflite` models, for example from an Android or iOS pipeline built on LiteRT, or from PyTorch models converted with [`litert-torch`](https://github.com/google-ai-edge/litert-torch).
+
+## How the WebNN accelerator works [#how-it-works]
+
+When you call `loadAndCompile()` with `accelerator: 'webnn'`:
+
+1. LiteRT.js loads the `.tflite` model into its WebAssembly runtime.
+2. The WebNN delegate partitions the model graph into the operations that WebNN supports and the ones it does not.
+3. The supported partitions run through WebNN, using the browser's backend and the CPU, GPU or NPU it selects (see [`ML.createContext()`](../../../api-reference/webnn/ml#createcontext)).
+4. Operations that WebNN cannot run are executed by the WebAssembly CPU runtime, one operation at a time.
+
+Because WebNN's APIs are asynchronous while the WebAssembly runtime is synchronous, mixing the two requires **JavaScript Promise Integration (JSPI)**. This is why the `webnn` accelerator needs the JSPI build of the LiteRT.js Wasm files.
+
+Tensors that you create and read in JavaScript live in WebAssembly memory. The WebNN accelerator is a choice made when the model is compiled, not a separate tensor type: your input and output code is the same as for the `wasm` accelerator.
+
+## Accelerator comparison [#accelerators]
+
+| `accelerator` | Runs on | Wasm build needed | Notes |
+| --- | --- | --- | --- |
+| `'wasm'` | CPU (XNNPack) | standard, threaded, or compat | Works everywhere. The threaded build adds multi-threading. |
+| `'webgpu'` | GPU | JSPI build recommended | Without JSPI, a model that cannot be fully delegated falls back entirely to Wasm. |
+| `'webnn'` | NPU, GPU or CPU, chosen by the browser | **JSPI build required** | Experimental. Unsupported operations run on Wasm. |
+
+If you do not set `accelerator`, LiteRT.js uses `'webgpu'` when a WebGPU device is available and `'wasm'` otherwise.
+
+## Prerequisites [#prerequisites]
+
+- A browser with WebNN enabled. Follow [Installation](../../get-started/installation) to install drivers and turn on the flags, and see [WebNN flags](../../../api-reference/browser-compatibility/chrome-flags) for details.
+- A browser that supports [WebAssembly JSPI](https://github.com/WebAssembly/js-promise-integration). You can check at run time, as shown below.
+- A [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS or `localhost`.
+- A `.tflite` model. Pretrained models are available on [Kaggle](https://www.kaggle.com/models?framework=tfLite) and the [Hugging Face Hub](https://huggingface.co/models?library=tflite&sort=trending), or you can [convert your own](#convert-a-model).
+
+## Install LiteRT.js [#install]
+
+```bash showLineNumbers filename="terminal"
+npm install @litertjs/core
+```
+
+LiteRT.js needs its WebAssembly files at run time. They ship inside the package, in `node_modules/@litertjs/core/wasm/`. Serve that whole folder from your site, for example by copying it into your `public/` directory as part of your build, or point LiteRT.js at the copy on jsDelivr:
+
+```text
+https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/
+```
+
+LiteRT.js picks the right file from the folder for the browser's features: a compatibility build without relaxed SIMD, the standard build, a threaded build, or the JSPI build.
+
+> <InfoIcon /> Pin the version in production, for example `@litertjs/core@2.5.3` in the CDN URL, so that the JavaScript package and the Wasm files always match.
+
+## Run a model with WebNN [#run-a-model]
+
+<Steps>
+
+### Check feature support [#step-support]
+
+`supportsFeature()` reports whether the browser supports a feature LiteRT.js depends on. The `'webnn'` check looks for `navigator.ml`, and the `'jspi'` check looks for JSPI support.
+
+```js showLineNumbers filename="support.js"
+import { supportsFeature } from '@litertjs/core';
+
+const hasJspi = await supportsFeature('jspi');
+const hasWebNN = await supportsFeature('webnn');
+console.log({ hasJspi, hasWebNN });
+```
+
+### Load the runtime [#step-load]
+
+Call `loadLiteRt()` once, before any other LiteRT.js function. Pass `{ jspi: true }` to load the JSPI build, which the `webnn` accelerator requires.
+
+```js showLineNumbers filename="load.js"
+import { loadLiteRt } from '@litertjs/core';
+
+await loadLiteRt('/litert/wasm/', { jspi: true });
+```
+
+> <InfoIcon /> `loadLiteRt()` can only be called once per page. A second call throws `LiteRT is already loading / loaded.` Call `unloadLiteRt()` first if you really need to reload the runtime. The `threads` and `jspi` options are mutually exclusive, so the JSPI build is not the multi-threaded Wasm build.
+
+### Compile the model for WebNN [#step-compile]
+
+`loadAndCompile()` accepts a URL, a `URL` object, a `Uint8Array` of model bytes, or a stream reader. It returns a `CompiledModel`.
+
+```js showLineNumbers filename="compile.js"
+import { loadAndCompile } from '@litertjs/core';
+
+const model = await loadAndCompile('/models/mobilenet_v2.tflite', {
+  accelerator: 'webnn',
+  webNNOptions: {
+    devicePreference: 'npu',
+    powerPreference: 'low-power',
+  },
+});
+
+console.log('Fully accelerated by WebNN:', model.isFullyAccelerated);
+console.log('Inputs:', model.getInputDetails());
+console.log('Outputs:', model.getOutputDetails());
+```
+
+`isFullyAccelerated` is `true` only when every operation in the model was delegated. See [Partial acceleration and fallback](#partial-acceleration).
+
+### Create input tensors and run [#step-run]
+
+Create a `Tensor` from a typed array and a shape, then call `model.run()`. The input can be a single tensor, an array of tensors, or an object keyed by input name.
+
+```js showLineNumbers filename="run.js"
+import { Tensor } from '@litertjs/core';
+
+const input = new Tensor(new Float32Array(1 * 3 * 224 * 224), [1, 3, 224, 224]);
+const outputs = await model.run(input);
+
+const scores = await outputs[0].data(); // a Float32Array
+console.log('Number of scores:', scores.length);
+```
+
+The `Tensor` constructor infers the data type from the typed array: a `Float32Array` creates a `float32` tensor and an `Int32Array` creates an `int32` tensor. Use the typed array that matches `model.getInputDetails()`, otherwise `run()` fails with a type mismatch.
+
+### Release memory [#step-cleanup]
+
+LiteRT.js uses manual memory management. Call `delete()` on every tensor you create or receive, and on the model when you are done with it.
+
+```js showLineNumbers filename="cleanup.js"
+input.delete();
+outputs.forEach((tensor) => tensor.delete());
+model.delete(); // when the model is no longer needed
+```
+
+</Steps>
+
+## Complete example: image classification [#image-classification]
+
+This example classifies an image with a MobileNetV2 `.tflite` model whose input is `[1, 3, 224, 224]` in `float32`, normalized with the ImageNet mean and standard deviation. It tries WebNN first, then WebGPU, then CPU, and cleans up its tensors. Adjust the size, normalization and layout to match your own model.
+
+```js showLineNumbers filename="classify.js"
+import {
+  loadLiteRt,
+  loadAndCompile,
+  supportsFeature,
+  isWebGPUSupported,
+  Tensor,
+} from '@litertjs/core';
+
+const WASM_DIR = '/litert/wasm/';
+const SIZE = 224;
+const MEAN = [0.485, 0.456, 0.406];
+const STD = [0.229, 0.224, 0.225];
+
+// Load the runtime once, then compile the model for the best available accelerator.
+export async function createModel(modelUrl) {
+  const hasJspi = await supportsFeature('jspi');
+  await loadLiteRt(WASM_DIR, hasJspi ? { jspi: true } : undefined);
+
+  const candidates = [];
+  if (hasJspi && (await supportsFeature('webnn'))) {
+    candidates.push({
+      accelerator: 'webnn',
+      webNNOptions: { devicePreference: 'npu', powerPreference: 'low-power' },
+    });
+  }
+  if (isWebGPUSupported()) {
+    candidates.push({ accelerator: 'webgpu' });
+  }
+  candidates.push({ accelerator: 'wasm' });
+
+  // Download the model once and reuse the bytes for every attempt.
+  const bytes = new Uint8Array(await (await fetch(modelUrl)).arrayBuffer());
+
+  for (const options of candidates) {
+    try {
+      const model = await loadAndCompile(bytes, options);
+      console.log(
+        `Using ${options.accelerator}, fully accelerated: ${model.isFullyAccelerated}`,
+      );
+      return model;
+    } catch (error) {
+      console.warn(`${options.accelerator} is not available, trying the next one`, error);
+    }
+  }
+  throw new Error('No LiteRT.js accelerator could compile this model.');
+}
+
+// Convert an image (HTMLImageElement, ImageBitmap, canvas) to a normalized NCHW tensor.
+function preprocess(image) {
+  const canvas = new OffscreenCanvas(SIZE, SIZE);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0, SIZE, SIZE);
+  const { data } = context.getImageData(0, 0, SIZE, SIZE); // RGBA, row by row
+
+  const chw = new Float32Array(3 * SIZE * SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    for (let channel = 0; channel < 3; channel++) {
+      chw[channel * SIZE * SIZE + i] = (data[i * 4 + channel] / 255 - MEAN[channel]) / STD[channel];
+    }
+  }
+  return new Tensor(chw, [1, 3, SIZE, SIZE]);
+}
+
+// Softmax over the raw scores, then return the k most likely labels.
+function topK(scores, labels, k = 5) {
+  const max = Math.max(...scores);
+  const exps = Array.from(scores, (score) => Math.exp(score - max));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  return exps
+    .map((value, index) => ({ label: labels[index], probability: value / sum }))
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, k);
+}
+
+export async function classify(model, image, labels) {
+  const input = preprocess(image);
+  let outputs;
+  try {
+    outputs = await model.run(input);
+    const scores = await outputs[0].data();
+    return topK(scores, labels);
+  } finally {
+    input.delete();
+    outputs?.forEach((tensor) => tensor.delete());
+  }
+}
+```
+
+```js showLineNumbers filename="main.js"
+import { createModel, classify } from './classify.js';
+
+const labels = await (await fetch('/models/imagenet_labels.json')).json();
+const model = await createModel('/models/mobilenet_v2.tflite');
+
+const image = document.querySelector('img');
+console.table(await classify(model, image, labels));
+```
+
+## Compile options [#compile-options]
+
+These options are passed as the second argument of `loadAndCompile()`.
+
+| Option | Values | Default | Description |
+| --- | --- | --- | --- |
+| `accelerator` | `'wasm'`, `'webgpu'`, `'webnn'` | `'webgpu'` if a WebGPU device exists, otherwise `'wasm'` | The hardware path used to run the model. |
+| `webNNOptions.devicePreference` | `'cpu'`, `'gpu'`, `'npu'` | none | A hint for the device the WebNN context should target. |
+| `webNNOptions.powerPreference` | `'default'`, `'high-performance'`, `'low-power'` | none | A hint for the power and performance trade-off, like [`MLPowerPreference`](../../../api-reference/webnn/ml#mlpowerpreference) in the WebNN API. |
+| `webNNOptions.precision` | `'fp32'`, `'fp16'` | none | The numeric precision used for computation where supported. `'fp16'` can be faster and use less memory at some cost in accuracy. |
+| `gpuOptions.precision` | `'fp32'`, `'fp16'` | none | The same choice for the WebGPU accelerator. |
+| `cpuOptions.numThreads` | number | the runtime's default | The number of threads for the threaded Wasm build. |
+
+These are hints. The browser makes the final device choice, which can differ from your preference. See [`MLContextOptions`](../../../api-reference/webnn/ml#mlcontextoptions) and the [device selection diagram](../../../api-reference/browser-compatibility/deviceselection) for how browsers pick a device.
+
+## Partial acceleration and fallback [#partial-acceleration]
+
+Not every operation in a model is guaranteed to be supported by WebNN on every browser and device. LiteRT.js handles this in one of two ways, depending on JSPI:
+
+- **With JSPI:** operations WebNN cannot run are executed on WebAssembly, operation by operation. `loadAndCompile()` still succeeds, `model.isFullyAccelerated` is `false`, and a warning is written to the console.
+- **Without JSPI:** per-operation mixing is not possible. If the model cannot be fully delegated, LiteRT.js compiles the entire model again for `wasm` and logs a warning.
+
+Frequent hand-offs between WebNN and WebAssembly can cost more than they save. If `isFullyAccelerated` is `false`, measure before you commit to `webnn`, and compare against `wasm` and `webgpu` on the same model.
+
+```js showLineNumbers filename="check-delegation.js"
+const model = await loadAndCompile(bytes, { accelerator: 'webnn' });
+
+if (!model.isFullyAccelerated) {
+  console.warn('Some operations run on WebAssembly. Benchmark before choosing WebNN.');
+}
+```
+
+## Run LiteRT.js in a Web Worker [#web-worker]
+
+Running inference in a worker keeps compilation and execution off the main thread. Two details matter:
+
+- LiteRT.js's WebAssembly loader uses `importScripts()` internally, which module workers do not support. Create the worker as a **classic** worker, without `{ type: 'module' }`.
+- If the worker script is served from a different location than the Wasm files, for example when the Wasm files come from a CDN, the loader looks for `.wasm` files next to the worker. Set `Module.locateFile` before calling `loadLiteRt()` to redirect it.
+
+```js showLineNumbers filename="main.js"
+const worker = new Worker('/inference-worker.js'); // classic worker
+worker.postMessage({ type: 'init' });
+```
+
+```js showLineNumbers filename="inference-worker.js"
+const WASM_BASE = 'https://cdn.jsdelivr.net/npm/@litertjs/core/wasm/';
+let litert;
+
+async function init() {
+  // A classic worker cannot use static imports, so import dynamically.
+  litert = await import('https://esm.sh/@litertjs/core');
+
+  // Tell the Emscripten loader where the Wasm files live.
+  self.Module = { locateFile: (path) => WASM_BASE + path };
+  try {
+    await litert.loadLiteRt(WASM_BASE, { jspi: true });
+  } finally {
+    self.Module = undefined;
+  }
+  self.postMessage({ type: 'ready' });
+}
+
+self.onmessage = async (event) => {
+  if (event.data.type === 'init') await init();
+};
+```
+
+## Convert a model [#convert-a-model]
+
+LiteRT.js runs `.tflite` files, so models from other frameworks must be converted first.
+
+- **PyTorch:** use [`litert-torch`](https://github.com/google-ai-edge/litert-torch).
+- **TensorFlow and JAX:** see the [LiteRT conversion guides](https://developers.google.com/edge/litert/conversion/overview).
+- **Ultralytics YOLO:** export to LiteRT with the Ultralytics tooling.
+
+```python showLineNumbers filename="convert.py"
+import torch
+import torchvision
+import litert_torch
+
+model = torchvision.models.resnet18(
+    torchvision.models.ResNet18_Weights.IMAGENET1K_V1
+).eval()
+sample_inputs = (torch.randn(1, 3, 224, 224),)
+
+edge_model = litert_torch.convert(model, sample_inputs)
+edge_model.export("resnet18.tflite")
+```
+
+WebNN compiles graphs with fixed tensor shapes, so export your model with a concrete input shape such as `[1, 3, 224, 224]` rather than dynamic dimensions. To reduce size and improve speed, you can quantize the model with the [AI Edge Quantizer](https://github.com/google-ai-edge/ai-edge-quantizer).
+
+## Verify that WebNN is really used [#verify]
+
+A model that compiles successfully is not necessarily running on your NPU or GPU. Check it in three ways:
+
+1. **`model.isFullyAccelerated`** tells you whether all operations were delegated.
+2. **The console.** LiteRT.js logs delegation details, including how many graph nodes WebNN supports and which operations are reported as `not delegatable`. The exact wording can change between versions.
+3. **The LiteRT.js Model Tester**, [`@litertjs/model-tester`](https://www.npmjs.com/package/@litertjs/model-tester), runs your model on the CPU, WebGPU and WebNN accelerators, shows how much of the model is delegated, and reports the numerical difference from the CPU result.
+
+To confirm that the hardware itself is busy, use the browser and OS tools described in [Debug](../../get-started/debug) and [Hardware errors](../../troubleshooting/hardware-errors). For a ready-made benchmark across CPU, GPU and NPU backends, you can use [Web AI Run](https://github.com/ibelem/web-ai-run).
+
+## Troubleshooting [#troubleshooting]
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `JSPI is not supported` when calling `loadLiteRt()` with `{ jspi: true }` | The browser lacks JSPI. Use a browser that supports it, or call `loadLiteRt()` without `jspi` and use the `wasm` or `webgpu` accelerator. |
+| `supportsFeature('webnn')` returns `false` | `navigator.ml` is missing, so WebNN is not available. LiteRT.js does not throw in this case, so check the result yourself and choose another accelerator. To enable WebNN and relaunch the browser, see [Installation](../../get-started/installation). |
+| `LiteRT is already loading / loaded.` | `loadLiteRt()` was called more than once. Call it once, or call `unloadLiteRt()` first. |
+| `The threads and jspi options are mutually exclusive.` | Pass only one of `threads` and `jspi` to `loadLiteRt()`. The WebNN accelerator needs `jspi`. |
+| Warning: `Model not fully compiled for webnn` | Some operations are not supported by WebNN in this browser. With JSPI they run on Wasm. Check the console for `not delegatable` messages, or use the Model Tester. |
+| `WebGPU was requested but no WebGPU device is set in the environment.` | You asked for `webgpu` but no WebGPU device could be created. Use `webnn` or `wasm` instead. |
+| `run()` throws `TensorBuffer ranked tensor type ... does not match expected ranked tensor type float32[1, 3, 224, 224]`, or `run() called with N inputs, but signature expects M inputs` | The input tensors do not match the model. Compare them with `model.getInputDetails()` and use the right typed array, shape and number of inputs. |
+| `Model is too large (> 2000000000 bytes).` or `Failed to allocate N bytes of Wasm memory for the model.` | The model does not fit. The WebAssembly CPU runtime is limited to 2 GB of memory. Quantize the model or use a smaller one. |
+
+## Limitations [#limitations]
+
+- WebNN support is **experimental** in LiteRT.js, and only available where the browser provides WebNN.
+- Large models can fail to load, because WebAssembly memory for the runtime is limited to 2 GB.
+- LiteRT.js runs the model only. Pre- and post-processing, such as image resizing and decoding outputs, is your code, or a library's.
+- Models with externalized weights are not supported by the WebNN accelerator in the Model Tester.
+- Generative AI and large language models are covered by the separate LiteRT-LM.js project rather than LiteRT.js.
+
+## Next steps [#next-steps]
+
+- Learn how WebNN builds and runs graphs in the [Quickstart](../../get-started/quickstart) and the [WebNN API reference](../../../api-reference/webnn/mlcontext).
+- Compare with the other frameworks: [ONNX Runtime Web](../onnx-runtime/onnx-runtime) and [Transformers.js](../transformers-js/transformers-js).
+- Skip frameworks entirely and generate lean WebNN code with [Vanilla JavaScript](../webnn/vanillajs).
+- Read the official [LiteRT.js documentation](https://developers.google.com/edge/litert/web) and the announcement, [LiteRT.js: Google's high performance web AI inference](https://developers.googleblog.com/litertjs-googles-high-performance-web-ai-inference/).
+- Browse the [LiteRT.js source on GitHub](https://github.com/google-ai-edge/LiteRT/tree/main/litert/js), and the packages [`@litertjs/core`](https://www.npmjs.com/package/@litertjs/core) and [`@litertjs/tfjs-interop`](https://www.npmjs.com/package/@litertjs/tfjs-interop).

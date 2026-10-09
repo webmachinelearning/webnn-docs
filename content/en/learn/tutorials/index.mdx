@@ -15,7 +15,7 @@ WebNN can be used either through supported JavaScript machine learning framework
 
 # JavaScript ML Frameworks
 
-WebNN API is integrating into major JavaScript machine learning frameworks like ONNX Runtime Web, Transformers.js, and LiteRT. This enables web developers to build AI applications using these high-level frameworks with less codes while leveraging WebNN's efficient, low-level neural network operations.
+WebNN API is integrating into major JavaScript machine learning frameworks like ONNX Runtime Web, Transformers.js, and LiteRT.js. This enables web developers to build AI applications using these high-level frameworks with less code while leveraging WebNN's efficient, low-level neural network operations.
 
 <Cards className="quick-start-card">
   <Cards.Card
@@ -30,10 +30,18 @@ WebNN API is integrating into major JavaScript machine learning frameworks like 
   />
   <Cards.Card
     icon={<LiteRTIcon />}
-    title="Lite RT"
+    title="LiteRT.js"
     href="./tutorials/lite-rt/lite-rt"
   />
 </Cards>
+
+| Framework | Model format | Best for | Select WebNN with |
+| --- | --- | --- | --- |
+| [Transformers.js](./tutorials/transformers-js/transformers-js) | ONNX models from the Hugging Face Hub | Task pipelines with pre- and post-processing included, in a few lines | `device: 'webnn-gpu'` |
+| [ONNX Runtime Web](./tutorials/onnx-runtime/onnx-runtime) | `.onnx` | Full control over sessions, shapes and tensors | `executionProviders: ['webnn']` |
+| [LiteRT.js](./tutorials/lite-rt/lite-rt) | `.tflite` | Models from LiteRT or converted from PyTorch, and an NPU path | `accelerator: 'webnn'` |
+
+Whichever framework you choose, WebNN needs fixed tensor shapes, so plan to set [free dimension overrides](./tutorials/onnx-runtime/free-dimension-overrides) or export models with static shapes, and keep a `wasm` fallback for browsers without WebNN. If something goes wrong, see [Troubleshooting](./troubleshooting/framework-errors).
 
 # Vanilla JavaScript
 

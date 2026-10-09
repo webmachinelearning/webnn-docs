@@ -111,7 +111,7 @@ if (!weights_response) {
 const weights_buffer = await weights_response.arrayBuffer();
 
 // Create WebNN context and builder
-const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
 const builder = new MLGraphBuilder(context);
 
 // Install CPU operations polyfill
@@ -120,6 +120,8 @@ InstallCpuOps(builder);
 // Load the model graph
 const model_output = loadModelGraph(input_operand, [weights_buffer], builder);
 ```
+
+> <InfoIcon /> The `deviceType` option was removed from `MLContextOptions` in the WebNN specification, so current browsers ignore it. Use the `powerPreference` and `accelerated` hints instead, see [Migrating from deviceType](../../../api-reference/webnn/ml#migrating-from-devicetype).
 
 ## Architecture and Processing Pipeline
 
@@ -141,7 +143,7 @@ Generates WebNN nodes that call `shape()` and `mul()` operations, where `mul` is
 Before calling `loadModelGraph`, install the CPU operations polyfill:
 
 ```javascript
-const context = await navigator.ml.createContext({'deviceType': 'gpu'});
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
 const builder = new MLGraphBuilder(context);
 InstallCpuOps(builder);
 ```

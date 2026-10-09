@@ -1,5 +1,169 @@
+import InfoIcon from '../../../../app/_components/icons/info.jsx'
+
 # Backend Errors
 
-## ONNX Runtime Errors
+In Chromium based browsers, WebNN runs on a **backend** that translates your graph for the operating system and the hardware. The backend depends on the platform:
 
-## LiteRT Errors
+- **Windows ML and ONNX Runtime** on Windows 11, version 24H2 or newer
+- **Core ML** on macOS
+- **LiteRT** (TFLite) on ChromeOS, Linux and Android, and as the fallback on other platforms
+
+Most problems in the WebNN API itself are covered in [Common Errors](./common-errors). This page is for problems that originate in the backend, and for the browser switches that help you find them. See the [browser compatibility tables](../../api-reference/browser-compatibility/api#webnn-apis) for the backend used on each platform, and the [WebNN flags reference](../../api-reference/browser-compatibility/chrome-flags) for every flag mentioned here.
+
+> <InfoIcon /> The switches on this page are for developers and testers, and are intended for Chrome and Edge Canary. They may change or disappear between releases. The examples use the Windows path of Chrome Canary, so adjust the path to your browser and platform.
+
+## Find Out Which Backend You Are Using [#which-backend]
+
+#### Problem
+
+Your model behaves differently on two machines, and you do not know which backend each one uses.
+
+#### Solution
+
+- Look up your operating system and hardware in the [browser compatibility tables](../../api-reference/browser-compatibility/api#webnn-apis), and the [FAQ on supported backends](../../faq/architecture#what-webnn-backends-are-currently-supported).
+- On Windows 11, check whether Windows ML and the OpenVINO execution provider are in use, see [How do I determine if I am running on Windows ML / OpenVINO Execution Provider on Windows 11](../../faq/architecture#how-do-i-determine-if-i-am-running-on-windows-ml--openvino-execution-provider-on-windows-11).
+- Start the browser with verbose backend logging, as described below.
+
+## ONNX Runtime Errors [#onnx-runtime-errors]
+
+These apply to the Windows ML and ONNX Runtime backend, not to ONNX Runtime Web in your page. For ONNX Runtime Web, see [Framework Errors](./framework-errors).
+
+### WebNN runs on the LiteRT backend instead of Windows ML [#ort-backend-not-used]
+
+#### Problem
+
+On Windows 11, you expect the Windows ML and ONNX Runtime backend, but WebNN runs on the TFLite based LiteRT backend.
+
+#### Solution
+
+The `#webnn-onnxruntime` flag, named "Windows ML / ONNX Runtime backend for WebNN", controls this. Disabling it enables a fallback to TFLite. Make sure it is enabled, and that you run Windows 11, version 24H2 or newer. See [Installation](../get-started/installation) for the steps, and note that the same page describes how to run on the LiteRT backend on purpose, for Windows versions that do not support Windows ML.
+
+```shell showLineNumbers filename="enable-ort-backend.cmd"
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --enable-features=WebMachineLearningNeuralNetwork,WebNNOnnxRuntime
+```
+
+### Need to see what ONNX Runtime is doing [#ort-verbose-logging]
+
+#### Problem
+
+A graph fails to compile or runs slowly, and the browser console gives no useful detail.
+
+#### Solution
+
+Raise the ONNX Runtime logging level with [`--webnn-ort-logging-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-logging-level). The available levels are `VERBOSE`, `INFO`, `WARNING`, `ERROR` (the default) and `FATAL`.
+
+```shell showLineNumbers filename="verbose-logging.cmd"
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-logging-level=VERBOSE
+```
+
+The verbose and info logs also list the execution provider devices that are available on the machine.
+
+### Session creation fails when forcing an execution provider device [#ort-ep-device]
+
+#### Problem
+
+After you pass [`--webnn-ort-ep-device`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ep-device), ONNX Runtime session creation fails.
+
+#### Solution
+
+The switch must match an existing device. If no device matches, session creation fails. The value has the format `ep_name,hardware_vendor_id,hardware_device_id`, all three entries are required in that order, and the two ids are hexadecimal strings. Read the available devices from the logs, with the logging level set to `VERBOSE` or `INFO`, and copy the values from there.
+
+```shell showLineNumbers filename="ep-device.cmd"
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --webnn-ort-ep-device=OpenVINOExecutionProvider,0x8086,0x4680
+```
+
+### An execution provider is disabled [#ort-ep-blocklist]
+
+#### Problem
+
+An execution provider that you expect to be used is not selected.
+
+#### Solution
+
+Some execution providers are disabled by an enabled-flag blocklist. To enable all of them at once, for testing, start the browser with [`--webnn-ort-ignore-ep-blocklist`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-ignore-ep-blocklist).
+
+### Inspect the optimized model or profile a run [#ort-dump-and-profile]
+
+#### Problem
+
+You need to know what ONNX Runtime did to your graph, or where the time goes.
+
+#### Solution
+
+- [`--webnn-ort-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-dump-model) saves the optimized ONNX model after graph level transformations.
+- [`--webnn-ort-enable-profiling`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-enable-profiling) writes an ONNX Runtime profile to a `prefix_date_time.json` file in the browser's folder.
+- [`--webnn-ort-graph-optimization-level`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-graph-optimization-level) accepts `DISABLE_ALL`, `BASIC`, `EXTENDED` and `ALL`. Setting `DISABLE_ALL` helps you check whether a problem comes from a graph optimization.
+
+The output folders must be accessible to the GPU process sandbox, or you must start the browser with `--no-sandbox`:
+
+```shell showLineNumbers filename="dump-model.cmd"
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-ort-dump-model=C:\temp\ort_models
+```
+
+### Using your own ONNX Runtime, execution provider or driver [#ort-custom-builds]
+
+#### Problem
+
+A custom build of ONNX Runtime, an execution provider, or an internal GPU or NPU driver is not loaded.
+
+#### Solution
+
+Follow [Debugging](../get-started/debug), which explains how to point the browser at a custom ONNX Runtime library with [`--webnn-ort-library-path-for-testing`](../../api-reference/browser-compatibility/chrome-flags#--webnn-ort-library-path-for-testing), and why you need [`--allow-third-party-modules`](../../api-reference/browser-compatibility/chrome-flags#--allow-third-party-modules) for third-party libraries and drivers.
+
+## LiteRT Errors [#litert-errors]
+
+These apply to the TFLite based LiteRT backend of the browser, not to LiteRT.js in your page. For LiteRT.js, see [Framework Errors](./framework-errors#litert-js-errors).
+
+### A GPU or NPU request runs on the CPU [#litert-delegate-fallback]
+
+#### Problem
+
+You asked for a GPU or an NPU, but the work runs on the CPU, and the result is slower than expected.
+
+#### Solution
+
+The LiteRT backend uses TFLite delegates for the GPU and the NPU, and these are optional. If a requested delegate is missing or fails on this platform, execution falls back to the XNNPack CPU path without raising an error. The tables in [LiteRT backend compatibility](../../api-reference/browser-compatibility/litert) show which delegate each platform uses and which requests fall back to the CPU.
+
+### Inspect the generated TFLite model [#litert-dump-model]
+
+#### Problem
+
+You want to see the TFLite model that the browser generated from your WebNN graph.
+
+#### Solution
+
+Use [`--webnn-tflite-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-tflite-dump-model). The folder must be accessible from the GPU process sandbox, or you must start the browser with `--no-sandbox`.
+
+```shell showLineNumbers filename="tflite-dump.cmd"
+"%LOCALAPPDATA%\Google\Chrome SxS\Application\chrome.exe" --no-sandbox --webnn-tflite-dump-model=C:\temp\tflite_models
+```
+
+## Core ML Errors [#core-ml-errors]
+
+### The Core ML backend is not used on macOS [#coreml-not-used]
+
+#### Problem
+
+On macOS, WebNN does not use Core ML, and GPU and NPU requests are slower than expected.
+
+#### Solution
+
+The `#webnn-coreml` flag, "Core ML backend for WebNN", enables Core ML for GPU and NPU inference, and `#webnn-coreml-explicit-gpu-or-npu` enables explicit GPU or NPU selection. Core ML needs a recent macOS on Apple Silicon. On Intel Macs, older macOS versions, or when the feature is disabled, WebNN falls back to the TFLite based backend. Check the table for macOS in the [browser compatibility tables](../../api-reference/browser-compatibility/api#webnn-apis).
+
+### Inspect the generated Core ML model [#coreml-dump-model]
+
+#### Problem
+
+You want to see the Core ML model that the browser generated from your WebNN graph.
+
+#### Solution
+
+Use [`--webnn-coreml-dump-model`](../../api-reference/browser-compatibility/chrome-flags#--webnn-coreml-dump-model). The folder must be accessible from the GPU process sandbox, or you must start the browser with `--no-sandbox`.
+
+```shell showLineNumbers filename="coreml-dump.sh"
+/Applications/Google\ Chrome\ Canary.app/Contents/MacOS/Google\ Chrome\ Canary --no-sandbox --webnn-coreml-dump-model=/tmp/CoreMLModels
+```
+
+## Problems with a specific GPU or NPU [#hardware]
+
+If the backend works but a particular GPU or NPU does not behave, for example the NPU does not show activity in Windows Task Manager, or a driver rollback hurts GPU performance, see [Hardware Errors](./hardware-errors).

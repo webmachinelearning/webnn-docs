@@ -6,47 +6,47 @@ import IntelIcon from '../../../../app/_components/icons/ihv/intel.jsx'
 import QualcommIcon from '../../../../app/_components/icons/ihv/qualcomm.jsx'
 import NvidiaIcon from '../../../../app/_components/icons/ihv/nvidia.jsx'
 
-# Installation
+# 安装
 
-> <InfoIcon /> To use WebNN before the [Origin Trial](https://developer.chrome.com/docs/web-platform/origin-trials) milestone, complete these setup requirements
+> <InfoIcon /> 若要在[源试用（Origin Trial）](https://developer.chrome.com/docs/web-platform/origin-trials)里程碑之前使用 WebNN，请完成以下设置要求
 
-## Install GPU and NPU drivers for optimal compatibility and performance
+## 安装 GPU 和 NPU 驱动程序以获得最佳兼容性和性能
 
 ### Windows OS
 
 <div className="table-center">
-| IHVs | GPU Driver | NPU Driver |
+| IHV（独立硬件供应商） | GPU 驱动 | NPU 驱动 |
 | --- | --- | -- |
 | <IntelIcon /> | [Intel® Arc™ & Iris® Xe Graphics](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) | [Intel® Core™ Ultra NPU Driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html)
-| <AMDIcon /> | TBD | TBD |
-| <NvidiaIcon /> | TBD | TBD |
-| <QualcommIcon /> | TBD | TBD |
+| <AMDIcon /> | 待定 | 待定 |
+| <NvidiaIcon /> | 待定 | 待定 |
+| <QualcommIcon /> | 待定 | 待定 |
 </div>
 
-## Enable WebNN
+## 启用 WebNN
 
-> <InfoIcon /> The Windows ML / OpenVINO Execution Provider requires Windows 11, version 24H2 or newer to run
-
-<Steps>
-### Install the latest [Chrome Canary](https://google.com/chrome/canary) or [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
-### Navigate to `about://flags` in browser address bar
-### Search for `Enables WebNN API` and change it to `Enabled`
-### Relaunch browser
-</Steps>
-
-## Run WebNN on LiteRT backend (CPU and GPU)
-
-> <InfoIcon /> Windows 11 versions prior to 24H2, Windows 10 and Linux
+> <InfoIcon /> Windows ML / OpenVINO Execution Provider 需要 Windows 11 24H2 或更高版本才能运行
 
 <Steps>
-### Navigate to `about://flags` in browser address bar
-### Search for `ONNX Runtime backend for WebNN` and change it to `Disabled`
-### Relaunch browser
+### 安装最新的 [Chrome Canary](https://google.com/chrome/canary) 或 [Edge Canary](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ)
+### 在浏览器地址栏中打开 `about://flags`
+### 搜索 `Enables WebNN API` 并将其改为 `Enabled`
+### 重新启动浏览器
 </Steps>
 
-## Debug or Troubleshooting
+## 在 LiteRT 后端（CPU 和 GPU）上运行 WebNN
 
-* [Why isn't my NPU working with WebNN](../troubleshooting/hardware-errors#npu-utilization-not-visible-in-windows-task-manager-when-running-on-webnn-npu)?
-* Learn [how to determine if you are running on Windows ML / OpenVINO Execution Provider on Windows 11](../../faq/architecture/#how-do-i-determine-if-i-am-running-on-windows-ml--openvino-execution-provider-on-windows-11).
+> <InfoIcon /> 适用于 24H2 之前的 Windows 11 版本、Windows 10 和 Linux
 
-If you are a developer, visit the [debug page](./debug) for information about WebNN debugging options.
+<Steps>
+### 在浏览器地址栏中打开 `about://flags`
+### 搜索 `ONNX Runtime backend for WebNN` 并将其改为 `Disabled`
+### 重新启动浏览器
+</Steps>
+
+## 调试或故障排除
+
+* [为什么我的 NPU 无法在 WebNN 上工作](../troubleshooting/hardware-errors#npu-utilization-not-visible-in-windows-task-manager-when-running-on-webnn-npu)？
+* 了解[如何确定你是否在 Windows 11 上运行 Windows ML / OpenVINO Execution Provider](../../faq/architecture/#how-do-i-determine-if-i-am-running-on-windows-ml--openvino-execution-provider-on-windows-11)。
+
+如果你是开发者，请访问[调试页面](./debug)，了解 WebNN 调试选项的相关信息。
