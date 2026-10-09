@@ -1,27 +1,81 @@
 import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
-# Performance Issues
+# 性能问题
 
 ## ONNX Runtime
 
-### How to profile my super slow WebNN implementation?
+### 如何分析我那个超级慢的 WebNN 实现？
 
-WebNN EP of ONNX Runtime Web needs specify fixed integer values via [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) for all the [symbolic dimensions](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension), otherwise the optimizations will not be applied.
+ONNX Runtime Web 的 WebNN 执行提供程序需要通过 [`freeDimensionOverrides`](../tutorials/onnx-runtime/free-dimension-overrides) 为所有[符号维度](../tutorials/onnx-runtime/free-dimension-overrides#symbolic-dimension)指定固定的整数值，否则优化不会生效。
 
-> <InfoIcon /> Oh Wow! fixing the argument names makes it 100x time faster! 
+> <InfoIcon /> 哇！修正参数名称后速度提升了 100 倍！
 
-#### Additional Resources
+#### 其他资源
 
 - [SD-Turbo image-to-image super slow issue](https://github.com/microsoft/webnn-developer-preview/issues/40)
 
-### Why am I not seeing performance benefits on Intel GPUs?
+### 为什么在 Intel GPU 上看不到性能提升？
 
-DirectML metacommands execution is disabled by default on Intel GPUs between driver versions `31.0.101.5518` and `32.0.101.6083`. To enable metacommands and evaluate performance on affected GPU drivers, add the following flag:
+在驱动程序版本 `31.0.101.5518` 到 `32.0.101.6083` 之间，Intel GPU 上默认禁用 DirectML 元命令的执行。若要在受影响的 GPU 驱动程序上启用元命令并评估性能，请添加以下标志：
 
 ```bash copy showLineNumbers filename="gpu-flag"
 --disable_dml_meta_commands_for_gpu=0
 ```
 
-Note: This flag only affects GPU inference and has no impact on NPU operations.
+注意：此标志仅影响 GPU 推理，对 NPU 运算没有影响。
 
-## LiteRT
+## Transformers.js [#transformers-js]
+
+### 为什么我的 Transformers.js 流水线在 WebNN 上很慢？
+
+Transformers.js 运行在 ONNX Runtime Web 之上，因此原因相同：WebNN 需要固定形状，如果没有 `free_dimension_overrides`，Transformers.js 会输出警告，并且你可能会看到明显的性能下降。请在 `session_options.freeDimensionOverrides` 中设置这些覆盖，或在模型 `config.json` 的 `transformers.js_config` 下设置。请参阅[自由维度覆盖](../tutorials/transformers-js/free-dimension-overrides)和 [Transformers.js 教程](../tutorials/transformers-js/transformers-js#free-dimension-overrides)。
+
+## LiteRT.js [#litert-js]
+
+### 为什么我的 LiteRT.js 模型在 WebNN 上很慢？
+
+#### 检查模型有多少部分运行在 WebNN 上
+
+WebNN 并不会运行每个模型的所有算子。WebNN 无法运行的算子会在 WebAssembly 上执行，而 WebNN 与 WebAssembly 之间的每次交接都会耗费时间。被拆分成许多部分的模型可能比完全在 CPU 上运行更慢。
+
+- 在 `loadAndCompile()` 之后读取 `model.isFullyAccelerated`。当它为 `false` 时，模型只有部分被委托，并且 LiteRT.js 会在控制台中记录 `Model not fully compiled for webnn`。
+- 在控制台中查找 `not delegatable` 消息，它们会指出被拒绝的算子。
+- 在 [`@litertjs/model-tester`](https://www.npmjs.com/package/@litertjs/model-tester) 中运行模型，它会比较 CPU、WebGPU 和 WebNN 加速器，显示模型有多少部分被委托，并报告与 CPU 结果之间的数值差异。
+
+#### 在你的硬件上比较各个加速器
+
+请对每个加速器分别测量同一个模型，而不要假设某一个更快：
+
+```js showLineNumbers filename="compare-accelerators.js"
+// 假定 loadLiteRt() 已经完成。
+import { loadAndCompile, Tensor } from '@litertjs/core';
+
+const bytes = new Uint8Array(await (await fetch('/models/model.tflite')).arrayBuffer());
+
+for (const accelerator of ['wasm', 'webgpu', 'webnn']) {
+  const model = await loadAndCompile(bytes, { accelerator });
+  const input = new Tensor(new Float32Array(1 * 3 * 224 * 224), [1, 3, 224, 224]);
+
+  (await model.run(input)).forEach((tensor) => tensor.delete()); // 预热
+
+  const start = performance.now();
+  for (let i = 0; i < 20; i++) {
+    (await model.run(input)).forEach((tensor) => tensor.delete());
+  }
+  console.log(accelerator, 'fully accelerated:', model.isFullyAccelerated,
+    `${((performance.now() - start) / 20).toFixed(1)} ms per run`);
+
+  input.delete();
+  model.delete();
+}
+```
+
+#### 有帮助的做法
+
+- **使用固定的输入形状**转换模型，因为 WebNN 使用固定形状编译图。
+- **尝试 `webNNOptions.precision: 'fp16'`**，前提是模型和设备支持。它可能更快并占用更少内存，但会在精度上有所损失，因此请对比输出结果。
+- **设置 `devicePreference` 和 `powerPreference`** 为你想要的目标设备，例如 `'npu'` 和 `'low-power'`。它们只是提示，最终由浏览器做出选择。
+- **只编译一次。** `loadAndCompile()` 承担了开销最大的工作，因此请只创建一次模型，并在每次 `run()` 时复用。
+- **量化大型模型**以减小体积和内存压力，例如使用 AI Edge Quantizer。
+
+有关各选项，请参阅 [LiteRT.js 教程](../tutorials/lite-rt/lite-rt)。

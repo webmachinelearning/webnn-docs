@@ -9,7 +9,7 @@ export default {
     title: "ONNX Runtime"
   },
   'lite-rt': {
-    title: "Lite RT"
+    title: "LiteRT.js"
   },
   'webnn': {
     title: "Vanilla JavaScript"

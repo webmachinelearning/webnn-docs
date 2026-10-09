@@ -1,26 +1,27 @@
-## Free Dimensions Overrides
+## 自由维度覆盖
 
-ONNX models support dynamic input shapes through free dimensions. A free dimension allows the model to accept inputs of varying sizes along that dimension. For instance, a model with input shape `[batch, 3, height, width]` can process any number of RGB images (3 channels) of any size.
+ONNX 模型通过自由维度支持动态输入形状。自由维度允许模型在该维度上接受不同大小的输入。例如，输入形状为 `[batch, 3, height, width]` 的模型可以处理任意数量、任意尺寸的 RGB 图像（3 个通道）。
 
-While flexible, you can optimize performance by fixing these dimensions when your application uses consistent input sizes. For example, if your WebNN app always processes single `224×224` images, you can override the free dimensions from `[batch, 3, height, width]` to `[1, 3, 224, 224]` using the `freeDimensionOverrides` option. This configuration locks the input dimensions to specific values, potentially improving model performance.
+虽然这很灵活，但当你的应用使用一致的输入尺寸时，可以通过固定这些维度来优化性能。例如，如果你的 WebNN 应用始终只处理单张 `224×224` 的图像，就可以使用 `freeDimensionOverrides` 选项，将自由维度从 `[batch, 3, height, width]` 覆盖为 `[1, 3, 224, 224]`。该配置会把输入维度锁定为特定值，从而有可能提升模型性能。
 
-### Setting Free Dimension Overrides in Transformers.js 3.5.0+
+### 在 Transformers.js 3.5.0+ 中设置自由维度覆盖
 
-When working with dynamic shapes in [Transformers.js](https://huggingface.co/docs/transformers.js/index) 3.5.0 or later, you can specify free dimension overrides using one of the following methods, listed in order of precedence:
+在 [Transformers.js](https://huggingface.co/docs/transformers.js/index) 3.5.0 或更高版本中处理动态形状时，你可以通过以下方法之一指定自由维度覆盖，按优先级排列：
 
-1. Directly in your code using the `freeDimensionOverrides`
-2. In the `device_config` level of `transformers.js_config` within a model's `config.js` file
-3. In the model level of `transformers.js_config` within a model's `config.js` file
+1. 直接在代码中使用 `freeDimensionOverrides`
+2. 在模型的 `config.json` 文件中，`transformers.js_config` 的 `device_config` 层级
+3. 在模型的 `config.json` 文件中，`transformers.js_config` 的模型层级
 
-The first method that provides valid overrides will be used, with earlier methods taking priority over later ones.
+将使用第一个提供了有效覆盖的方法，靠前的方法优先于靠后的方法。
 
-#### Priority 1
+#### 优先级 1
 
-Setting `freeDimensionOverrides` in your code with Transformers.js.
+在代码中通过 Transformers.js 设置 `freeDimensionOverrides`。
 
 ```js showLineNumbers filename="*.js"
-import * as transformers from from '@huggingface/transformers@3.5.0';
+import * as transformers from '@huggingface/transformers';
 
+const path = 'Xenova/resnet-50';
 const options = {
   device: "webnn-gpu", // webnn, webnn-cpu, webnn-npu
   dtype: "fp32",
@@ -36,11 +37,11 @@ const options = {
 const classifier = await transformers.pipeline('image-classification', path, options);
 ```
 
-#### Priority 2
+#### 优先级 2
 
-Setting `free_dimension_overrides` in the `device_config` level of `transformers.js_config` in `config.js` file of Huggingface models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
+在 Hugging Face 模型的 `config.json` 文件中，将 `free_dimension_overrides` 设置在 `transformers.js_config` 的 `device_config` 层级，例如 [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
 
-```js showLineNumbers filename="config.json"
+```json showLineNumbers filename="config.json"
 {
   "transformers.js_config": {
     "device_config": {
@@ -57,11 +58,11 @@ Setting `free_dimension_overrides` in the `device_config` level of `transformers
 }
 ```
 
-#### Priority 3
+#### 优先级 3
 
-Setting `free_dimension_overrides` in a model level of `transformers.js_config` in `config.js` file of Huggingface models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
+在 Hugging Face 模型的 `config.json` 文件中，将 `free_dimension_overrides` 设置在 `transformers.js_config` 的模型层级，例如 [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
 
-```js showLineNumbers filename="config.json"
+```json showLineNumbers filename="config.json"
 {
   "transformers.js_config": {
     "device": "webnn-gpu",
@@ -75,21 +76,21 @@ Setting `free_dimension_overrides` in a model level of `transformers.js_config` 
 }
 ```
 
-### Symbolic Dimension
+### 符号维度 [#symbolic-dimension]
 
 <div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 text-center gap-2 my-8">
   <div>
     <div>![No symbolic dimensions](/learn/tutorials/free-dimension-overrides-1.png)</div>
-    <div className="mt-4">Example model without symbolic dimensions</div>
+    <div className="mt-4">没有符号维度的示例模型</div>
   </div>
   <div>
     <div>![Symbolic dimensions](/learn/tutorials/free-dimension-overrides-2.png)</div>
-    <div className="mt-4">Example model with three symbolic dimensions called `batch_size`, `height` and `width`</div>
+    <div className="mt-4">带有三个符号维度的示例模型，名称分别为 `batch_size`、`height` 和 `width`</div>
   </div>
 </div>
 
-WebNN Execution Provider needs specify fixed integer values via `freeDimensionOverrides` for all the symbolic dimensions to avoid fallbacks.
+WebNN 执行提供程序需要通过 `freeDimensionOverrides` 为所有符号维度指定固定的整数值，以避免回退。
 
-### Additional Resources
+### 其他资源
 
 - [Transformers.js - Free dimension overrides - Support device-level configuration across all devices](https://github.com/huggingface/transformers.js/pull/1276)

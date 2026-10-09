@@ -1,63 +1,71 @@
 import ArchitectureDiagramIntro from '../../../app/_components/architecture/architecture-intro.jsx'
 import InfoIcon from '../../../app/_components/icons/info.jsx'
 
-# Introduction to WebNN API
+# WebNN API 简介
 
-Learn about WebNN API, how it works, and how to use it.
+了解 WebNN API、它的工作原理以及使用方法。
 
-WebNN API is a new web standard that allows web apps and frameworks to accelerate deep neural networks with on-device hardware such as GPUs, CPUs, or purpose-built AI accelerators.
+WebNN API 是一项新的 Web 标准，允许 Web 应用和框架借助 GPU、CPU 或专用 AI 加速器等设备端硬件来加速深度神经网络。
 
-> <InfoIcon /> WebNN utilizes graph-based computation that is optimally suited for NPU acceleration, while also supporting GPU and CPU.
+> <InfoIcon /> WebNN 采用基于图的计算，最适合 NPU 加速，同时也支持 GPU 和 CPU。
 
-> <InfoIcon /> WebNN is currently the only web API that enables NPU access.
+> <InfoIcon /> WebNN 是目前唯一能够访问 NPU 的 Web API。
 
-## Architecture
+## 架构
 
 <ArchitectureDiagramIntro />
 
-## Key Features
+## 主要特性
 
-The WebNN (Web Neural Network) API enables efficient machine learning inference directly in web browsers. 
+WebNN（Web Neural Network）API 可直接在 Web 浏览器中实现高效的机器学习推理。
 
-### Browser-Based Out-of-the-Box Inference
+### 基于浏览器的开箱即用推理
 
-The WebNN API runs natively in the browser without requiring additional development environments or dependencies such as Python installations. Neural network computations execute locally in the browser, enabling:
+WebNN API 在浏览器中原生运行，无需额外的开发环境或依赖项（例如安装 Python）。神经网络计算在浏览器本地执行，从而实现：
 
-- Immediate inference results without network delays
-- Real-time processing for video, audio, and sensor data
-- Responsive AI features like face detection and AR filters
+- 即时获得推理结果，没有网络延迟
+- 对视频、音频和传感器数据进行实时处理
+- 响应迅速的 AI 功能，例如人脸检测和 AR 滤镜
 
-### Hardware-Optimized Performance
+### 硬件优化的性能
 
-WebNN automatically utilizes available hardware acceleration (CPU, GPU, or dedicated NPU processors) for neural network operations. This optimization occurs transparently across different devices and operating systems, maximizing inference speed without requiring hardware-specific code.
+WebNN 会自动利用可用的硬件加速（CPU、GPU 或专用 NPU 处理器）来执行神经网络运算。这种优化在不同设备和操作系统上透明地进行，无需编写针对特定硬件的代码，即可最大化推理速度。
 
- - Multi-hardware acceleration support - WebNN utilizes graph-based computation that is optimally suited for NPU acceleration, while also supporting GPU and CPU.
- - Unique NPU access - Currently WebNN is the only web API providing access to NPU hardware acceleration
+ - 多硬件加速支持 - WebNN 采用基于图的计算，最适合 NPU 加速，同时也支持 GPU 和 CPU。
+ - 独有的 NPU 访问能力 - 目前 WebNN 是唯一提供 NPU 硬件加速访问的 Web API
 
-### Client-Side Data Processing
+### 客户端数据处理
 
-All data processing occurs on the user's device, ensuring:
+所有数据处理都在用户的设备上进行，从而确保：
 
-- Personal information remains local
-- No transmission of sensitive data to external servers
-- Compliance with privacy requirements
+- 个人信息保留在本地
+- 不会将敏感数据传输到外部服务器
+- 符合隐私要求
 
-### Offline Capability
+### 离线能力
 
-Applications maintain full ML functionality when offline after initial model loading once the necessary assets are cached. This enables consistent performance regardless of network conditions.
+在初次加载模型并缓存必要的资源之后，应用在离线时仍可保持完整的机器学习功能。这使得无论网络状况如何，都能获得一致的性能。
 
-### Resource Efficiency
+### 资源效率
 
-Client-side processing eliminates the need for server-side ML infrastructure, reducing:
+客户端处理无需服务器端机器学习基础设施，从而降低：
 
-- Cloud computing costs
-- Server maintenance overhead
-- Operational complexity
+- 云计算成本
+- 服务器维护开销
+- 运维复杂度
 
-### Developer Accessibility
+### 开发者易用性
 
-The API provides a standardized interface for implementing ML features, abstracting away:
+该 API 为实现机器学习功能提供了标准化接口，并屏蔽了：
 
-- Complex platform differences
-- Hardware-specific optimizations
+- 复杂的平台差异
+- 针对特定硬件的优化
+
+## 后续步骤
+
+1. 在受支持的浏览器中[安装并启用 WebNN](./get-started/installation)，并安装 GPU 和 NPU 驱动程序以获得最佳性能。
+2. 在[快速入门](./get-started/quickstart)中构建并运行你的第一个图。
+3. 在 [Framework vs Vanilla](./tutorials) 中选择使用 WebNN 的方式：使用 [Transformers.js](./tutorials/transformers-js/transformers-js)、[ONNX Runtime Web](./tutorials/onnx-runtime/onnx-runtime) 或 [LiteRT.js](./tutorials/lite-rt/lite-rt) 运行模型，或使用 [Vanilla JavaScript](./tutorials/webnn/vanillajs) 生成精简的 WebNN 代码。
+4. 在 [WebNN API 参考](../api-reference/webnn/mlcontext)中查阅所有接口和操作。
+5. 如果遇到问题，请参阅[故障排除](./troubleshooting/common-errors)。
 

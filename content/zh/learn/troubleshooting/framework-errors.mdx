@@ -1,5 +1,303 @@
-# JavaScript ML Framework Errors
+# JavaScript ML 框架错误
 
-## ONNX Runtime Web Errors
+本页列出通过 JavaScript 机器学习框架运行 WebNN 时可能遇到的错误和警告。每个条目都给出消息内容、产生原因和解决方法。WebNN API 本身产生的错误见[常见错误](./common-errors)。
 
-## LiteRT Web Errors
+## ONNX Runtime Web 错误 [#onnx-runtime-web-errors]
+
+有关设置和选项，请参阅 [ONNX Runtime 教程](../tutorials/onnx-runtime/onnx-runtime)。
+
+### 当前环境不支持 WebNN [#webnn-not-supported]
+
+#### 问题
+
+ORT Web 在初始化 WebNN 后端之前会检查 `navigator.ml`，缺失时会抛出 `WebNN is not supported in current environment`。常见原因包括浏览器不受支持、WebNN 标志未开启、页面不安全（非 HTTPS），或代码运行在没有 `navigator.ml` 的上下文中。
+
+#### 解决方法
+
+使用较新的 Chrome 或 Edge 并开启 "Enables WebNN API" 标志，通过 HTTPS 或 localhost 提供页面，并在创建会话之前进行特性检测。请参阅[安装](../get-started/installation)，以及 [`ml.createContext()`](../../api-reference/webnn/ml#createcontext) 了解上下文请求可能引发的异常。
+
+```js showLineNumbers filename="detect-webnn.js"
+const eps = 'ml' in navigator ? ['webnn', 'wasm'] : ['wasm'];
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: eps,
+});
+```
+
+### 会话创建失败，提示未找到可用后端 [#no-available-backend]
+
+#### 问题
+
+当所有请求的执行提供程序（EP）都初始化失败时，ORT Web 会抛出 `no available backend found. ERR: ...`，并为每个后端附加一条 `[name] reason` 条目。其中 WebNN 的原因（如果有）才是真正的原因。
+
+#### 解决方法
+
+阅读附加的 `ERR:` 文本，了解哪个后端失败以及原因，并优先修复该问题。请确保导入包含 WebNN 的构建（`onnxruntime-web/all`，或脚本标签中的 `ort.all.min.js`），并通过 `executionProviders: ['webnn']` 显式指定提供程序。在 `'webnn'` 之后列出 `'wasm'` 作为回退，可以在调试期间保持页面正常工作。请参阅 [ONNX Runtime 教程](../tutorials/onnx-runtime/onnx-runtime)。
+
+### 不支持动态形状，节点回退到 Wasm [#dynamic-shape]
+
+#### 问题
+
+WebNN 需要静态形状。对于带有符号维度的节点输入，WebNN EP 会在 verbose 级别记录 `Dynamic shape is not supported, use sessionOptions.FreeDimensionOverrides to set a fixed shape`，并把该节点留给 Wasm EP。模型仍然可以运行，但速度很慢，图分区之间会来回复制数据。
+
+#### 解决方法
+
+使用模型中的确切名称，通过 `freeDimensionOverrides` 固定每个自由维度。请参阅[自由维度覆盖](../tutorials/onnx-runtime/free-dimension-overrides)和[性能问题](./performance-issues)页面。
+
+```js showLineNumbers filename="free-dimensions.js"
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: ['webnn'],
+  freeDimensionOverrides: { batch_size: 1, sequence_length: 128 },
+});
+```
+
+### 模型运行缓慢，日志显示多个 WebNN 分区 [#multiple-partitions]
+
+#### 问题
+
+WebNN 后端不支持的算子或数据类型会回退到 Wasm EP。当图被拆分为多个 WebNN 分区时，EP 会打印类似 `WebNNExecutionProvider::GetCapability, number of partitions supported by WebNN: ... number of nodes in the graph: ... number of nodes supported by WebNN: ...` 的警告。只有单个分区时，同一行仅以 info 级别记录。
+
+#### 解决方法
+
+开启详细日志，找出被拒绝的节点（形状、数据类型、不支持的算子、算子参数），并修改模型或导出设置使其变为受支持。先修复动态形状通常可以消除大部分分区。关于 Chrome 标志 `--webnn-ort-logging-level=VERBOSE`，请参阅[调试](../get-started/debug)。
+
+```js showLineNumbers filename="verbose.js"
+ort.env.logLevel = 'verbose';
+```
+
+### 不支持或意外的数据类型 [#data-types]
+
+#### 问题
+
+WebNN EP 会对照上下文通过 `opSupportLimits()` 报告的内容检查张量类型。不支持的张量类型会被记录为 `WebNN backend does not support data type: ...`，而不支持的图输入或初始化器类型会返回 `The input of graph has unsupported type, name: ...` 或 `The initializer of graph has unsupported type, name: ...`。当后端不支持 int64 时，EP 会把 int64 初始化器转换为 int32。
+
+#### 解决方法
+
+使用 float32 或 float16（尽可能使用 int32）张量重新导出模型，并避免使用需要目标设备不支持的类型的算子。GPU 和 NPU 后端支持的类型比 CPU 少。查看详细日志，了解哪个节点和类型被拒绝。
+
+### 创建 WebNN 上下文或构建器失败 [#context-creation-failed]
+
+#### 问题
+
+如果 Wasm 模块没有当前的 `MLContext`，EP 会抛出 `Failed to create WebNN context.`。如果无法创建构建器，则抛出 `Failed to create WebNN builder.`。两者通常都意味着浏览器无法在这台机器上为请求的 `deviceType` 或 `powerPreference` 创建上下文。
+
+#### 解决方法
+
+使用不同的 `deviceType`（`'cpu'`、`'gpu'` 或 `'npu'`）重试，并在[硬件错误](./hardware-errors)中检查驱动和标志要求。要查看浏览器自己的异常（例如 `NotSupportedError`），请自行创建 `MLContext`，并将其作为 `context` 选项连同 `deviceType` 一起传入。
+
+```js showLineNumbers filename="context.js"
+const context = await navigator.ml.createContext({ powerPreference: 'high-performance' });
+const session = await ort.InferenceSession.create(modelUrl, {
+  executionProviders: [{ name: 'webnn', deviceType: 'gpu', context }],
+});
+```
+
+### 构建 WebNN 图失败 [#build-graph-failed]
+
+#### 问题
+
+节点被接受之后，在浏览器中编译图仍可能失败，此时 EP 会返回 `Failed to build WebNN graph.`。根本原因（无效的操作数、后端拒绝的形状或类型，或驱动问题）通常由浏览器报告，而不是由该消息给出。
+
+#### 解决方法
+
+在 DevTools 控制台和 WebNN 详细日志中查找真正的原因，然后尝试其他 `deviceType`，或通过固定形状并避开有问题的算子来简化模型。请参阅[调试](../get-started/debug)以及 [`MLGraphBuilder` 参考](../../api-reference/webnn/mlgraphbuilder)中的构建错误。
+
+### Wasm 文件或 Worker 加载失败 [#wasm-loading]
+
+#### 问题
+
+ORT Web 在启动时会获取其 `.wasm` 和 `.mjs` 文件。如果找不到这些文件，就会出现加载错误；当超过 `env.wasm.initTimeout` 时，某些配置还会报告 `Failed to load proxy worker: cannot determine the script source URL.` 或 `WebAssembly backend initializing failed due to timeout: ...ms`。打包工具经常会移动这些文件而不复制它们。
+
+#### 解决方法
+
+从你的站点提供这些文件，并通过 `env.wasm.wasmPaths` 指向它们，可以使用 URL 前缀，也可以使用带有确切 `wasm` 文件 URL 的对象。请在创建第一个会话之前设置。
+
+```js showLineNumbers filename="wasm-paths.js"
+ort.env.wasm.wasmPaths = '/assets/ort/';
+```
+
+### 不支持 WebAssembly SIMD 或代理选项 [#wasm-environment]
+
+#### 问题
+
+当浏览器缺少相应特性时，初始化会抛出 `WebAssembly SIMD is not supported in the current environment.`（或宽松 SIMD（relaxed SIMD）、JSPI 变体）。启用 `env.wasm.proxy` 时，某些选项会被拒绝，例如 `input tensor on GPU is not supported for proxy.` 和 `session option "preferredOutputLocation" is not supported for proxy.`。
+
+#### 解决方法
+
+更新浏览器，或设置 `ort.env.wasm.simd = false` 跳过检查。如果你使用 `preferredOutputLocation`（例如 `'ml-tensor'`）或预分配的张量，请保持 `env.wasm.proxy` 为 `false`。
+
+### 使用 ML 张量运行失败 [#ml-tensor-errors]
+
+#### 问题
+
+IO 绑定错误包括：当会话不是使用 WebNN EP 创建时出现的 `Tensor location "ml-tensor" is not supported without using WebNN.`。形状不匹配的预分配输出会使 `run()` 失败，已销毁的 `MLTensor` 同样会使运行失败。
+
+#### 解决方法
+
+使用包含共享 `context` 的 WebNN 条目在 `executionProviders` 中创建会话，让每个用户创建的 `MLTensor` 保持存活直到推理结束，之后再调用 `destroy()`。
+
+## Transformers.js 错误 [#transformers-js-errors]
+
+Transformers.js 运行在 ONNX Runtime Web 之上，因此上面的 [ONNX Runtime Web 错误](#onnx-runtime-web-errors)也可能出现。有关设置和选项，请参阅 [Transformers.js 教程](../tutorials/transformers-js/transformers-js)。
+
+### 不支持的设备 [#transformersjs-unsupported-device]
+
+#### 问题
+
+`pipeline()` 抛出 `Unsupported device: "webnn-gpu". Should be one of: ...`
+
+#### 解决方法
+
+只有当 `navigator.ml` 存在时，Transformers.js 才接受 WebNN 设备名称，因此出现该错误说明浏览器没有暴露 WebNN。请启用它（参阅[安装](../get-started/installation)），或选择其他设备。Transformers.js 不会自行回退，因此请在代码中选择设备：
+
+```js showLineNumbers filename="device.js"
+const device = 'ml' in navigator ? 'webnn-gpu' : 'wasm';
+const classifier = await pipeline('image-classification', 'Xenova/resnet-50', { device });
+```
+
+### WebNN 需要 `free_dimension_overrides` [#transformersjs-free-dimension-overrides]
+
+#### 问题
+
+控制台显示警告 `WebNN does not currently support dynamic shapes and requires 'free_dimension_overrides' to be set in config.json ...`，并且推理非常慢。
+
+#### 解决方法
+
+没有找到该模型的自由维度覆盖。请在 `session_options.freeDimensionOverrides` 中传入，或将其添加到模型 `config.json` 的 `transformers.js_config` 下。请参阅[自由维度覆盖](../tutorials/transformers-js/free-dimension-overrides)和[教程章节](../tutorials/transformers-js/transformers-js#free-dimension-overrides)。
+
+### 无效的 dtype [#transformersjs-invalid-dtype]
+
+#### 问题
+
+加载模型时抛出 `Invalid dtype: NAME. Should be one of: ...`
+
+#### 解决方法
+
+你传入的 `dtype` 不是 Transformers.js 所识别的值。请使用 [dtype 表](../tutorials/transformers-js/transformers-js#dtypes)中的值，并确认该模型在 Hub 上的 `onnx` 文件夹中发布了该变体。
+
+## LiteRT.js 错误 [#litert-js-errors]
+
+有关设置和选项，请参阅 [LiteRT.js 教程](../tutorials/lite-rt/lite-rt)。
+
+### LiteRT 尚未初始化 [#litert-not-initialized]
+
+#### 问题
+
+LiteRT.js 函数抛出 `LiteRT is not initialized yet. Please call loadLiteRt() and wait for its promise to resolve to load the LiteRT WASM module.`
+
+#### 解决方法
+
+必须先等 `loadLiteRt()` 完成，才能调用 `loadAndCompile()`、创建 `Tensor` 或使用任何其他 LiteRT.js 函数。请在启动时只 await 一次：
+
+```js showLineNumbers filename="init.js"
+await loadLiteRt('/litert/wasm/', { jspi: true });
+const model = await loadAndCompile('/models/model.tflite', { accelerator: 'webnn' });
+```
+
+### LiteRT 已在加载或已加载 [#litert-already-loaded]
+
+#### 问题
+
+`loadLiteRt()` 抛出 `LiteRT is already loading / loaded.`
+
+#### 解决方法
+
+运行时在每个页面中只能加载一次，并且只针对一个 Wasm 构建加载，例如 JSPI 构建。请只调用一次 `loadLiteRt()`。如果确实需要不同的构建，请先调用 `unloadLiteRt()`，这会使迄今创建的所有模型和张量失效。
+
+### 不支持 JSPI [#litert-jspi]
+
+#### 问题
+
+`loadLiteRt(path, { jspi: true })` 抛出 `JSPI is not supported`。
+
+#### 解决方法
+
+浏览器不支持 WebAssembly JavaScript Promise Integration，而 `webnn` 加速器需要它。请先检查 `await supportsFeature('jspi')`。当结果为 `false` 时，调用不带 `jspi` 的 `loadLiteRt()`，并针对 `wasm` 编译；如果整个模型都可以委托，则针对 `webgpu` 编译。
+
+### 线程与 JSPI 选项冲突，或缺少宽松 SIMD [#litert-threads]
+
+#### 问题
+
+`loadLiteRt()` 抛出 `The threads and jspi options are mutually exclusive.` 或 `Threads are only supported with relaxed SIMD, and the current browser does not support relaxed SIMD.`
+
+#### 解决方法
+
+传入 `threads` 或 `jspi`，不要同时传入。多线程构建和 JSPI 构建是不同的 Wasm 文件，因此需要 WebNN 的页面使用 JSPI 构建和单线程 CPU 运行时。线程构建还要求浏览器支持宽松 SIMD（relaxed SIMD），可通过 `await supportsFeature('relaxedSimd')` 检查。
+
+### 模型未完全编译到 WebNN [#litert-not-fully-compiled]
+
+#### 问题
+
+控制台显示 `Model not fully compiled for webnn. Partially delegating to WASM execution.` 或 `Model not fully compiled for webnn on non-JSPI browser. Falling back to WASM execution.`
+
+#### 解决方法
+
+这是警告，而不是异常。在此浏览器中，WebNN 无法运行模型的所有操作。使用 JSPI 时，其余操作在 WebAssembly 上运行，并且 `model.isFullyAccelerated` 为 `false`。没有 JSPI 时，LiteRT.js 会针对 `wasm` 重新编译整个模型。请在控制台中查找 `not delegatable` 消息，或在 LiteRT.js Model Tester 中运行模型，以找出被拒绝的操作，并参阅[性能问题](./performance-issues#litert-js)了解应对方法。
+
+### 请求了 WebGPU 但没有可用设备 [#litert-webgpu-device]
+
+#### 问题
+
+`loadAndCompile()` 抛出 `WebGPU was requested but no WebGPU device is set in the environment.`
+
+#### 解决方法
+
+你请求了 `accelerator: 'webgpu'`，但 LiteRT.js 在运行时加载时无法创建 WebGPU 设备，只记录了一条警告。请在请求 `webgpu` 之前检查 `isWebGPUSupported()`，并回退到 `webnn` 或 `wasm`。
+
+### `run()` 拒绝输入张量 [#litert-input-mismatch]
+
+#### 问题
+
+`model.run()` 抛出以下错误之一：
+
+- `run() called with N inputs, but signature expects M inputs`
+- `run() called with a single tensor, but signature expects N inputs`
+- `run() called with input record that is missing input NAME with index I`
+- `TensorBuffer ranked tensor type ... does not match expected ranked tensor type float32[1, 3, 224, 224]`
+
+#### 解决方法
+
+你传入的张量与模型签名不匹配。请打印 `model.getInputDetails()`，它会列出每个输入的名称、形状和数据类型，然后进行比较。`Tensor` 构造函数会根据类型化数组推断数据类型，因此 `float32` 输入请传入 `Float32Array`，`int32` 输入请传入 `Int32Array`。当模型有多个输入时，请按相同顺序传入数组，或传入以输入名称为键的对象。
+
+### 张量或模型已被删除 [#litert-deleted]
+
+#### 问题
+
+你看到 `Tensor is deleted and cannot be used.`、`CompiledModel is deleted and cannot be used.` 或 `CompiledModelSignatureRunner is deleted and cannot be used.`
+
+#### 解决方法
+
+LiteRT.js 使用手动内存管理。调用 `delete()` 之后，对象无法再使用，删除 `CompiledModel` 也会删除其签名运行器。请为每次 `run()` 调用重新创建张量，或让它们保持存活，并仅在用完后删除。重复删除同一对象是安全的。
+
+### 没有该名称的签名 [#litert-signature]
+
+#### 问题
+
+`model.run('name', inputs)` 抛出 `No signature named name found in model.`
+
+#### 解决方法
+
+模型可以暴露多个具名签名，不带名称的 `run()` 会使用第一个。请使用 `Object.keys(model.signatures)` 列出可用名称，并传入其中之一。
+
+### 模型过大 [#litert-model-too-large]
+
+#### 问题
+
+加载失败，提示 `Model is too large (> 2000000000 bytes).` 或 `Failed to allocate N bytes of Wasm memory for the model.`
+
+#### 解决方法
+
+LiteRT.js 最多可读取约 2 GB 的模型，而 CPU 运行时的 WebAssembly 内存限制为 2 GB。请量化模型（例如使用 AI Edge Quantizer），或使用更小的模型。
+
+### Wasm 文件或 Worker 加载失败 [#litert-wasm-files]
+
+#### 问题
+
+`loadLiteRt()` 无法获取 `.wasm` 或 `.js` 文件，或者在 Web Worker 内加载失败，因为 `importScripts()` 不可用。
+
+#### 解决方法
+
+- 提供整个 `node_modules/@litertjs/core/wasm/` 文件夹，或使用 jsDelivr URL，并向 `loadLiteRt()` 传入**目录**路径，以便它为浏览器选择正确的文件。
+- 将 Worker 创建为经典（classic）Worker，不要带 `{ type: 'module' }`，因为 LiteRT.js 的加载器会调用 `importScripts()`。
+- 如果 Worker 脚本的提供位置与 Wasm 文件不同，请在调用 `loadLiteRt()` 之前设置 `self.Module = { locateFile }`。
+
+请参阅[在 Web Worker 中运行 LiteRT.js](../tutorials/lite-rt/lite-rt#web-worker)。

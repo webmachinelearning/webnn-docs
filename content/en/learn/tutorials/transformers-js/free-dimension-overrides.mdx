@@ -9,8 +9,8 @@ While flexible, you can optimize performance by fixing these dimensions when you
 When working with dynamic shapes in [Transformers.js](https://huggingface.co/docs/transformers.js/index) 3.5.0 or later, you can specify free dimension overrides using one of the following methods, listed in order of precedence:
 
 1. Directly in your code using the `freeDimensionOverrides`
-2. In the `device_config` level of `transformers.js_config` within a model's `config.js` file
-3. In the model level of `transformers.js_config` within a model's `config.js` file
+2. In the `device_config` level of `transformers.js_config` within a model's `config.json` file
+3. In the model level of `transformers.js_config` within a model's `config.json` file
 
 The first method that provides valid overrides will be used, with earlier methods taking priority over later ones.
 
@@ -19,8 +19,9 @@ The first method that provides valid overrides will be used, with earlier method
 Setting `freeDimensionOverrides` in your code with Transformers.js.
 
 ```js showLineNumbers filename="*.js"
-import * as transformers from from '@huggingface/transformers@3.5.0';
+import * as transformers from '@huggingface/transformers';
 
+const path = 'Xenova/resnet-50';
 const options = {
   device: "webnn-gpu", // webnn, webnn-cpu, webnn-npu
   dtype: "fp32",
@@ -38,9 +39,9 @@ const classifier = await transformers.pipeline('image-classification', path, opt
 
 #### Priority 2
 
-Setting `free_dimension_overrides` in the `device_config` level of `transformers.js_config` in `config.js` file of Huggingface models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
+Setting `free_dimension_overrides` in the `device_config` level of `transformers.js_config` in the `config.json` file of Hugging Face models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
 
-```js showLineNumbers filename="config.json"
+```json showLineNumbers filename="config.json"
 {
   "transformers.js_config": {
     "device_config": {
@@ -59,9 +60,9 @@ Setting `free_dimension_overrides` in the `device_config` level of `transformers
 
 #### Priority 3
 
-Setting `free_dimension_overrides` in a model level of `transformers.js_config` in `config.js` file of Huggingface models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
+Setting `free_dimension_overrides` in a model level of `transformers.js_config` in the `config.json` file of Hugging Face models, e.g. [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0/blob/main/config.json)
 
-```js showLineNumbers filename="config.json"
+```json showLineNumbers filename="config.json"
 {
   "transformers.js_config": {
     "device": "webnn-gpu",
@@ -75,7 +76,7 @@ Setting `free_dimension_overrides` in a model level of `transformers.js_config` 
 }
 ```
 
-### Symbolic Dimension
+### Symbolic Dimension [#symbolic-dimension]
 
 <div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 text-center gap-2 my-8">
   <div>

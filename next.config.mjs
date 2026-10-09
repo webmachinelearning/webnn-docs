@@ -79,6 +79,13 @@ export default withNextra({
         port: '',
         search: '',
       },
+      {
+        protocol: 'https',
+        hostname: 'litert.webnn.io',
+        port: '',
+        pathname: '/images/**',
+        search: '',
+      },
     ],
   },
 })

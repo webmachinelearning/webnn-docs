@@ -4,13 +4,13 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
  
 ## NPU Errors
 
-### NPU utilization not visible in Windows Task Manager when running on WebNN NPU
+### NPU utilization not visible in Windows Task Manager when running on WebNN NPU [#npu-utilization-not-visible-in-windows-task-manager-when-running-on-webnn-npu]
 
 #### Problem
 
 NPU (Neural Processing Unit) utilization does not appear in Windows Task Manager when running WebNN applications on NPU, e.g. [Whisper Base on NPU](https://microsoft.github.io/webnn-developer-preview/demos/whisper-base/?devicetype=npu), even after installing the latest NPU driver.
 
-#### Cause
+#### Cause [#cause]
 
 Windows Update may automatically replace Intel.com drivers with older OEM-distributed versions on devices from manufacturers like Lenovo, ASUS, Dell, and HP. This behavior affects both Neural Processor (NPU, Intel AI Boost) and Graphics drivers.
 

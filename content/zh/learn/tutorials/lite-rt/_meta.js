@@ -1,5 +1,5 @@
 export default {
   'lite-rt': {
-    title: "Lite RT"
+    title: "LiteRT.js"
   },
 };
