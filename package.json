@@ -20,7 +20,7 @@
   "dependencies": {
     "@next/third-parties": "^16.2.12",
     "@tailwindcss/postcss": "^4.3.3",
-    "@xyflow/react": "^12.11.2",
+    "@xyflow/react": "^12.12.0",
     "framer-motion": "^14.0.0",
     "next": "^16.2.12",
     "nextra": "^4.6.1",
