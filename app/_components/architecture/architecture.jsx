@@ -27,7 +27,7 @@ const initialNodes = [
     type: "netronNode0",
     position: { x: 140, y: 0 },
     data: {
-      label: "ONNX",
+      label: ".onnx",
       nodeClassName:
         "architecture",
       labelClassName: "bg-[#f72585] model text-white l0 text-center",
@@ -38,7 +38,7 @@ const initialNodes = [
     type: "netronNode0",
     position: { x: 249, y: 0 },
     data: {
-      label: "TensorFlow",
+      label: ".tflite",
       nodeClassName:
         "architecture",
       labelClassName: "bg-[#f72585] model text-white l0 text-center",
@@ -104,7 +104,7 @@ const initialNodes = [
     type: "netronNode0",
     position: { x: 358, y: 100 },
     data: {
-      label: "LiteRT",
+      label: "LiteRT.js",
       nodeClassName:
         "architecture",
       labelClassName: "bg-[#7209b7] fw text-white l0 text-center",
