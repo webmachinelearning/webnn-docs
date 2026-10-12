@@ -7,26 +7,26 @@ import InfoIcon from '../../../../app/_components/icons/info.jsx'
 
 ## WebNN APIs
 
-> <InfoIcon /> May 20, 2025: DirectML was officially deprecated during Microsoft Build 2025. WebNN will leverage Windows ML to access OpenVINO and other EPs to get hardware acceleration.
+> <InfoIcon /> 2025 年 5 月 20 日：DirectML 在 Microsoft Build 2025 上正式被弃用。WebNN 通过 Windows ML 访问 OpenVINO 等执行提供程序（EP）来获得硬件加速。Chromium WebNN 服务中已不再包含 DirectML 后端（`dml/`）；DirectML 现在只能作为 ONNX Runtime 的 EP 被使用。
 
 <div className="table">
-| Platform / Build Conditions | CPU (`device: "cpu"`) | GPU (`device: "gpu"`) | NPU (`device: "npu"`) |
+| 平台 / 构建条件 | CPU (`device: "cpu"`) | GPU (`device: "gpu"`) | NPU (`device: "npu"`) |
 | --- | --- | --- | --- |
-| ChromeOS (`webnn_use_tflite` default true) | TFLite (LiteRT) with XNNPACK delegate (`tflite/graph_impl_tflite.cc` → `SetUpXNNPackDelegate`) | TFLite delegate: Chrome ML GPU if `WEBNN_USE_CHROME_ML_API` (controlled by `features.gni`), otherwise OpenCL delegate when `BUILD_TFLITE_WITH_OPENCL`; without either, runs on XNNPACK/CPU (`tflite/graph_impl_tflite.cc`) | No dedicated delegate; request falls back to CPU/XNNPACK (`tflite/graph_impl_tflite.cc`) |
-| Linux (`webnn_use_tflite` default true) | Same TFLite + XNNPACK path | No native GPU backend today; execution remains on CPU via XNNPACK (`webnn_context_provider_impl.cc` falls through to TFLite) | Not supported; falls back to CPU |
-| macOS ≥14.4 on Apple Silicon with feature `kWebNNCoreML` enabled (default) | Core ML backend (`webnn_context_provider_impl.cc`; `coreml/context_impl_coreml.mm`) selecting `MLComputeUnitsCPUOnly` (`coreml/graph_impl_coreml.mm`) | Core ML using `MLComputeUnitsCPUAndGPU` or `MLComputeUnitsAll` (gated by `kWebNNCoreMLExplicitGPUOrNPU`) | Core ML using `MLComputeUnitsCPUAndNeuralEngine` or `MLComputeUnitsAll` (`coreml/graph_impl_coreml.mm`) |
-| macOS Intel, macOS &lt;14.4, or Core ML feature disabled | Falls through to TFLite + XNNPACK (`webnn_context_provider_impl.cc`) | TFLite delegates as available (no Core ML) | TFLite fallback only |
-| Windows 11 24H2+ with feature `kWebNNOnnxRuntime` enabled | ONNX Runtime (Windows ML) (`ort/context_provider_ort.cc`; `webnn_context_provider_impl.cc`) selecting CPU EP (`ort/environment.cc`) | ONNX Runtime selecting GPU EP with CPU fallback (`ort/environment.cc`) | ONNX Runtime selecting NPU EP with CPU fallback (`ort/environment.cc`) |
-| Windows (default build: ONNX Runtime feature off) | TFLite + XNNPACK fallback (`webnn_context_provider_impl.cc`) | DirectML backend when `kWebNNDirectML` feature is on and GPU feature is enabled (`dml/context_provider_dml.cc`); otherwise TFLite | DirectML NPU path when hardware is available (`dml/context_provider_dml.cc`); otherwise TFLite |
-| Android | TFLite + XNNPACK (`tflite/graph_impl_tflite.cc`) | TFLite GPU delegate via OpenCL when `BUILD_TFLITE_WITH_OPENCL` (or Chrome ML if bundled); otherwise CPU fallback | TFLite NNAPI delegate when `BUILD_TFLITE_WITH_NNAPI` (typical Android build); otherwise CPU fallback |
-| iOS (current shipping defaults) | Core ML feature disabled by default (`public/mojom/features.mojom`), so TFLite + XNNPACK | Same as CPU (no Core ML delegate by default) | Same as CPU |
+| Windows 11 24H2+，且启用特性 `kWebNNOnnxRuntime`（默认开启） | ONNX Runtime（Windows ML）：默认 CPU EP，如有同厂商 CPU EP 则一并加入（`ort/environment.cc`：`SelectEpDevicesForCpu`） | ONNX Runtime：选取第一个 GPU EP 设备（独立显卡优先于集成显卡，WebGPU EP 优先于 DirectML EP），并以 CPU EP 作为回退；没有 GPU 或仅有 WARP 等软件适配器时回退到 CPU（`SelectEpDevicesForGpu`） | ONNX Runtime：选取第一个 NPU EP 设备并以 CPU EP 作为回退；没有 NPU 或 NPU 驱动低于该 EP 要求的最低版本时，回退到 GPU 的选择逻辑（`SelectEpDevicesForNpu`） |
+| Windows 11 24H2 之前的版本、Windows App Runtime 不可用、`kWebNNOnnxRuntime` 被禁用或 ORT 环境创建失败 | 渲染进程内的 LiteRT + XNNPACK（`webnn_context_provider_impl.cc`：`FallbackToTFLite`） | GPU 进程中的 LiteRT GPU 加速器（WebGPU），不可用时使用进程内 LiteRT（`tflite/graph_impl_litert.cc`） | 进程内 LiteRT；暂不支持 NPU 加速器（crbug.com/454732289） |
+| macOS ≥14.4、Apple Silicon、非无痕模式，且启用特性 `kWebNNCoreML`（默认开启） | Core ML，使用 `MLComputeUnitsCPUOnly`（`coreml/graph_impl_coreml.mm`） | Core ML，使用 `MLComputeUnitsAll`；若开启 `kWebNNCoreMLExplicitGPUOrNPU`（默认关闭）则使用 `MLComputeUnitsCPUAndGPU` | Core ML，使用 `MLComputeUnitsAll`；若开启 `kWebNNCoreMLExplicitGPUOrNPU` 则使用 `MLComputeUnitsCPUAndNeuralEngine` |
+| macOS Intel、macOS &lt;14.4、无痕模式或 Core ML 被禁用 | LiteRT + XNNPACK（进程内） | LiteRT GPU 加速器（WebGPU），随后回退到进程内 | 进程内 LiteRT |
+| iOS | `kWebNNCoreML` 默认关闭（Core ML 沙箱问题，crbug.com/417496826），因此使用 LiteRT + XNNPACK | LiteRT GPU 加速器，随后回退到进程内 | 进程内 LiteRT |
+| ChromeOS、Linux、Android | 渲染进程内的 LiteRT + XNNPACK | 可用时使用 GPU 进程中的 LiteRT GPU 加速器（WebGPU/Dawn）；否则使用进程内 LiteRT | 进程内 LiteRT；暂不支持 NPU 加速器 |
 </div>
 
-- Backend selection order is defined in `webnn_context_provider_impl.cc`: Windows tries ONNX Runtime first, then DirectML, then the TFLite fallback; Apple builds try Core ML before TFLite; all other platforms go straight to TFLite.
-- `features.gni` enables TFLite (`webnn_use_tflite`) across Linux, ChromeOS, Android, Windows, and Apple; `webnn_use_chrome_ml_api` gates access to Chrome ML GPU delegates.
-- TFLite delegates are optional: if a requested delegate (GPU/NPU) is missing or fails, execution transparently falls back to the XNNPACK CPU path (`graph_impl_tflite.cc`).
-- ONNX Runtime support currently requires Windows 11 24H2+, the `kWebNNOnnxRuntime` flag, and uses `execution-provider` selection logic in `environment.cc` to bind the appropriate hardware (GPU/NPU) with CPU fallbacks.
-- Core ML respects the requested device by adjusting `MLModelConfiguration.computeUnits`; without `kWebNNCoreMLExplicitGPUOrNPU`, GPU/NPU requests default to `MLComputeUnitsAll` (`graph_impl_coreml.mm`).
+- 后端选择由 `WebNNContextProviderImpl::CreateWebNNContext`（`webnn_context_provider_impl.cc`）实现：Windows 优先尝试 ONNX Runtime，Apple 平台尝试 Core ML，其余平台（或任何一次尝试失败时）进入 `FallbackToTFLite`，使用 LiteRT。
+- `features.gni` 在 Android、ChromeOS、Linux、Apple 和 Windows 上启用 TFLite/LiteRT（`webnn_use_tflite`、`webnn_use_litert`）。`webnn_use_chrome_ml_api`（`enable_ml_internal`）仅是构建开关；本页早期版本中描述的 OpenCL 和 NNAPI 委托路径不在当前源码中。
+- LiteRT 的路由（`ShouldUseInProcessTflite`）：`cpu` 和 `npu` 请求在渲染进程中处理；`gpu` 请求会先尝试在 GPU 进程中使用 WebGPU 加速器（在沙箱锁定前预加载）创建 LiteRT 上下文，若不支持，则由渲染进程创建进程内上下文。开启 `kWebNNLiteRTGpuInRenderer`（默认关闭）后，GPU 请求在渲染进程中运行。
+- 只要构建时包含 XNNPACK（`BUILD_LITERT_WITH_XNNPACK`），LiteRT 就会启用 XNNPACK CPU 加速器，因此 GPU 请求始终保留 CPU 作为回退。
+- ONNX Runtime 需要 Windows 11 24H2 或更高版本（`kWinAppRuntimeSupportedMinVersion`）以及 Windows App Runtime；使用 `--webnn-ort-ignore-ihv-eps` 或 Windows 版本较低时，仅使用内置 EP。`--webnn-ort-disable-cpu-fallback` 会禁用 CPU EP 回退。
+- `kWebNNCompilerProcess`（Apple 默认开启，Windows 默认关闭）会把图编译移到独立的 Compiler 进程中。
+- 仅当设备上存在相应计算单元时，Core ML 才会提供 `gpu`/`npu`（`coreml/graph_impl_coreml.mm`）。
 
 ### Note 
 

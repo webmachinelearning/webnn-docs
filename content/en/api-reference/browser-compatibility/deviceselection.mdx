@@ -20,7 +20,7 @@ flowchart TD
     Start --> WinApp{Windows App Runtime<br/>installed}
     
     WinApp -->|Yes| WinML[Windows ML Backend]
-    WinApp -->|No| TFLite[TFLite Backend]
+    WinApp -->|No| TFLite[LiteRT Backend]
     
     WinML --> OVCheck{OpenVINO EP installed<br/>before launching WebNN page<br/>Intel Core Ultra Series}
     
@@ -57,8 +57,75 @@ Based on each device's capabilities, the graph may be partitioned into subgraphs
 
 The default CPU serves as the final fallback device to ensure maximum coverage of operator sets and individual operators.
 
+### Windows ML · Generic Execution Provider Selection
+
+For any registered EP (not only OpenVINO), the Chromium ORT backend (`ort/environment.cc`) sorts the available EP devices, then picks devices for the requested `device` type.
+
+1. Sort order: NPU > GPU > CPU; for GPUs, discrete before integrated; EPs whose vendor matches the hardware vendor first; WebGPU EP before DirectML EP; the default CPU EP always last.
+2. `cpu`: the first CPU EP device, plus the default CPU EP.
+3. `gpu`: the first GPU EP device, plus CPU fallback (the default CPU EP and a CPU EP from the same vendor). If there is no GPU, or the only GPU is a software adapter (for example Microsoft Basic Render Driver / WARP), the CPU selection is used.
+4. `npu`: the first NPU EP device plus CPU fallback. If there is no NPU, or its driver is older than the EP's minimum version, the GPU selection is used.
+5. Windows App Runtime and Windows 11 24H2+ are required for IHV EPs; otherwise only the built-in EPs are used.
+
+The `--webnn-ort-ep-device=<ep_name>,<vendor_id>,<device_id>` switch overrides the selection for testing.
+
 ### Lite RT
 
-This diagram shows the device selection flow for the WebNN LiteRT backend.
+This flow shows the device selection for the WebNN LiteRT backend, used on ChromeOS, Linux, Android, and as the fallback on Windows and Apple platforms.
 
-To-do.
+<div className="mermaid">
+```mermaid
+flowchart TD
+    Start[createContext with deviceType]
+    Start --> Dev{Device Type}
+
+    Dev -->|CPU / NPU| InProc[Renderer process<br/>in-process LiteRT]
+    Dev -->|GPU| Feat{kWebNNLiteRTGpuInRenderer<br/>enabled}
+
+    Feat -->|Yes| InProc
+    Feat -->|No| GpuProc{LiteRT WebGPU accelerator<br/>context created in GPU process}
+
+    GpuProc -->|Yes| GpuAcc[LiteRT GPU accelerator<br/>WebGPU · fp16/fp32<br/>XNNPACK CPU fallback]
+    GpuProc -->|No| InProc
+
+    InProc --> XNN[XNNPACK CPU]
+```
+</div>
+
+NPU requests are not yet accelerated by LiteRT (crbug.com/454732289) and run on XNNPACK.
+
+### Core ML
+
+On macOS 14.4+ with Apple Silicon (non-incognito), WebNN maps the requested device type to `MLModelConfiguration.computeUnits`.
+
+| `device` | Default | With `kWebNNCoreMLExplicitGPUOrNPU` |
+| --- | --- | --- |
+| `cpu` | `MLComputeUnitsCPUOnly` | `MLComputeUnitsCPUOnly` |
+| `gpu` | `MLComputeUnitsAll` | `MLComputeUnitsCPUAndGPU` |
+| `npu` | `MLComputeUnitsAll` | `MLComputeUnitsCPUAndNeuralEngine` |
+
+<div className="mermaid">
+```mermaid
+flowchart TD
+    Start[createContext with deviceType]
+    Start --> Chk{macOS 14.4+ / iOS<br/>kWebNNCoreML enabled<br/>not incognito<br/>Apple Silicon on Mac}
+
+    Chk -->|No| LiteRT[LiteRT backend<br/>XNNPACK CPU / WebGPU GPU]
+    Chk -->|Yes| Proc{kWebNNCompilerProcess<br/>enabled · default on}
+
+    Proc -->|Yes| Comp[Compiler process builds the model<br/>Core ML context in GPU process runs it]
+    Proc -->|No| InGpu[Core ML context<br/>builds and runs in GPU process]
+
+    Comp --> Dev{Device Type}
+    InGpu --> Dev
+
+    Dev -->|CPU| CpuOnly[MLComputeUnitsCPUOnly]
+    Dev -->|GPU| ExpG{kWebNNCoreMLExplicitGPUOrNPU}
+    Dev -->|NPU| ExpN{kWebNNCoreMLExplicitGPUOrNPU}
+
+    ExpG -->|Yes| CpuGpu[MLComputeUnitsCPUAndGPU]
+    ExpG -->|No| All[MLComputeUnitsAll]
+    ExpN -->|Yes| CpuNe[MLComputeUnitsCPUAndNeuralEngine]
+    ExpN -->|No| All
+```
+</div>
