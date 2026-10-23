@@ -2,7 +2,7 @@ export default {
   dark: '深色',
   light: '浅色',
   system: '自动',
-  banner: '💡WebNN Origin Trial 即将到来！开发者可注册试用密钥进行体验 →',
+  banner: '💡WebNN Origin Trial 即将到来！开发者很快将可以注册试用密钥进行体验 →',
   backToTop: '返回页顶',
   lastUpdated: '最近更新',
   logo: {
