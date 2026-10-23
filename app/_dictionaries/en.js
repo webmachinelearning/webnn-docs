@@ -2,7 +2,7 @@ export default {
   dark: 'Dark',
   light: 'Light',
   system: 'System',
-  banner: '💡The WebNN Origin Trial is coming! Developers can sign up for trial keys to explore →',
+  banner: '💡The WebNN Origin Trial is coming soon! Developers will soon be able to sign up for trial keys to explore →',
   backToTop: 'Scroll to top',
   lastUpdated: 'Last updated on',
   logo: {
