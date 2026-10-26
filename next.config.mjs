@@ -14,43 +14,43 @@ export default withNextra({
     return [
       {
         source: '/:locale(en|zh)/playground/webnn',
-        destination: '/:locale/playground/',
+        destination: '/:locale/playground',
         permanent: true,
       },
       {
         source: '/playground/webnn',
         destination: '/playground',
-        permanent: true, 
+        permanent: true,
       },
       {
         source: '/:locale(en|zh)/playground/onnxruntime',
-        destination: '/:locale/playground/',
+        destination: '/:locale/playground',
         permanent: true,
       },
       {
         source: '/playground/onnxruntime',
         destination: '/playground',
-        permanent: true, 
+        permanent: true,
       },
       {
         source: '/:locale(en|zh)/playground/transformersjs',
-        destination: '/:locale/playground/',
+        destination: '/:locale/playground',
         permanent: true,
       },
       {
         source: '/playground/transformersjs',
         destination: '/playground',
-        permanent: true, 
+        permanent: true,
       },
       {
         source: '/:locale(en|zh)/playground/litert',
-        destination: '/:locale/playground/',
+        destination: '/:locale/playground',
         permanent: true,
       },
       {
         source: '/playground/litert',
         destination: '/playground',
-        permanent: true, 
+        permanent: true,
       },
     ]
   },

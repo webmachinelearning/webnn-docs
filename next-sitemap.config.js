@@ -6,9 +6,12 @@ module.exports = {
   outDir: 'public',
   exclude: ['/icon.svg', '/apple-icon.png', '/manifest.webmanifest', '/twitter-image.png', '/opengraph-image.png'],
   additionalPaths: async (config) => [
-    { loc: 'https://webnn.io/', changefreq: 'daily', priority: 1.0, lastmod: new Date().toISOString() },
-    { loc: 'https://webnn.io/en', changefreq: 'daily', priority: 0.9, lastmod: new Date().toISOString() },
-    { loc: 'https://webnn.io/zh', changefreq: 'daily', priority: 0.9, lastmod: new Date().toISOString() },
+    ...['en', 'zh'].flatMap((lang) => ['showcase', 'playground'].map((page) => ({
+      loc: `https://webnn.io/${lang}/${page}`,
+      changefreq: 'weekly',
+      priority: 0.8,
+      lastmod: new Date().toISOString(),
+    }))),
   ],
   changefreq: 'daily',
   priority: 0.7,
