@@ -3,6 +3,9 @@ import { useMDXComponents } from '../../../mdx-components'
 
 export const generateStaticParams = generateStaticParamsFor('mdxPath')
 
+// Unknown paths must return a real 404 status, not a 200 "soft 404" with noindex
+export const dynamicParams = false
+
 export async function generateMetadata(props) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath, params.lang);
