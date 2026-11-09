@@ -4,6 +4,16 @@ import { usePathname } from "next/navigation";
 
 const demosEn = [
   {
+    id: "700",
+    title: "FaceJutsu",
+    description: "Swap faces in photos and videos w/ inswapper_128, SCRFD and ArcFace",
+    imageUrl: "https://webnn.io/demos/img/facejutsu.png",
+    demoUrl: "https://i2m3d.github.io/FaceJutsu/",
+    codeUrl: "https://github.com/i2m3d/FaceJutsu",
+    tags: ["GPU"],
+    framework: [""],
+  },
+  {
     id: "600",
     title: "Image Classification / MobileNetV2",
     description: "ImageNet classification w/ MobileNetV2",
@@ -303,6 +313,16 @@ const demosEn = [
 ]
 
 const demosCh = [
+  {
+    id: "700",
+    title: "FaceJutsu",
+    description: "使用 inswapper_128、SCRFD 和 ArcFace 在照片和视频中进行换脸",
+    imageUrl: "https://webnn.io/demos/img/facejutsu.png",
+    demoUrl: "https://i2m3d.github.io/FaceJutsu/",
+    codeUrl: "https://github.com/i2m3d/FaceJutsu",
+    tags: ["GPU"],
+    framework: [""],
+  },
   {
     id: "600",
     title: "图像分类 / MobileNetV2",
