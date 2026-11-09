@@ -14,6 +14,8 @@ export function DemoCard({ title, description, imageUrl, demoUrl, codeUrl, tags,
     viewDemo = '查看示例';
     viewCode = '查看代码';
   }
+  const frameworkLabel = (Array.isArray(framework) ? framework : [framework]).filter(Boolean).join(', ');
+  const hasCode = Boolean(codeUrl && codeUrl.trim());
 
   return (
     <motion.div
@@ -29,8 +31,10 @@ export function DemoCard({ title, description, imageUrl, demoUrl, codeUrl, tags,
         className="w-full h-48 object-cover"
       />
       <div className="relative flex flex-wrap gap-2 top-[-2.1rem] justify-end pr-2">
-          <motion.span className="inline-block backdrop-blur-sm border-[1px] border-[#ffffff33] border-solid px-2 py-1 rounded-full text-xs text-white" whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}>{framework}</motion.span>
+          {frameworkLabel && (
+            <motion.span className="inline-block backdrop-blur-sm border-[1px] border-[#ffffff33] border-solid px-2 py-1 rounded-full text-xs text-white" whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}>{frameworkLabel}</motion.span>
+          )}
           {tags.map((tag) => (
             <Tag key={tag} type={tag} />
           ))}
@@ -38,7 +42,7 @@ export function DemoCard({ title, description, imageUrl, demoUrl, codeUrl, tags,
       <div className="p-4 mt-[-1.5rem]">
         <h3 className="text-xl light-color font-title mb-2 mt-0">{title}</h3>
         <p className="text-gray-600 mb-4 min-h-12 text-[16px] !leading-none">{description}</p>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className={`grid gap-4 mb-4 ${hasCode ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <MotionLink
             href={demoUrl}
             className="text-sm view-demo inline-block bg-[#03045e] text-white text-center px-1 py-1 rounded-full hover:bg-[#03045e] transition-colors"
@@ -47,14 +51,16 @@ export function DemoCard({ title, description, imageUrl, demoUrl, codeUrl, tags,
           >
             {viewDemo}
           </MotionLink>
-          <MotionLink
-            href={codeUrl}
-            className="text-sm view-code inline-block border-[1px] border-solid border-[#03045e] text-[#03045e] text-center px-1 py-1 rounded-full hover:bg-[#03045e] hover:text-white transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {viewCode}
-          </MotionLink>
+          {hasCode && (
+            <MotionLink
+              href={codeUrl}
+              className="text-sm view-code inline-block border-[1px] border-solid border-[#03045e] text-[#03045e] text-center px-1 py-1 rounded-full hover:bg-[#03045e] hover:text-white transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {viewCode}
+            </MotionLink>
+          )}
         </div>
       </div>
     </motion.div>
